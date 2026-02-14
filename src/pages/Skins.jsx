@@ -2,23 +2,146 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SkinViewer, WalkingAnimation, IdleAnimation } from 'skinview3d';
 import { useNotification } from '../context/NotificationContext';
 
+// Helper Components for Previews
+const SkinPreview = ({ src, className, model = 'classic' }) => {
+    const canvasRef = useRef(null);
+
+    useEffect(() => {
+        const render = () => {
+            const canvas = canvasRef.current;
+            if (!canvas || !src) return;
+            const ctx = canvas.getContext('2d');
+
+            // Scaling factor for "High Quality"
+            const scale = 8;
+            canvas.width = 16 * scale;
+            canvas.height = 32 * scale;
+            ctx.imageSmoothingEnabled = false;
+
+            const img = new Image();
+            img.src = src;
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const isSlim = model === 'slim';
+                const armWidth = isSlim ? 3 : 4;
+
+                // Function to draw a part with optional shadow/depth
+                const drawPart = (sx, sy, sw, sh, dx, dy, dw, dh, shadow = false) => {
+                    if (shadow) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                        ctx.fillRect(dx * scale, (dy + 0.5) * scale, dw * scale, dh * scale);
+                    }
+                    ctx.drawImage(img, sx, sy, sw, sh, dx * scale, dy * scale, dw * scale, dh * scale);
+                };
+
+                // --- Base Body (Inner) ---
+                // Legs
+                // Right Leg (Viewer Left)
+                drawPart(4, 20, 4, 12, 4, 20, 4, 12);
+                // Left Leg (Viewer Right)
+                if (img.height === 64) drawPart(20, 52, 4, 12, 8, 20, 4, 12);
+                else {
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    drawPart(4, 20, 4, 12, -12, 20, 4, 12);
+                    ctx.restore();
+                }
+
+                // Body
+                drawPart(20, 20, 8, 12, 4, 8, 8, 12);
+
+                // Arms
+                // Right Arm Front (Viewer Left)
+                drawPart(44, 20, armWidth, 12, 4 - armWidth, 8, armWidth, 12);
+                // Left Arm Front (Viewer Right)
+                if (img.height === 64) drawPart(36, 52, armWidth, 12, 12, 8, armWidth, 12);
+                else {
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    drawPart(44, 20, 4, 12, -16, 8, 4, 12);
+                    ctx.restore();
+                }
+
+                // Head
+                drawPart(8, 8, 8, 8, 4, 0, 8, 8, true);
+
+                // --- Outer Layers ---
+                if (img.height === 64) {
+                    // Pants
+                    drawPart(4, 36, 4, 12, 4, 20, 4, 12); // Right
+                    drawPart(4, 52, 4, 12, 8, 20, 4, 12); // Left
+                    // Jacket
+                    drawPart(20, 36, 8, 12, 4, 8, 8, 12);
+                    // Sleeves
+                    drawPart(44, 36, armWidth, 12, 4 - armWidth, 8, armWidth, 12); // Right
+                    drawPart(52, 52, armWidth, 12, 12, 8, armWidth, 12); // Left
+                }
+                // Hat (Always there even in 64x32)
+                drawPart(40, 8, 8, 8, 4, 0, 8, 8);
+            };
+        };
+        render();
+    }, [src, model]);
+
+    return <canvas ref={canvasRef} className={`w-full h-full object-contain image-pixelated ${className}`} />;
+};
+
+const CapePreview = ({ src, className }) => {
+    const canvasRef = useRef(null);
+
+    useEffect(() => {
+        const render = () => {
+            const canvas = canvasRef.current;
+            if (!canvas || !src) return;
+            const ctx = canvas.getContext('2d');
+
+            const scale = 8;
+            canvas.width = 10 * scale;
+            canvas.height = 16 * scale;
+            ctx.imageSmoothingEnabled = false;
+
+            const img = new Image();
+            img.src = src;
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // Cape Back: 12, 1, 10, 16
+                ctx.drawImage(img, 12, 1, 10, 16, 0, 0, 10 * scale, 16 * scale);
+            };
+        };
+        render();
+    }, [src]);
+
+    return <canvas ref={canvasRef} className={`w-full h-full object-contain image-pixelated ${className}`} />;
+};
+
 function Skins({ onLogout }) {
     const { addNotification } = useNotification();
     const canvasRef = useRef(null);
     const skinViewerRef = useRef(null);
 
     // State
-    const [currentSkinUrl, setCurrentSkinUrl] = useState(null); // The one on the character
-    const [originalSkinUrl, setOriginalSkinUrl] = useState(null); // The one from Mojang (for reference)
+    const [currentSkinUrl, setCurrentSkinUrl] = useState(null); // The one on the character (Mojang)
     const [localSkins, setLocalSkins] = useState([]);
-    const [selectedLocalSkin, setSelectedLocalSkin] = useState(null); // The one selected in the grid
+
+    // We track "selected" state for applying.
+    // If from local file: {type: 'local', ...skinObj }
+    // If from default URL: {type: 'url', url: '...', model: '...' }
+    const [pendingSkin, setPendingSkin] = useState(null);
+
     const [variant, setVariant] = useState('classic'); // classic (Steve) or slim (Alex)
     const [isAnimating, setIsAnimating] = useState(true);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false); // Global loading (e.g. uploading)
+    const [isSkinLoaded, setIsSkinLoaded] = useState(false); // Valid skin loaded in viewer?
+
     const [editingSkinId, setEditingSkinId] = useState(null);
     const [editName, setEditName] = useState('');
 
     const [userProfile, setUserProfile] = useState(null);
+
+    const [capes, setCapes] = useState([]);
+    const [activeCapeId, setActiveCapeId] = useState(null);
+    const [showCapeModal, setShowCapeModal] = useState(false);
 
     // Initialize Viewer
     useEffect(() => {
@@ -28,15 +151,21 @@ function Skins({ onLogout }) {
             canvas: canvasRef.current,
             width: 300,
             height: 400,
-            skin: "https://textures.minecraft.net/texture/1a4af718455d4aab528e7a61f86fa25e6a369d1768dcb13f7df319a713eb810b" // Default Steve
+            skin: null // Start empty to avoid Steve flash
         });
 
-        // viewer.loadCape(null); // No cape by default
         viewer.fov = 70;
         viewer.zoom = 0.9;
         viewer.animation = new WalkingAnimation();
-        viewer.autoRotate = true;
+        viewer.autoRotate = false; // Disable rotation as requested
         viewer.autoRotateSpeed = 0.5;
+
+        // Quality settings
+        // Force pixelated rendering for crisp skins
+        if (canvasRef.current) {
+            canvasRef.current.style.imageRendering = "pixelated";
+        }
+        viewer.renderer.setPixelRatio(window.devicePixelRatio);
 
         skinViewerRef.current = viewer;
 
@@ -55,8 +184,7 @@ function Skins({ onLogout }) {
     useEffect(() => {
         const handleResize = () => {
             if (skinViewerRef.current && canvasRef.current) {
-                // Keep dimensions fixed or responsive? Fixed for now
-                // skinViewerRef.current.width ...
+                // Resize logic if needed
             }
         };
         window.addEventListener('resize', handleResize);
@@ -70,6 +198,29 @@ function Skins({ onLogout }) {
         }
     }, [isAnimating]);
 
+    const updateSkinInViewer = async (url, model) => {
+        if (!skinViewerRef.current) return;
+        try {
+            await skinViewerRef.current.loadSkin(url, { model: model?.toLowerCase() || 'classic' });
+
+            // Ensure all layers are always visible
+            ["head", "body", "rightArm", "leftArm", "rightLeg", "leftLeg"].forEach(part => {
+                if (skinViewerRef.current.playerObject.skin[part]) {
+                    skinViewerRef.current.playerObject.skin[part].innerLayer.visible = true;
+                    skinViewerRef.current.playerObject.skin[part].outerLayer.visible = true;
+                }
+            });
+
+            // Restore cape
+            const activeCape = capes.find(c => c.id === activeCapeId);
+            if (activeCape) skinViewerRef.current.loadCape(activeCape.url);
+
+            setIsSkinLoaded(true);
+        } catch (e) {
+            console.error("Failed to update skin viewer", e);
+        }
+    }
+
     const loadProfileAndSkin = async () => {
         setIsLoading(true);
         try {
@@ -79,11 +230,9 @@ function Skins({ onLogout }) {
             if (window.electronAPI.validateSession) {
                 const val = await window.electronAPI.validateSession();
                 if (!val.success) {
-                    // No notification as requested, just trigger logout
                     if (onLogout) {
                         onLogout();
                     } else {
-                        // Fallback: clear local state and potentially reload or just show guest
                         setUserProfile(null);
                     }
                     setIsLoading(false);
@@ -98,13 +247,17 @@ function Skins({ onLogout }) {
                 try {
                     const res = await window.electronAPI.getCurrentSkin(profile.access_token);
                     if (res.success) {
-                        setOriginalSkinUrl(res.url);
-                        setCurrentSkinUrl(res.url);
-                        setVariant(res.variant || 'classic');
+                        const skinUrl = res.url;
+                        const model = res.variant || 'classic';
 
-                        if (skinViewerRef.current) {
-                            skinViewerRef.current.loadSkin(res.url, { model: res.variant.toLowerCase() || 'classic' });
-                        }
+                        setCurrentSkinUrl(skinUrl);
+                        setVariant(model);
+                        setCapes(res.capes || []);
+
+                        const activeCape = (res.capes || []).find(c => c.state === 'ACTIVE');
+                        setActiveCapeId(activeCape ? activeCape.id : null);
+
+                        await updateSkinInViewer(skinUrl, model);
                     }
                 } catch (e) {
                     console.error("Failed to load skin", e);
@@ -118,10 +271,7 @@ function Skins({ onLogout }) {
 
     const loadLocalSkins = async () => {
         try {
-            if (!window.electronAPI?.getLocalSkins) {
-                console.warn("getLocalSkins API not available");
-                return;
-            }
+            if (!window.electronAPI?.getLocalSkins) return;
             const skins = await window.electronAPI.getLocalSkins();
             setLocalSkins(skins || []);
         } catch (e) {
@@ -144,33 +294,75 @@ function Skins({ onLogout }) {
         }
     };
 
-    const handleSelectSkin = async (skin) => {
-        setSelectedLocalSkin(skin);
-        if (skinViewerRef.current && skin.data) {
-            // Use Base64 data which bypasses file:// restrictions
-            skinViewerRef.current.loadSkin(skin.data, { model: variant });
-            setCurrentSkinUrl(skin.data);
+    const handleSelectLocalSkin = async (skin) => {
+        setPendingSkin({ type: 'local', ...skin });
+        if (skin.data) {
+            await updateSkinInViewer(skin.data, variant);
         }
     };
 
+    const handleSelectDefaultSkin = async (name) => {
+        const url = name === 'Steve'
+            ? "https://textures.minecraft.net/texture/1a4af718455d4aab528e7a61f86fa25e6a369d1768dcb13f7df319a713eb810b"
+            : "http://textures.minecraft.net/texture/3b60a1f6d562f52aaebbf1434f1de147933a3affe0e764fa49ea057536623cd3";
+        const model = name === 'Steve' ? 'classic' : 'slim';
+
+        setPendingSkin({ type: 'url', url, model, name });
+        setVariant(model);
+
+        await updateSkinInViewer(url, model);
+    };
+
     const handleApplySkin = async () => {
-        if (!selectedLocalSkin) return;
+        if (!pendingSkin) return;
         if (!userProfile) {
             addNotification('You must be logged in to upload a skin', 'error');
             return;
         }
 
         setIsLoading(true);
-        // We need to pass the skin PATH to the backend
-        const res = await window.electronAPI.uploadSkin(userProfile.access_token, selectedLocalSkin.path, variant);
+        let res;
+
+        try {
+            if (pendingSkin.type === 'local') {
+                res = await window.electronAPI.uploadSkin(userProfile.access_token, pendingSkin.path, variant);
+            } else if (pendingSkin.type === 'url') {
+                // New backend handler for URL uploads
+                res = await window.electronAPI.uploadSkinFromUrl(userProfile.access_token, pendingSkin.url, variant);
+            }
+
+            if (res.success) {
+                addNotification('Skin uploaded! It may take a minute to update.', 'success');
+                setPendingSkin(null);
+                // Reload to sync everything
+                loadProfileAndSkin();
+            } else {
+                addNotification(`Upload failed: ${res.error}`, 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            addNotification('Upload failed due to an error.', 'error');
+        }
+
+        setIsLoading(false);
+    };
+
+    const handleSetCape = async (capeId) => {
+        if (!userProfile) return;
+        setIsLoading(true);
+        const res = await window.electronAPI.setCape(userProfile.access_token, capeId);
         setIsLoading(false);
 
         if (res.success) {
-            addNotification('Skin uploaded! It may take a minute to update.', 'success');
-            setOriginalSkinUrl(currentSkinUrl); // Update "original" to what we just uploaded (conceptually)
-            loadProfileAndSkin(); // Reload to confirm
+            const cape = capes.find(c => c.id === capeId);
+            setActiveCapeId(capeId);
+            if (skinViewerRef.current) {
+                skinViewerRef.current.loadCape(cape ? cape.url : null);
+            }
+            setShowCapeModal(false);
+            addNotification(capeId ? 'Cape activated' : 'Cape removed', 'success');
         } else {
-            addNotification(`Upload failed: ${res.error}`, 'error');
+            addNotification(`Failed to set cape: ${res.error}`, 'error');
         }
     };
 
@@ -179,12 +371,11 @@ function Skins({ onLogout }) {
         const res = await window.electronAPI.deleteLocalSkin(id);
         if (res.success) {
             addNotification('Skin deleted', 'info');
-            if (selectedLocalSkin?.id === id) {
-                setSelectedLocalSkin(null);
-                // Revert viewer to original
-                if (skinViewerRef.current && originalSkinUrl) {
-                    skinViewerRef.current.loadSkin(originalSkinUrl, { model: variant });
-                    setCurrentSkinUrl(originalSkinUrl);
+            if (pendingSkin?.id === id) {
+                setPendingSkin(null);
+                // Revert to current actual skin
+                if (skinViewerRef.current && currentSkinUrl) {
+                    await updateSkinInViewer(currentSkinUrl, variant);
                 }
             }
             loadLocalSkins();
@@ -209,7 +400,51 @@ function Skins({ onLogout }) {
     };
 
     return (
-        <div className="h-full flex overflow-hidden">
+        <div className="h-full flex overflow-hidden relative">
+            {/* Cape Selection Modal */}
+            {showCapeModal && (
+                <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-8 backdrop-blur-sm">
+                    <div className="bg-surface border border-white/10 rounded-2xl p-6 w-full max-w-2xl max-h-full flex flex-col">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold text-white">Select a Cape</h2>
+                            <button onClick={() => setShowCapeModal(false)} className="text-gray-400 hover:text-white transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto custom-scrollbar p-1">
+                            {/* No Cape Option */}
+                            <div
+                                onClick={() => handleSetCape(null)}
+                                className={`aspect-[3/4] rounded-xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${activeCapeId === null ? 'border-primary bg-primary/10' : 'border-white/10 hover:border-white/30 bg-black/20'}`}
+                            >
+                                <div className="text-gray-400 font-bold">No Cape</div>
+                            </div>
+
+                            {capes.map(cape => (
+                                <div
+                                    key={cape.id}
+                                    onClick={() => handleSetCape(cape.id)}
+                                    className={`aspect-[3/4] rounded-xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden ${activeCapeId === cape.id ? 'border-primary bg-primary/10' : 'border-white/10 hover:border-white/30 bg-black/20'}`}
+                                >
+                                    <div className="h-1/2 w-full p-2 flex items-center justify-center">
+                                        <CapePreview src={cape.url} />
+                                    </div>
+                                    <span className="text-sm font-medium text-white text-center px-2">{cape.alias}</span>
+                                    {activeCapeId === cape.id && (
+                                        <div className="absolute top-2 right-2 bg-primary text-black text-xs font-bold px-2 py-0.5 rounded-full">
+                                            Active
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Left Panel: 3D Preview */}
             <div className="w-1/3 min-w-[300px] bg-background-dark border-r border-white/5 flex flex-col items-center justify-center relative p-6">
                 <div className="absolute top-4 left-4 bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
@@ -220,7 +455,16 @@ function Skins({ onLogout }) {
                     {userProfile?.name || 'Guest'}
                 </h2>
 
-                <canvas ref={canvasRef} className="cursor-move" />
+                <div className={`relative w-full h-[400px] flex items-center justify-center transition-opacity duration-300 ${isSkinLoaded ? 'opacity-100' : 'opacity-0'}`}>
+                    <canvas ref={canvasRef} className="cursor-move outline-none" />
+                </div>
+
+                {/* Fallback Loader while Skin is loading */}
+                {!isSkinLoaded && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                )}
 
                 <div className="absolute bottom-6 flex gap-4">
                     <button
@@ -241,8 +485,10 @@ function Skins({ onLogout }) {
                         onClick={() => {
                             const newVariant = variant === 'classic' ? 'slim' : 'classic';
                             setVariant(newVariant);
-                            if (skinViewerRef.current && currentSkinUrl) {
-                                skinViewerRef.current.loadSkin(currentSkinUrl, { model: newVariant });
+                            // If we have a pending skin, reload that
+                            const url = pendingSkin?.url || pendingSkin?.data || currentSkinUrl;
+                            if (skinViewerRef.current && url) {
+                                updateSkinInViewer(url, newVariant);
                             }
                         }}
                         className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-colors text-white text-sm font-medium"
@@ -250,9 +496,12 @@ function Skins({ onLogout }) {
                         Model: {variant === 'classic' ? '(Wide)' : '(Slim)'}
                     </button>
 
-                    {/* Placeholder for Cape */}
-                    <button className="bg-white/5 text-gray-500 px-4 py-2 rounded-lg text-sm font-medium cursor-not-allowed">
-                        Change Cape
+                    <button
+                        onClick={() => setShowCapeModal(true)}
+                        disabled={!capes.length}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${!capes.length ? 'bg-white/5 text-gray-500 cursor-not-allowed' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+                    >
+                        {capes.length ? 'Change Cape' : 'No Capes'}
                     </button>
                 </div>
             </div>
@@ -264,7 +513,7 @@ function Skins({ onLogout }) {
                         <h1 className="text-3xl font-bold text-white">Skins</h1>
                         <p className="text-gray-400">Manage your appearance</p>
                     </div>
-                    {selectedLocalSkin && (
+                    {pendingSkin && (
                         <button
                             onClick={handleApplySkin}
                             disabled={isLoading}
@@ -296,18 +545,11 @@ function Skins({ onLogout }) {
                         {localSkins.map((skin) => (
                             <div
                                 key={skin.id}
-                                onClick={() => handleSelectSkin(skin)}
-                                className={`aspect-[3/4] bg-surface rounded-xl overflow-hidden relative cursor-pointer border-2 transition-all group ${selectedLocalSkin?.id === skin.id ? 'border-primary shadow-primary-glow' : 'border-transparent hover:border-white/20'}`}
+                                onClick={() => handleSelectLocalSkin(skin)}
+                                className={`aspect-[3/4] bg-surface rounded-xl overflow-hidden relative cursor-pointer border-2 transition-all group ${pendingSkin?.id === skin.id ? 'border-primary shadow-primary-glow' : 'border-transparent hover:border-white/20'}`}
                             >
-                                {/* We display the 2D texture as preview */}
                                 <div className="p-4 flex items-center justify-center h-full bg-[#1a1a1a]">
-                                    {/* Simple pixelated rendering of the flat skin? Or just the raw image */}
-                                    <img
-                                        src={skin.data || `file://${skin.path}`}
-                                        alt={skin.name}
-                                        className="w-full h-auto object-contain image-pixelated" // CSS class needed for crisp pixels
-                                        style={{ imageRendering: 'pixelated' }}
-                                    />
+                                    <SkinPreview src={skin.data || `file://${skin.path}`} />
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                     {editingSkinId === skin.id ? (
@@ -372,27 +614,8 @@ function Skins({ onLogout }) {
                         {['Steve', 'Alex'].map(name => (
                             <div
                                 key={name}
-                                onClick={() => {
-                                    const url = name === 'Steve'
-                                        ? "https://textures.minecraft.net/texture/1a4af718455d4aab528e7a61f86fa25e6a369d1768dcb13f7df319a713eb810b"
-                                        : "http://textures.minecraft.net/texture/3b60a1f6d562f52aaebbf1434f1de147933a3affe0e764fa49ea057536623cd3"; // Alex default texture
-
-                                    if (skinViewerRef.current) {
-                                        try {
-                                            skinViewerRef.current.loadSkin(url, { model: name === 'Steve' ? 'classic' : 'slim' })
-                                                .catch(err => {
-                                                    console.error('Failed to load default skin:', err);
-                                                    addNotification(`Failed to load ${name} skin texture`, 'error');
-                                                });
-                                            setCurrentSkinUrl(url);
-                                            setVariant(name === 'Steve' ? 'classic' : 'slim');
-                                            setSelectedLocalSkin(null);
-                                        } catch (e) {
-                                            console.error('Skin viewer error:', e);
-                                        }
-                                    }
-                                }}
-                                className="aspect-[3/4] bg-surface rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer border-2 border-transparent hover:border-white/20 transition-all"
+                                onClick={() => handleSelectDefaultSkin(name)}
+                                className={`aspect-[3/4] bg-surface rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer border-2 transition-all ${pendingSkin?.name === name ? 'border-primary shadow-primary-glow' : 'border-transparent hover:border-white/20'}`}
                             >
                                 <div className="text-gray-400 font-bold">{name}</div>
                             </div>

@@ -45,9 +45,14 @@ module.exports = (ipcMain, mainWindow) => {
             const currentSkin = skins.find(s => s.state === 'ACTIVE');
 
             if (currentSkin) {
-                return { success: true, url: currentSkin.url, variant: currentSkin.variant };
+                return {
+                    success: true,
+                    url: currentSkin.url,
+                    variant: currentSkin.variant,
+                    capes: res.data.capes || []
+                };
             }
-            return { success: false, error: 'No active skin found' };
+            return { success: false, error: 'No active skin found', capes: res.data.capes || [] };
         } catch (e) {
             console.error('Failed to fetch current skin:', e.message);
             return { success: false, error: e.message };
@@ -76,6 +81,78 @@ module.exports = (ipcMain, mainWindow) => {
             return { success: true };
         } catch (e) {
             console.error('Failed to upload skin:', e.response?.data || e.message);
+            return { success: false, error: e.response?.data?.errorMessage || e.message };
+        }
+    });
+
+    // 2.1 Upload Skin from URL (for Default Skins)
+    ipcMain.handle('skin:upload-from-url', async (_, token, skinUrl, variant = 'classic') => {
+        try {
+            if (!token) return { success: false, error: 'No token provided' };
+            if (!skinUrl) return { success: false, error: 'No URL provided' };
+
+            // Download the skin to a temp file
+            const tempPath = path.join(app.getPath('temp'), `skin-${Date.now()}.png`);
+            const writer = fs.createWriteStream(tempPath);
+
+            const response = await axios({
+                url: skinUrl,
+                method: 'GET',
+                responseType: 'stream'
+            });
+
+            response.data.pipe(writer);
+
+            await new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+            });
+
+            // Upload to Mojang
+            const FormData = require('form-data');
+            const form = new FormData();
+            form.append('variant', variant);
+            form.append('file', fs.createReadStream(tempPath));
+
+            await axios.post('https://api.minecraftservices.com/minecraft/profile/skins', form, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    ...form.getHeaders()
+                }
+            });
+
+            // Cleanup
+            fs.remove(tempPath).catch(console.error);
+
+            return { success: true };
+        } catch (e) {
+            console.error('Failed to upload skin from URL:', e.response?.data || e.message);
+            return { success: false, error: e.response?.data?.errorMessage || e.message };
+        }
+    });
+
+    // 2.5 Set Active Cape
+    ipcMain.handle('skin:set-cape', async (_, token, capeId) => {
+        try {
+            if (!token) return { success: false, error: 'No token provided' };
+
+            if (capeId) {
+                // Set/Show Cape
+                await axios.put(
+                    'https://api.minecraftservices.com/minecraft/profile/capes/active',
+                    { capeId },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            } else {
+                // Hide Cape
+                await axios.delete(
+                    'https://api.minecraftservices.com/minecraft/profile/capes/active',
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            }
+            return { success: true };
+        } catch (e) {
+            console.error('Failed to set cape:', e.response?.data || e.message);
             return { success: false, error: e.response?.data?.errorMessage || e.message };
         }
     });

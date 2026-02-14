@@ -59,3 +59,10 @@
 .no-drag {
   -webkit-app-region: no-drag;
 }
+
+.image-pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-pixelated;
+  image-rendering: crisp-edges;
+  -ms-interpolation-mode: nearest-neighbor;
+}

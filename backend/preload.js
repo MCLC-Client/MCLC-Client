@@ -72,12 +72,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Skins
     getCurrentSkin: (token) => ipcRenderer.invoke('skin:get-current', token),
     uploadSkin: (token, skinPath, variant) => ipcRenderer.invoke('skin:upload', token, skinPath, variant),
+    uploadSkinFromUrl: (token, skinUrl, variant) => ipcRenderer.invoke('skin:upload-from-url', token, skinUrl, variant),
+    setCape: (token, capeId) => ipcRenderer.invoke('skin:set-cape', token, capeId),
     saveLocalSkin: (filePath) => ipcRenderer.invoke('skin:save-local', filePath),
     getLocalSkins: () => ipcRenderer.invoke('skin:get-local'),
     deleteLocalSkin: (id) => ipcRenderer.invoke('skin:delete-local', id),
     renameLocalSkin: (id, newName) => ipcRenderer.invoke('skin:rename-local', id, newName),
 
-    // Events
     // Events
     onLaunchProgress: (callback) => {
         const subscription = (_event, value) => callback(value);
