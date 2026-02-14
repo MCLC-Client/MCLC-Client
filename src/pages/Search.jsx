@@ -173,13 +173,14 @@ function Search() {
                 <select
                     value={sortMethod}
                     onChange={(e) => setSortMethod(e.target.value)}
-                    className="bg-surface border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary outline-none appearance-none cursor-pointer"
+                    className="bg-surface border-none rounded-lg px-4 py-2 text-white outline-none appearance-none cursor-pointer focus:outline-none focus:border-none focus:ring-0"
                 >
                     <option value="relevance">Relevance</option>
                     <option value="downloads">Downloads</option>
                     <option value="newest">Newest</option>
                     <option value="updated">Updated</option>
                 </select>
+
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-4">
