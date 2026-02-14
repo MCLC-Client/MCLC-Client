@@ -247,7 +247,7 @@ function Skins({ onLogout }) {
                         }}
                         className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-colors text-white text-sm font-medium"
                     >
-                        Model: {variant === 'classic' ? 'Steve (Wide)' : 'Alex (Slim)'}
+                        Model: {variant === 'classic' ? '(Wide)' : '(Slim)'}
                     </button>
 
                     {/* Placeholder for Cape */}
