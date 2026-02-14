@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCLC Admin Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card login-card">
+        <h1 style="font-size: 2rem; margin-bottom: 2rem;">MCLC <span
+                style="font-weight:300; opacity:0.6; font-size:0.5em;">ADMIN</span></h1>
+        <form id="loginForm">
+            <input type="password" id="password" placeholder="Enter Admin Key" required
+                style="text-align:center; font-size:1.1rem; padding: 15px;">
+            <button type="submit" class="primary" style="margin-top: 15px;">ACCESS PANEL</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            const data = await res.json();
+            if (data.success) {
+                localStorage.setItem('admin_password', password);
+                window.location.href = 'admin.html';
+            } else {
+                alert('Access Denied');
+            }
+        });
+    </script>
+
+</body>
+
+</html>

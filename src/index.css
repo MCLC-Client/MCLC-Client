@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #1bd96a;
+  --background-color: #111111;
+  --background-dark-color: #0b0b0b;
+  --surface-color: #1c1c1c;
+  --glass-blur: 10px;
+  --glass-opacity: 0.8;
+  --border-radius: 12px;
+  --panel-opacity: 0.85;
+  --bg-image: none;
+}
+
+@layer base {
+  body {
+    @apply antialiased text-gray-100 bg-background select-none overflow-hidden;
+    /* Modern dark theme base */
+  }
+
+  /* Universal Border Radius helper */
+  .rounded-custom {
+    border-radius: var(--border-radius);
+  }
+
+  /* Glassmorphism utility */
+  .glass-panel {
+    background-color: rgba(var(--surface-color-rgb, 28, 28, 28), var(--panel-opacity));
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #1e1e1e;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #3c3c3c;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #4b4b4b;
+  }
+}
+
+/* Titlebar drag region */
+.titlebar {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
