@@ -40,7 +40,7 @@ module.exports = (ipcMain, mainWindow) => {
 
             const res = await axios.get('https://api.minecraftservices.com/minecraft/profile', {
                 headers: { Authorization: `Bearer ${token}` },
-                timeout: 15000
+                timeout: 30000
             });
 
             const skins = res.data.skins || [];
@@ -81,7 +81,7 @@ module.exports = (ipcMain, mainWindow) => {
                     Authorization: `Bearer ${token}`,
                     ...form.getHeaders()
                 },
-                timeout: 15000
+                timeout: 30000
             });
 
             return { success: true };
@@ -108,7 +108,7 @@ module.exports = (ipcMain, mainWindow) => {
                 url: skinUrl,
                 method: 'GET',
                 responseType: 'stream',
-                timeout: 15000
+                timeout: 30000
             });
 
             response.data.pipe(writer);

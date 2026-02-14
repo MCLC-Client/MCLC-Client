@@ -2,6 +2,12 @@ const { app, BrowserWindow, ipcMain, protocol, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
+const dns = require('dns');
+
+// Fix for IPv6 connection timeouts (ETIMEDOUT) on some networks
+if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+}
 
 // MUST be called before app.whenReady
 protocol.registerSchemesAsPrivileged([

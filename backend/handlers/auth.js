@@ -80,7 +80,7 @@ module.exports = (ipcMain, mainWindow) => {
                     const axios = require('axios');
                     await axios.get('https://api.minecraftservices.com/minecraft/profile', {
                         headers: { Authorization: `Bearer ${profile.access_token}` },
-                        timeout: 5000
+                        timeout: 15000
                     });
                     return { success: true };
                 } catch (e) {
