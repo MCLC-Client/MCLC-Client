@@ -1,6 +1,8 @@
 # 🎮 MCLC - Modern Minecraft Launcher
 
-![MCLC Logo](resources/icon.png)
+<p align="center">
+  <img src="resources/icon.png" alt="MCLC Logo" width="128">
+</p>
 
 MCLC is a high-performance, modern, and beautiful Minecraft launcher built with **Electron**, **React**, and **Tailwind CSS**. It provides a premium experience for managing instances, skins, and modpacks with a focus on speed and aesthetics.
 
