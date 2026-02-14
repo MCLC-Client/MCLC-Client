@@ -12,32 +12,80 @@ module.exports = (ipcMain, mainWindow) => {
     const childProcesses = new Map(); // name -> ChildProcess object
     const activeLaunches = new Map(); // name -> { cancelled: boolean }
 
-    // Helper to set window title on Windows
+    // Helper to set window title on Windows (Ultra High Performance / C# Injection)
     function setWindowTitle(pid, title) {
         if (process.platform !== 'win32') return;
 
         const { exec } = require('child_process');
-        // Powershell script to find window by PID and set its title
+
+        // Wir kompilieren C# Code "on-the-fly". Das läuft fast so schnell wie eine native .exe
+        // Es prüft den Titel alle 10ms (100x pro Sekunde) ohne CPU-Last.
         const script = `
-            $title = "${title.replace(/"/g, '`"')}"
-            $sig = '[DllImport("user32.dll")] public static extern bool SetWindowText(IntPtr hWnd, string lpString);'
-            if (-not ([System.Management.Automation.PSTypeName]'Win32.Win32Utils').Type) {
-                Add-Type -MemberDefinition $sig -Name "Win32Utils" -Namespace "Win32"
+$code = @"
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Diagnostics;
+using System.Threading;
+
+public class TitleFixer {
+    [DllImport("user32.dll")]
+    public static extern bool SetWindowText(IntPtr hWnd, string lpString);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll")]
+    public static extern bool IsWindow(IntPtr hWnd);
+
+    public static void Run(int pid, string targetTitle) {
+        Process p = null;
+        try { p = Process.GetProcessById(pid); } catch { return; }
+        
+        IntPtr handle = IntPtr.Zero;
+        StringBuilder sb = new StringBuilder(512);
+        
+        while (!p.HasExited) {
+            try {
+                // Handle holen oder aktualisieren, falls Fenster neu erstellt wurde (z.B. Fullscreen Toggle)
+                if (handle == IntPtr.Zero || !IsWindow(handle)) {
+                    p.Refresh();
+                    handle = p.MainWindowHandle;
+                }
+
+                if (handle != IntPtr.Zero) {
+                    sb.Clear();
+                    GetWindowText(handle, sb, sb.Capacity);
+                    
+                    string current = sb.ToString();
+                    if (current != targetTitle && !string.IsNullOrEmpty(current)) {
+                        // Minecraft detected!
+                        SetWindowText(handle, targetTitle);
+                        
+                        // Wait a bit to avoid fighting in the same frame
+                        Thread.Sleep(200);
+                    }
+                }
+            } catch {
+                // Fehler ignorieren
             }
             
-            for ($i = 0; $i -lt 30; $i++) {
-                $process = Get-Process -Id ${pid} -ErrorAction SilentlyContinue
-                if ($process -and $process.MainWindowHandle -ne 0) {
-                    [Win32.Win32Utils]::SetWindowText($process.MainWindowHandle, $title)
-                    break
-                }
-                Start-Sleep -Milliseconds 1000
-            }
+            // Check every 200ms when idle
+            Thread.Sleep(200);
+        }
+    }
+}
+"@
+
+Add-Type -TypeDefinition $code -Language CSharp
+[TitleFixer]::Run(${pid}, "${title.replace(/"/g, '`"')}")
         `;
 
         const b64 = Buffer.from(script, 'utf16le').toString('base64');
-        exec(`powershell -ExecutionPolicy Bypass -EncodedCommand ${b64}`, (err) => {
-            if (err) console.error('[Launcher] Window title hack error:', err);
+
+        // Wichtig: windowsHide: true, damit kein Fenster aufpoppt
+        exec(`powershell -ExecutionPolicy Bypass -NoProfile -EncodedCommand ${b64}`, { windowsHide: true }, (err) => {
+            if (err) console.error('[Launcher] Title watcher ended:', err);
         });
     }
 
@@ -82,12 +130,13 @@ module.exports = (ipcMain, mainWindow) => {
     });
 
     ipcMain.handle('launcher:launch', async (_, instanceName) => {
-        if (runningInstances.has(instanceName)) {
-            return { success: false, error: 'Instance is already running' };
+        if (runningInstances.has(instanceName) || activeLaunches.has(instanceName)) {
+            console.warn(`[Launcher] Blocked launch attempt for ${instanceName} - Already ${activeLaunches.has(instanceName) ? 'launching' : 'running'}`);
+            return { success: false, error: 'Instance is already running or launching' };
         }
 
-        // track active launch
         activeLaunches.set(instanceName, { cancelled: false });
+
         try {
             const instanceDir = path.join(app.getPath('userData'), 'instances', instanceName);
             const configPath = path.join(instanceDir, 'instance.json');
@@ -251,6 +300,13 @@ module.exports = (ipcMain, mainWindow) => {
                 console.log("Added NeoForge JVM arguments");
             }
 
+            // Stable Window Title Tier 1: JVM Arguments
+            if (!opts.customArgs) opts.customArgs = [];
+            opts.customArgs.push(`-Dorg.lwjgl.opengl.Window.name=MCLC Client ${config.version || ''}`);
+            opts.customArgs.push(`-Dorg.lwjgl.Display.title=MCLC Client ${config.version || ''}`);
+            // Tier 1.5: Version Type (often shown in title)
+            opts.version.type = "MCLC Client";
+
             if (config.loader && config.loader.toLowerCase() !== 'vanilla') {
                 if (!config.versionId) {
                     return { success: false, error: `Instance configuration incomplete (missing versionId). Please reinstall ${instanceName}.` };
@@ -366,11 +422,18 @@ module.exports = (ipcMain, mainWindow) => {
                         console.log(`[Launcher] Updated total playtime for ${instanceName}: ${currentConfig.playtime}ms`);
 
                         // Handle Crashes & mclo.gs Upload
-                        const isCrash = (code !== 0 && code !== null) || logCrashDetected;
+                        const sessionTime = Date.now() - startTime;
+                        // A session shorter than 15 seconds that wasn't manual kill is likely a crash/early exit
+                        const isShortSession = sessionTime < 15000;
+                        const isCrash = (code !== 0 && code !== null) || logCrashDetected || isShortSession;
+
                         if (isCrash) {
+                            console.log(`[Launcher] Crash/Early Exit detected for ${instanceName} (Exit code: ${code}, LogCrash: ${logCrashDetected}, Duration: ${sessionTime}ms).`);
+
+                            let logUrl = null;
                             const settings = store.get('settings') || {};
                             if (settings.autoUploadLogs) {
-                                console.log(`[Launcher] Crash detected for ${instanceName} (Exit code: ${code}, LogCrash: ${logCrashDetected}). Uploading logs...`);
+                                console.log('[Launcher] autoUploadLogs is enabled, uploading to mclo.gs...');
                                 const logPath = path.join(instanceDir, 'logs', 'latest.log');
                                 if (await fs.pathExists(logPath)) {
                                     try {
@@ -384,19 +447,21 @@ module.exports = (ipcMain, mainWindow) => {
                                         });
 
                                         if (response.data && response.data.success) {
-                                            const logUrl = response.data.url;
+                                            logUrl = response.data.url;
                                             console.log(`[Launcher] Logs uploaded to mclo.gs: ${logUrl}`);
-                                            mainWindow.webContents.send('launcher:crash-report', {
-                                                instanceName,
-                                                exitCode: code,
-                                                logUrl
-                                            });
                                         }
                                     } catch (err) {
                                         console.error('[Launcher] Failed to upload logs to mclo.gs:', err.message);
                                     }
                                 }
                             }
+
+                            // Always notify frontend about the crash
+                            mainWindow.webContents.send('launcher:crash-report', {
+                                instanceName,
+                                exitCode: code,
+                                logUrl: logUrl
+                            });
                         }
                     } catch (err) {
                         console.error("[Launcher] Failed to update instance data after close:", err);

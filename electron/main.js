@@ -46,6 +46,7 @@ function createWindow() {
     require('../backend/handlers/instances')(ipcMain, mainWindow);
     console.log('[Main] Registering launcher handler...');
     require('../backend/handlers/launcher')(ipcMain, mainWindow);
+    require('../backend/handlers/servers')(ipcMain, mainWindow);
     console.log('[Main] Registering Modrinth handler...');
     require('../backend/handlers/modrinth')(ipcMain);
     console.log('[Main] Registering data handler...');
@@ -61,7 +62,7 @@ function createWindow() {
     discord.initRPC();
 
     // In production, load the built index.html. In dev, load localhost.
-    const isDev = process.env.NODE_ENV === 'development';
+    const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
     if (isDev) {
         mainWindow.loadURL('http://localhost:3000');
         mainWindow.webContents.openDevTools();

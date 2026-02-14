@@ -119,4 +119,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('window-state', subscription);
         return () => ipcRenderer.removeListener('window-state', subscription);
     },
+
+    // Server Management
+    getServers: () => ipcRenderer.invoke('server:get-all'),
+    createServer: (data) => ipcRenderer.invoke('server:create', data),
+    deleteServer: (name) => ipcRenderer.invoke('server:delete', name),
+    startServer: (name) => ipcRenderer.invoke('server:start', name),
+    stopServer: (name) => ipcRenderer.invoke('server:stop', name),
+    restartServer: (name) => ipcRenderer.invoke('server:restart', name),
+    getServerConsole: (name) => ipcRenderer.invoke('server:get-console', name),
+    sendServerCommand: (serverName, command) => ipcRenderer.invoke('server:send-command', serverName, command),
+
+    // Server Events
+    onServerStatus: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('server:status', subscription);
+        return () => ipcRenderer.removeListener('server:status', subscription);
+    },
+    onServerConsoleOutput: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('server:console', subscription);
+        return () => ipcRenderer.removeListener('server:console', subscription);
+    },
+    onServerStats: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('server:stats', subscription);
+        return () => ipcRenderer.removeListener('server:stats', subscription);
+    }
 });
