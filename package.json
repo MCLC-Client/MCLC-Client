@@ -6,7 +6,7 @@
   "version": "1.3.2",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently \"cross-env NODE_ENV=development vite\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
+    "dev": "concurrently \"vite\" \"electron .\"",
     "build": "vite build",
     "start": "electron .",
     "dist": "npm run build && electron-builder"
