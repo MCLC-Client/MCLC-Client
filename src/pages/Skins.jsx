@@ -259,6 +259,12 @@ function Skins({ onLogout }) {
 
                         await updateSkinInViewer(skinUrl, model);
                     } else {
+                        if (res.authError) {
+                            console.warn("Session expired detected in Skins tab, logging out...");
+                            addNotification('Session expired. Please login again.', 'error');
+                            if (onLogout) onLogout();
+                            return;
+                        }
                         addNotification(`Skin error: ${res.error}`, 'info');
                         setIsSkinLoaded(true); // Still allow showing guest if no skin
                     }
@@ -342,7 +348,12 @@ function Skins({ onLogout }) {
                 // Reload to sync everything
                 loadProfileAndSkin();
             } else {
-                addNotification(`Upload failed: ${res.error}`, 'error');
+                if (res.authError) {
+                    addNotification('Session expired. Please login again.', 'error');
+                    if (onLogout) onLogout();
+                } else {
+                    addNotification(`Upload failed: ${res.error}`, 'error');
+                }
             }
         } catch (e) {
             console.error(e);
@@ -367,7 +378,12 @@ function Skins({ onLogout }) {
             setShowCapeModal(false);
             addNotification(capeId ? 'Cape activated' : 'Cape removed', 'success');
         } else {
-            addNotification(`Failed to set cape: ${res.error}`, 'error');
+            if (res.authError) {
+                addNotification('Session expired. Please login again.', 'error');
+                if (onLogout) onLogout();
+            } else {
+                addNotification(`Failed to set cape: ${res.error}`, 'error');
+            }
         }
     };
 

@@ -72,8 +72,27 @@ module.exports = (ipcMain, mainWindow) => {
 
         try {
             // Check if current token is valid. Pass object with exp to avoid 'in' operator error on string
-            const isValid = mcTokenToolbox.validate({ exp: profile.exp });
-            if (isValid) return { success: true };
+            const isLocalValid = mcTokenToolbox.validate({ exp: profile.exp });
+
+            if (isLocalValid) {
+                // Proactively check with Mojang to be 100% sure (helps with revoked tokens)
+                try {
+                    const axios = require('axios');
+                    await axios.get('https://api.minecraftservices.com/minecraft/profile', {
+                        headers: { Authorization: `Bearer ${profile.access_token}` },
+                        timeout: 5000
+                    });
+                    return { success: true };
+                } catch (e) {
+                    if (e.response?.status === 401) {
+                        console.log("Token locally valid but rejected by Mojang, needing refresh.");
+                        // Fall through to refresh logic
+                    } else {
+                        // Network error or Mojang down? Assume valid for now if local check passed
+                        return { success: true };
+                    }
+                }
+            }
 
             // If not valid, try refreshing
             if (profile.refresh_token) {

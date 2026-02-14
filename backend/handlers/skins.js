@@ -56,7 +56,10 @@ module.exports = (ipcMain, mainWindow) => {
             }
             return { success: false, error: 'No active skin found', capes: res.data.capes || [] };
         } catch (e) {
-            console.error('Failed to fetch current skin:', e.message);
+            console.error('Failed to fetch current skin:', e.response?.data || e.message);
+            if (e.response?.status === 401) {
+                return { success: false, error: 'Unauthorized', authError: true };
+            }
             return { success: false, error: e.message };
         }
     });
@@ -84,6 +87,9 @@ module.exports = (ipcMain, mainWindow) => {
             return { success: true };
         } catch (e) {
             console.error('Failed to upload skin:', e.response?.data || e.message);
+            if (e.response?.status === 401) {
+                return { success: false, error: 'Unauthorized', authError: true };
+            }
             return { success: false, error: e.response?.data?.errorMessage || e.message };
         }
     });
@@ -131,6 +137,9 @@ module.exports = (ipcMain, mainWindow) => {
             return { success: true };
         } catch (e) {
             console.error('Failed to upload skin from URL:', e.response?.data || e.message);
+            if (e.response?.status === 401) {
+                return { success: false, error: 'Unauthorized', authError: true };
+            }
             return { success: false, error: e.response?.data?.errorMessage || e.message };
         }
     });
