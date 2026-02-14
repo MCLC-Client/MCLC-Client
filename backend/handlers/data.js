@@ -51,7 +51,7 @@ module.exports = (ipcMain) => {
             const NEWS_URL = 'https://mclc.pluginhub.de/news.json';
 
             console.log(`[News] Fetching from ${NEWS_URL}...`);
-            const response = await axios.get(NEWS_URL, { timeout: 5000 });
+            const response = await axios.get(NEWS_URL, { timeout: 15000 });
             console.log(`[News] Fetched ${response.data.length} items.`);
             return { success: true, news: response.data };
         } catch (e) {

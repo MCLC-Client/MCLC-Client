@@ -5,6 +5,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 module.exports = (ipcMain, mainWindow) => {
+    console.log('[SkinsHandler] Initializing...');
     const appData = app.getPath('userData');
     const skinsDir = path.join(appData, 'skins');
     const skinManifestPath = path.join(skinsDir, 'skins.json');
@@ -38,7 +39,8 @@ module.exports = (ipcMain, mainWindow) => {
             if (!token) return { success: false, error: 'No token provided' };
 
             const res = await axios.get('https://api.minecraftservices.com/minecraft/profile', {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { Authorization: `Bearer ${token}` },
+                timeout: 15000
             });
 
             const skins = res.data.skins || [];
@@ -75,7 +77,8 @@ module.exports = (ipcMain, mainWindow) => {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     ...form.getHeaders()
-                }
+                },
+                timeout: 15000
             });
 
             return { success: true };
@@ -98,7 +101,8 @@ module.exports = (ipcMain, mainWindow) => {
             const response = await axios({
                 url: skinUrl,
                 method: 'GET',
-                responseType: 'stream'
+                responseType: 'stream',
+                timeout: 15000
             });
 
             response.data.pipe(writer);

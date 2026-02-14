@@ -258,13 +258,18 @@ function Skins({ onLogout }) {
                         setActiveCapeId(activeCape ? activeCape.id : null);
 
                         await updateSkinInViewer(skinUrl, model);
+                    } else {
+                        addNotification(`Skin error: ${res.error}`, 'info');
+                        setIsSkinLoaded(true); // Still allow showing guest if no skin
                     }
                 } catch (e) {
                     console.error("Failed to load skin", e);
+                    addNotification('Failed to fetch skin from Mojang. Check your connection.', 'error');
                 }
             }
         } catch (e) {
             console.error("Failed to load profile/skin", e);
+            addNotification('Failed to load profile. Please try logging in again.', 'error');
         }
         setIsLoading(false);
     };

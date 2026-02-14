@@ -54,7 +54,12 @@ function createWindow() {
     console.log('[Main] Registering settings handler...');
     require('../backend/handlers/settings')(ipcMain);
     console.log('[Main] Registering skins handler...');
-    require('../backend/handlers/skins')(ipcMain);
+    try {
+        require('../backend/handlers/skins')(ipcMain, mainWindow);
+        console.log('[Main] Skins handler registered successfully.');
+    } catch (e) {
+        console.error('[Main] Failed to register skins handler:', e);
+    }
     require('../backend/handlers/java')(ipcMain);
     const discord = require('../backend/handlers/discord');
 
