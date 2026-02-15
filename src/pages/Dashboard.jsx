@@ -593,7 +593,10 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                     // Use runningInstances from props first, fallback to persisted status
                                     const liveStatus = runningInstances[instance.name];
                                     const persistedStatus = instance.status;
-                                    const installState = installProgress[instance.name];
+
+                                    // Case-insensitive lookup for install progress to prevent casing mismatch issues
+                                    const installStateKey = Object.keys(installProgress).find(k => k.toLowerCase() === instance.name.toLowerCase());
+                                    const installState = installStateKey ? installProgress[installStateKey] : null;
 
                                     // liveStatus takes priority, but if not present, check if instance is still installing
                                     // installState ensures we catch the transient installing state even if not persisted yet

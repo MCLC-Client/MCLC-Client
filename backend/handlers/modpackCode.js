@@ -180,6 +180,18 @@ module.exports = (ipcMain, win) => {
         };
 
         try {
+            // Update status to installing persistently
+            try {
+                const instanceJsonPath = path.join(instancesDir, instanceName, 'instance.json');
+                if (await fs.pathExists(instanceJsonPath)) {
+                    const config = await fs.readJson(instanceJsonPath);
+                    config.status = 'installing';
+                    await fs.writeJson(instanceJsonPath, config);
+                }
+            } catch (e) {
+                console.error('[ModpackCode-Handler] Failed to set instance status:', e);
+            }
+
             // Restore Keybinds first
             if (modpackData.keybinds) {
                 const optionsPath = path.join(instancesDir, instanceName, 'options.txt');
@@ -348,9 +360,38 @@ module.exports = (ipcMain, win) => {
 
             await saveModCache();
             reportProgress('Installation complete!', 100);
+
+            // Reset status to ready persistently
+            try {
+                const instanceJsonPath = path.join(instancesDir, instanceName, 'instance.json');
+                if (await fs.pathExists(instanceJsonPath)) {
+                    const config = await fs.readJson(instanceJsonPath);
+                    config.status = 'ready';
+                    await fs.writeJson(instanceJsonPath, config);
+                }
+            } catch (e) {
+                console.error('[ModpackCode-Handler] Failed to reset instance status:', e);
+            }
+
             return { success: true };
         } catch (error) {
             console.error('[ModpackCode-Handler] Background install failed:', error);
+
+            // Reset status on error
+            try {
+                const instanceJsonPath = path.join(instancesDir, instanceName, 'instance.json');
+                if (await fs.pathExists(instanceJsonPath)) {
+                    const config = await fs.readJson(instanceJsonPath);
+                    config.status = 'ready';
+                    await fs.writeJson(instanceJsonPath, config);
+                }
+            } catch (e) { /* ignore */ }
+
+            win.webContents.send('install:progress', {
+                instanceName: instanceName,
+                progress: 100,
+                status: 'Error during installation'
+            });
             return { success: false, error: error.message };
         }
     });
