@@ -129,7 +129,7 @@ Add-Type -TypeDefinition $code -Language CSharp
         return { success: false, error: 'No running process found for this instance.' };
     });
 
-    ipcMain.handle('launcher:launch', async (_, instanceName, quickPlay) => {
+    const launchInstance = async (instanceName, quickPlay) => {
         if (runningInstances.has(instanceName) || activeLaunches.has(instanceName)) {
             console.warn(`[Launcher] Blocked launch attempt for ${instanceName} - Already ${activeLaunches.has(instanceName) ? 'launching' : 'running'}`);
             return { success: false, error: 'Instance is already running or launching' };
@@ -607,5 +607,11 @@ Add-Type -TypeDefinition $code -Language CSharp
             runningInstances.delete(instanceName);
             return { success: false, error: e.message };
         }
+    };
+
+    ipcMain.handle('launcher:launch', async (_, instanceName, quickPlay) => {
+        return await launchInstance(instanceName, quickPlay);
     });
+
+    return { launchInstance };
 };
