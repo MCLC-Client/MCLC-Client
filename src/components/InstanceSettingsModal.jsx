@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+Thimport React, { useState } from 'react';
 import { useNotification } from '../context/NotificationContext';
 import ReinstallModal from './ReinstallModal';
 import ConfirmationModal from './ConfirmationModal';
 import Dropdown from './Dropdown';
+import ToggleBox from './ToggleBox';
 
 function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
     const { addNotification } = useNotification();
@@ -230,6 +231,15 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                                             <p className="font-bold">Migration Mode</p>
                                             <p className="text-xs opacity-80">Changing the version or loader will trigger a migration. The launcher will automatically try to find compatible versions for your installed mods on Modrinth.</p>
                                         </div>
+                                    </div>
+
+                                    <div className="pb-4 border-b border-white/5">
+                                        <ToggleBox
+                                            checked={showSnapshots}
+                                            onChange={setShowSnapshots}
+                                            label="Show Snapshots"
+                                            description="Include experimental and development versions in the version list."
+                                        />
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNotification } from '../context/NotificationContext';
+import ToggleBox from '../components/ToggleBox';
 
 function Settings() {
     const { addNotification } = useNotification();
@@ -319,21 +320,12 @@ function Settings() {
                 <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
                     <h2 className="text-lg font-bold mb-6 text-white">Instance Creation</h2>
 
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <div className="font-medium text-white">Copy Settings from Instance</div>
-                            <div className="text-sm text-gray-500 mt-1">Automatically copy keybinds and options from a selected instance when creating a new one.</div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={settings.copySettingsEnabled || false}
-                                onChange={(e) => handleChange('copySettingsEnabled', e.target.checked)}
-                                className="sr-only peer"
-                            />
-                            <div className="w-12 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
-                    </div>
+                    <ToggleBox
+                        checked={settings.copySettingsEnabled || false}
+                        onChange={(val) => handleChange('copySettingsEnabled', val)}
+                        label="Copy Settings from Instance"
+                        description="Automatically copy keybinds and options from a selected instance when creating a new one."
+                    />
 
                     {settings.copySettingsEnabled && (
                         <div>
@@ -356,36 +348,19 @@ function Settings() {
                 <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
                     <h2 className="text-lg font-bold mb-6 text-white">Launcher Integration</h2>
 
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="font-medium text-white">Discord Rich Presence</div>
-                            <div className="text-sm text-gray-500 mt-1">Show what you're playing on Discord</div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={settings.enableDiscordRPC}
-                                onChange={(e) => handleChange('enableDiscordRPC', e.target.checked)}
-                                className="sr-only peer"
-                            />
-                            <div className="w-12 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
-                    </div>
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
-                        <div>
-                            <div className="font-medium text-white">Auto-upload logs on crash</div>
-                            <div className="text-sm text-gray-500 mt-1">Automatically upload logs to mclo.gs if the game crashes</div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={settings.autoUploadLogs || false}
-                                onChange={(e) => handleChange('autoUploadLogs', e.target.checked)}
-                                className="sr-only peer"
-                            />
-                            <div className="w-12 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        </label>
-                    </div>
+                    <ToggleBox
+                        checked={settings.enableDiscordRPC}
+                        onChange={(val) => handleChange('enableDiscordRPC', val)}
+                        label="Discord Rich Presence"
+                        description="Show what you're playing on Discord"
+                    />
+                    <ToggleBox
+                        className="mt-4 pt-4 border-t border-white/5"
+                        checked={settings.autoUploadLogs || false}
+                        onChange={(val) => handleChange('autoUploadLogs', val)}
+                        label="Auto-upload logs on crash"
+                        description="Automatically upload logs to mclo.gs if the game crashes"
+                    />
                 </div>
             </div>
         </div>

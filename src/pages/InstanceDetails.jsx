@@ -4,6 +4,7 @@ import InstanceSettingsModal from '../components/InstanceSettingsModal';
 import ModpackCodeModal from '../components/ModpackCodeModal';
 import { useNotification } from '../context/NotificationContext';
 import { Analytics } from '../services/Analytics';
+import ToggleBox from '../components/ToggleBox';
 
 function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate }) {
     const [activeTab, setActiveTab] = useState('content');
@@ -969,10 +970,10 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                             )}
                                                         </button>
                                                     )}
-                                                    <label className="relative inline-flex items-center cursor-pointer">
-                                                        <input type="checkbox" checked={mod.enabled} onChange={() => handleToggleMod(mod.name)} className="sr-only peer" />
-                                                        <div className="w-10 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                                                    </label>
+                                                    <ToggleBox
+                                                        checked={mod.enabled}
+                                                        onChange={() => handleToggleMod(mod.name)}
+                                                    />
                                                     <button onClick={() => handleDeleteMod(mod.name, 'mod')} className="text-gray-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 p-2">
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
                                                     </button>

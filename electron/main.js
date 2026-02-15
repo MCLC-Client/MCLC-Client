@@ -30,12 +30,19 @@ function createWindow() {
         frame: false,
         icon: path.join(__dirname, '../resources/icon.png'),
         backgroundColor: '#121212',
+        show: false, // Start hidden for splash transition
         webPreferences: {
             preload: path.join(__dirname, '../backend/preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
-            sandbox: false
+            sandbox: false,
+            v8CacheOptions: 'bypassHeatCheck'
         },
+    });
+
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show();
+        mainWindow.focus();
     });
 
     console.log('[Main] Preload script configured.');
@@ -106,7 +113,7 @@ app.whenReady().then(() => {
             if (process.platform === 'win32' && /^\/[a-zA-Z]:/.test(decodedPath)) {
                 decodedPath = decodedPath.slice(1);
             }
-            if (!decodedPath || decodedPath === '/' || !fs.existsSync(decodedPath)) {
+            if (!decodedPath || decodedPath === '/' || !require('fs').existsSync(decodedPath)) {
                 return new Response('Not Found', { status: 404 });
             }
             return net.fetch(pathToFileURL(decodedPath).toString());

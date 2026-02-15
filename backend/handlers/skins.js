@@ -9,7 +9,10 @@ module.exports = (ipcMain, mainWindow) => {
     const appData = app.getPath('userData');
     const skinsDir = path.join(appData, 'skins');
     const skinManifestPath = path.join(skinsDir, 'skins.json');
-    fs.ensureDirSync(skinsDir);
+    
+    // Ensure dir asynchronously on first use or start
+    fs.ensureDir(skinsDir).catch(err => console.error('[Skins] Failed to ensure skins dir:', err));
+
     async function getSkinManifest() {
         try {
             if (await fs.pathExists(skinManifestPath)) {

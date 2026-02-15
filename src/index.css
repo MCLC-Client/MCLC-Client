@@ -62,3 +62,25 @@
   image-rendering: crisp-edges;
   -ms-interpolation-mode: nearest-neighbor;
 }
+
+@keyframes progress-fast {
+  0% { transform: translateX(-100%); width: 30%; opacity: 0.3; }
+  50% { transform: translateX(0%); width: 60%; opacity: 1; }
+  100% { transform: translateX(100%); width: 30%; opacity: 0.3; }
+}
+
+.animate-progress-fast {
+  animation: progress-fast 1.5s ease-in-out infinite;
+}
+
+/* GPU Acceleration Hints */
+.group:hover, .transition-all {
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Force layer creation */
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #3c3c3c #1e1e1e;
+}
+

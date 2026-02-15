@@ -42,6 +42,31 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 #### Optional (Planned for Future)
 - [ ] Command line support
 
+
+---
+
+## [1.4.0] - 2026-02-15
+
+### Added
+- **Global Extension System**: Full support for `.mcextension` packages with UI injection (Slots) in Sidebar and other areas.
+- **Extension Marketplace**: Integrated browser for discovering and installing third-party extensions.
+- **Performance Overhaul**:
+  - Asynchronous Java presence checks and backend file operations (FS-extra async).
+  - Page-level code-splitting using `React.lazy` and `Suspense` for faster initial loads.
+  - Concurrent UI rendering with `useTransition` for smooth view switching.
+  - List and Grid virtualization (`react-window`) for 60fps scrolling in large libraries and news feeds.
+  - High-performance image lazy loading using the **Intersection Observer API**.
+  - GPU-accelerated CSS transitions using `will-change` properties.
+- **UI Refinement**:
+  - New `ToggleBox` component for high-performance, consistent switches project-wide.
+  - Integrated "Show Snapshots" toggle in Instance Settings.
+- **Splash Screen**: Implemented `ready-to-show` window transition in Electron to eliminate initial white flashes.
+
+### Fixed
+- Synchronous I/O bottlenecks in the backend causing UI freezes during launch.
+- Duplicate imports and build-time SyntaxErrors.
+- Visual alignment of toggles and scrolling performance in the dashboard.
+
 ---
 
 ## [1.3.3 and earlier] - 2026-02-15

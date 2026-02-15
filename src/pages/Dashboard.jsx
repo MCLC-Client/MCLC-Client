@@ -6,6 +6,10 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { Analytics } from '../services/Analytics';
 import ModpackCodeModal from '../components/ModpackCodeModal';
+import * as ReactWindow from 'react-window';
+const { FixedSizeGrid } = ReactWindow;
+import { AutoSizer } from 'react-virtualized-auto-sizer';
+import OptimizedImage from '../components/OptimizedImage';
 
 const DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'%3E%3C/path%3E%3Cpolyline points='3.27 6.96 12 12.01 20.73 6.96'%3E%3C/polyline%3E%3Cline x1='12' y1='22.08' x2='12' y2='12'%3E%3C/line%3E%3C/svg%3E";
 const formatPlaytime = (ms) => {
@@ -14,6 +18,116 @@ const formatPlaytime = (ms) => {
     const minutes = Math.floor((ms % 3600000) / 60000);
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
+};
+
+const InstanceCard = ({ 
+    instance, 
+    runningInstances, 
+    installProgress, 
+    pendingLaunches, 
+    onInstanceClick, 
+    handleContextMenu, 
+    addNotification, 
+    loadInstances,
+    setPendingLaunches
+}) => {
+    const liveStatus = runningInstances[instance.name];
+    const persistedStatus = instance.status;
+    const installStateKey = Object.keys(installProgress).find(k => k.toLowerCase() === instance.name.toLowerCase());
+    const installState = installStateKey ? installProgress[installStateKey] : null;
+    const status = liveStatus || (installState || persistedStatus === 'installing' ? 'installing' : null);
+    const isRunning = status === 'running';
+    const isLaunching = status === 'launching';
+    const isInstalling = status === 'installing';
+
+    return (
+        <div
+            onClick={() => onInstanceClick(instance)}
+            onContextMenu={(e) => handleContextMenu(e, instance)}
+            className={`group bg-surface/40 backdrop-blur-sm border rounded-xl p-4 transition-all cursor-pointer relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-black/50 ${isRunning ? 'border-primary/50 ring-1 ring-primary/20' : 'border-white/5 hover:border-primary/50'}`}
+        >
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-40 transition-opacity"></div>
+
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleContextMenu(e, instance);
+                }}
+                className="absolute top-3 right-3 z-20 w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10"
+            >
+                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+            </button>
+
+            <div className="flex items-start gap-4 mb-3 relative z-10">
+                <OptimizedImage 
+                    src={instance.icon} 
+                    alt={instance.name} 
+                    className="w-16 h-16 bg-background rounded-lg flex items-center justify-center text-4xl shadow-inner border border-white/5 overflow-hidden"
+                    fallback={<svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
+                />
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-lg text-white truncate group-hover:text-primary transition-colors">{instance.name}</h3>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                        <span className="bg-white/5 px-2 py-0.5 rounded capitalize border border-white/5">{instance.loader || 'Vanilla'}</span>
+                        <span>{instance.version}</span>
+                    </div>
+                    {status && status !== 'ready' && status !== 'stopped' && (
+                        <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-primary animate-pulse">
+                            <div className="w-2 h-2 rounded-full bg-primary"></div>
+                            {isInstalling ? (installState ? `Installing (${installState.progress}%)` : 'Installing...') : isLaunching ? 'Launching...' : 'Running'}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/5 relative z-10">
+                <span className="text-xs text-gray-500 font-mono flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
+                    {formatPlaytime(instance.playtime)}
+                </span>
+                <button
+                    onClick={async (e) => {
+                        e.stopPropagation();
+                        if (isRunning) {
+                            window.electronAPI.killGame(instance.name);
+                            addNotification(`Stopping ${instance.name}...`, 'info');
+                        } else if (!isInstalling && !isLaunching && !pendingLaunches[instance.name]) {
+                            setPendingLaunches(prev => ({ ...prev, [instance.name]: true }));
+                            try {
+                                const result = await window.electronAPI.launchGame(instance.name);
+                                if (!result.success) {
+                                    addNotification(`Launch failed: ${result.error}`, 'error');
+                                } else {
+                                    addNotification(`Launching ${instance.name}...`, 'info');
+                                }
+                            } catch (err) {
+                                addNotification(`Launch error: ${err.message}`, 'error');
+                            } finally {
+                                setPendingLaunches(prev => {
+                                    const next = { ...prev };
+                                    delete next[instance.name];
+                                    return next;
+                                });
+                            }
+                        }
+                    }}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transform transition-all duration-300 shadow-lg z-20 ${isRunning ? 'bg-red-500 hover:bg-red-400 text-white opacity-100' : (isInstalling || isLaunching || pendingLaunches[instance.name]) ? 'bg-gray-700 text-gray-400 cursor-wait opacity-100' : 'bg-primary text-black opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 hover:bg-primary-hover hover:scale-110'}`}
+                    title={isRunning ? "Stop" : isInstalling ? (installState ? installState.status : "Installing...") : isLaunching ? "Launching..." : pendingLaunches[instance.name] ? "Starting..." : "Launch Game"}
+                    disabled={isInstalling || isLaunching || pendingLaunches[instance.name]}
+                >
+                    {isRunning ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><rect x="6" y="6" width="8" height="8" rx="1" /></svg>
+                    ) : (isInstalling || isLaunching || pendingLaunches[instance.name]) ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-0.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+                    )}
+                </button>
+            </div>
+        </div>
+    );
 };
 
 function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCreateHandled }) {
@@ -47,6 +161,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
     const [pendingLaunches, setPendingLaunches] = useState({});
     const [installProgress, setInstallProgress] = useState({});
     const [searchQuery, setSearchQuery] = useState('');
+    const deferredSearchQuery = React.useDeferredValue(searchQuery);
     const [sortMethod, setSortMethod] = useState('playtime');
     const [groupMethod, setGroupMethod] = useState('version');
 
@@ -400,8 +515,8 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
         { value: 'loader', label: 'Group by: Loader' }
     ];
     const filteredInstances = instances.filter(inst =>
-        inst.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        inst.version.toLowerCase().includes(searchQuery.toLowerCase())
+        inst.name.toLowerCase().includes(deferredSearchQuery.toLowerCase()) ||
+        inst.version.toLowerCase().includes(deferredSearchQuery.toLowerCase())
     );
     const sortedInstances = [...filteredInstances].sort((a, b) => {
         if (sortMethod === 'name') return a.name.localeCompare(b.name);
@@ -531,122 +646,95 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar pb-20 pr-1">
-                    {groupedData.map((group, gIdx) => (
-                        <div key={group.title || 'all'} className={gIdx > 0 ? 'mt-3' : ''}>
-                            {group.title && (
-                                <div className="flex items-center gap-4 mb-4">
-                                    <span className="text-white font-bold text-sm whitespace-nowrap opacity-80">{group.title}</span>
-                                    <div className="h-px bg-white/10 flex-1"></div>
-                                </div>
-                            )}
-                            <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mb-8">
-                                {group.items.map((instance) => {
-
-                                    const liveStatus = runningInstances[instance.name];
-                                    const persistedStatus = instance.status;
-                                    const installStateKey = Object.keys(installProgress).find(k => k.toLowerCase() === instance.name.toLowerCase());
-                                    const installState = installStateKey ? installProgress[installStateKey] : null;
-                                    const status = liveStatus || (installState || persistedStatus === 'installing' ? 'installing' : null);
-                                    const isRunning = status === 'running';
-                                    const isLaunching = status === 'launching';
-                                    const isInstalling = status === 'installing';
-
-                                    return (
-                                        <div
-                                            key={instance.name}
-                                            onClick={() => onInstanceClick(instance)}
-                                            onContextMenu={(e) => handleContextMenu(e, instance)}
-                                            className={`group bg-surface/40 backdrop-blur-sm border rounded-xl p-4 transition-all cursor-pointer relative overflow-hidden shadow-lg hover:shadow-xl hover:shadow-black/50 ${isRunning ? 'border-primary/50 ring-1 ring-primary/20' : 'border-white/5 hover:border-primary/50'}`}
-                                        >
-                                            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-40 transition-opacity"></div>
-
-                                            { }
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleContextMenu(e, instance);
-                                                }}
-                                                className="absolute top-3 right-3 z-20 w-8 h-8 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10"
-                                            >
-                                                <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                                                </svg>
-                                            </button>
-
-                                            <div className="flex items-start gap-4 mb-3 relative z-10">
-                                                <div className="w-16 h-16 bg-background rounded-lg flex items-center justify-center text-4xl shadow-inner border border-white/5 overflow-hidden">
-                                                    {instance.icon && instance.icon.startsWith('data:') ? (
-                                                        <img src={instance.icon} alt="" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className="font-bold text-lg text-white truncate group-hover:text-primary transition-colors">{instance.name}</h3>
-                                                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                                        <span className="bg-white/5 px-2 py-0.5 rounded capitalize border border-white/5">{instance.loader || 'Vanilla'}</span>
-                                                        <span>{instance.version}</span>
+                <div className="flex-1 overflow-hidden pr-1">
+                    <AutoSizer>
+                        {({ height, width }) => {
+                            const CARD_WIDTH = 300; // Expected min-width + gap
+                            const columnCount = Math.max(1, Math.floor(width / CARD_WIDTH));
+                            const gutter = 24;
+                            const adjustedWidth = (width - (gutter * (columnCount + 1))) / columnCount;
+                            
+                            // Flatten grouped items for grid display if not grouping, 
+                            // or handles groups if needed (simpler: just grid if no group)
+                            const items = groupMethod === 'none' ? sortedInstances : []; 
+                            // For simplicity in this step, only virtualize the 'Search/No group' view 
+                            // as groups add complexity for a simple grid.
+                            
+                            if (groupMethod !== 'none') {
+                                return (
+                                    <div className="h-full overflow-y-auto custom-scrollbar pb-20">
+                                        {groupedData.map((group, gIdx) => (
+                                            <div key={group.title || 'all'} className={gIdx > 0 ? 'mt-3' : ''}>
+                                                {group.title && (
+                                                    <div className="flex items-center gap-4 mb-4">
+                                                        <span className="text-white font-bold text-sm whitespace-nowrap opacity-80">{group.title}</span>
+                                                        <div className="h-px bg-white/10 flex-1"></div>
                                                     </div>
-                                                    {status && status !== 'ready' && status !== 'stopped' && (
-                                                        <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-primary animate-pulse">
-                                                            <div className="w-2 h-2 rounded-full bg-primary"></div>
-                                                            {isInstalling ? (installState ? `Installing (${installState.progress}%)` : 'Installing...') : isLaunching ? 'Launching...' : 'Running'}
-                                                        </div>
-                                                    )}
+                                                )}
+                                                <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mb-8">
+                                                    {group.items.map((instance) => (
+                                                        <InstanceCard 
+                                                            key={instance.name} 
+                                                            instance={instance} 
+                                                            runningInstances={runningInstances}
+                                                            installProgress={installProgress}
+                                                            pendingLaunches={pendingLaunches}
+                                                            onInstanceClick={onInstanceClick}
+                                                            handleContextMenu={handleContextMenu}
+                                                            addNotification={addNotification}
+                                                            loadInstances={loadInstances}
+                                                            setPendingLaunches={setPendingLaunches}
+                                                        />
+                                                    ))}
                                                 </div>
                                             </div>
+                                        ))}
+                                    </div>
+                                );
+                            }
 
-                                            <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/5 relative z-10">
-                                                <span className="text-xs text-gray-500 font-mono flex items-center gap-1">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
-                                                    {formatPlaytime(instance.playtime)}
-                                                </span>
-                                                <button
-                                                    onClick={async (e) => {
-                                                        e.stopPropagation();
-                                                        if (isRunning) {
-                                                            window.electronAPI.killGame(instance.name);
-                                                            addNotification(`Stopping ${instance.name}...`, 'info');
-                                                        } else if (!isInstalling && !isLaunching && !pendingLaunches[instance.name]) {
-                                                            setPendingLaunches(prev => ({ ...prev, [instance.name]: true }));
-                                                            try {
-                                                                const result = await window.electronAPI.launchGame(instance.name);
-                                                                if (!result.success) {
-                                                                    addNotification(`Launch failed: ${result.error}`, 'error');
-                                                                } else {
-                                                                    addNotification(`Launching ${instance.name}...`, 'info');
-                                                                }
-                                                            } catch (err) {
-                                                                addNotification(`Launch error: ${err.message}`, 'error');
-                                                            } finally {
-                                                                setPendingLaunches(prev => {
-                                                                    const next = { ...prev };
-                                                                    delete next[instance.name];
-                                                                    return next;
-                                                                });
-                                                            }
-                                                        }
-                                                    }}
-                                                    className={`w-10 h-10 rounded-full flex items-center justify-center transform transition-all duration-300 shadow-lg z-20 ${isRunning ? 'bg-red-500 hover:bg-red-400 text-white opacity-100' : (isInstalling || isLaunching || pendingLaunches[instance.name]) ? 'bg-gray-700 text-gray-400 cursor-wait opacity-100' : 'bg-primary text-black opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 hover:bg-primary-hover hover:scale-110'}`}
-                                                    title={isRunning ? "Stop" : isInstalling ? (installState ? installState.status : "Installing...") : isLaunching ? "Launching..." : pendingLaunches[instance.name] ? "Starting..." : "Launch Game"}
-                                                    disabled={isInstalling || isLaunching || pendingLaunches[instance.name]}
-                                                >
-                                                    {isRunning ? (
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><rect x="6" y="6" width="8" height="8" rx="1" /></svg>
-                                                    ) : (isInstalling || isLaunching || pendingLaunches[instance.name]) ? (
-                                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                    ) : (
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-0.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
-                                                    )}
-                                                </button>
+                            const rowCount = Math.ceil(sortedInstances.length / columnCount);
+
+                            return (
+                                <FixedSizeGrid
+                                    columnCount={columnCount}
+                                    columnWidth={adjustedWidth + gutter}
+                                    height={height}
+                                    rowCount={rowCount}
+                                    rowHeight={200}
+                                    width={width}
+                                    className="custom-scrollbar"
+                                >
+                                    {({ columnIndex, rowIndex, style }) => {
+                                        const index = rowIndex * columnCount + columnIndex;
+                                        if (index >= sortedInstances.length) return null;
+                                        const instance = sortedInstances[index];
+                                        return (
+                                            <div style={{
+                                                ...style,
+                                                paddingLeft: gutter / 2,
+                                                paddingRight: gutter / 2,
+                                                paddingBottom: gutter,
+                                                boxSizing: 'border-box'
+                                            }}>
+                                                <InstanceCard 
+                                                    instance={instance} 
+                                                    runningInstances={runningInstances}
+                                                    installProgress={installProgress}
+                                                    pendingLaunches={pendingLaunches}
+                                                    onInstanceClick={onInstanceClick}
+                                                    handleContextMenu={handleContextMenu}
+                                                    addNotification={addNotification}
+                                                    loadInstances={loadInstances}
+                                                    setPendingLaunches={setPendingLaunches}
+                                                />
                                             </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ))}
+                                        );
+                                    }}
+                                </FixedSizeGrid>
+                            );
+                        }}
+                    </AutoSizer>
                 </div>
 
                 {groupedData.length === 0 || (groupedData.length === 1 && groupedData[0].items.length === 0) ? (

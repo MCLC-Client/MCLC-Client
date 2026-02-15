@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import PlayerHead from './PlayerHead';
+import OptimizedImage from './OptimizedImage';
+import * as ReactWindow from 'react-window';
+const { FixedSizeList } = ReactWindow;
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 const formatUUID = (uuid) => {
     if (!uuid) return null;
     if (uuid.includes('-')) return uuid;
@@ -183,31 +187,44 @@ function RightPanel({ userProfile, onProfileUpdate }) {
                     <div className="h-[1px] flex-1 bg-white/5 ml-3"></div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <div className="space-y-4 pr-1">
-                        {newsItems.length === 0 ? (
-                            <div className="text-gray-500 text-xs text-center py-4">No news available</div>
-                        ) : (
-                            newsItems.map((item, i) => (
-                                <div
-                                    key={i}
-                                    className="group cursor-pointer"
-                                    onClick={() => item.link && window.electronAPI.openExternal(item.link)}
+                <div className="flex-1 overflow-hidden pr-1">
+                    {newsItems.length === 0 ? (
+                        <div className="text-gray-500 text-xs text-center py-4">No news available</div>
+                    ) : (
+                        <AutoSizer>
+                            {({ height, width }) => (
+                                <FixedSizeList
+                                    height={height}
+                                    itemCount={newsItems.length}
+                                    itemSize={160} // estimated height for title + image + desc
+                                    width={width}
+                                    className="custom-scrollbar"
                                 >
-                                    <div className="h-24 bg-surface rounded-xl border border-white/5 mb-2 overflow-hidden relative shadow-lg">
-                                        {item.image ? (
-                                            <img src={item.image} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                                        ) : (
-                                            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-blue-900/20 group-hover:scale-105 transition-transform duration-500"></div>
-                                        )}
-                                    </div>
-                                    <div className="text-sm font-bold text-gray-200 group-hover:text-primary transition-colors leading-tight">{item.title}</div>
-                                    {item.description && <div className="text-[10px] text-gray-400 mt-1 line-clamp-2">{item.description}</div>}
-                                    <div className="text-[10px] text-gray-600 mt-1">{item.date}</div>
-                                </div>
-                            ))
-                        )}
-                    </div>
+                                    {({ index, style }) => {
+                                        const item = newsItems[index];
+                                        return (
+                                            <div style={{ ...style, paddingRight: 4, paddingBottom: 16, boxSizing: 'border-box' }}>
+                                                <div
+                                                    className="group cursor-pointer"
+                                                    onClick={() => item.link && window.electronAPI.openExternal(item.link)}
+                                                >
+                                                    <OptimizedImage 
+                                                        src={item.image} 
+                                                        alt={item.title} 
+                                                        className="h-24 bg-surface rounded-xl border border-white/5 mb-2 overflow-hidden relative shadow-lg"
+                                                        fallback={<div className="h-full w-full bg-gradient-to-br from-purple-900/20 to-blue-900/20"></div>}
+                                                    />
+                                                    <div className="text-sm font-bold text-gray-200 group-hover:text-primary transition-colors leading-tight truncate">{item.title}</div>
+                                                    {item.description && <div className="text-[10px] text-gray-400 mt-1 line-clamp-2">{item.description}</div>}
+                                                    <div className="text-[10px] text-gray-600 mt-1">{item.date}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    }}
+                                </FixedSizeList>
+                            )}
+                        </AutoSizer>
+                    )}
                 </div>
             </div>
         </div>

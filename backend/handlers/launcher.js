@@ -220,7 +220,7 @@ Add-Type -TypeDefinition $code -Language CSharp
                     if (jPath.toLowerCase().endsWith('java.exe')) {
                         // Try to find javaw.exe in the same directory
                         const javawPath = jPath.slice(0, -8) + 'javaw.exe';
-                        if (fs.existsSync(javawPath)) {
+                        if (await fs.pathExists(javawPath)) {
                             console.log(`[Launcher] Found javaw.exe, switching from java.exe to suppress console window: ${javawPath}`);
                             jPath = javawPath;
                         } else {
@@ -250,17 +250,22 @@ Add-Type -TypeDefinition $code -Language CSharp
             let javaValid = false;
             let javaOutput = '';
 
-            const performJavaCheck = (p) => {
+            const { exec } = require('child_process');
+            const { promisify } = require('util');
+            const execAsync = promisify(exec);
+
+            const performJavaCheck = async (p) => {
                 try {
-                    const { execSync } = require('child_process');
-                    javaOutput = execSync(`"${p}" -version 2>&1`, { encoding: 'utf8' });
+                    const { stderr } = await execAsync(`"${p}" -version`, { encoding: 'utf8' });
+                    // java -version often outputs to stderr
+                    javaOutput = stderr; 
                     return true;
                 } catch (e) {
                     return false;
                 }
             };
 
-            javaValid = performJavaCheck(javaToCheck);
+            javaValid = await performJavaCheck(javaToCheck);
 
             // If invalid or missing, try auto-install
             if (!javaValid) {
@@ -285,7 +290,7 @@ Add-Type -TypeDefinition $code -Language CSharp
                 if (installRes.success) {
                     javaToCheck = installRes.path;
                     opts.javaPath = javaToCheck;
-                    javaValid = performJavaCheck(javaToCheck);
+                    javaValid = await performJavaCheck(javaToCheck);
 
                     // Also update settings so it's remembered if not overridden
                     if (!config.javaPath) {

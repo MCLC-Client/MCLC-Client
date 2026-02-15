@@ -1,25 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ExtensionProvider } from './context/ExtensionContext';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Home from './pages/Home';
-import ServerDashboard from './pages/ServerDashboard';
-import ServerDetails from './pages/ServerDetails';
-import Search from './pages/Search';
-import Settings from './pages/Settings';
-import Styling from './pages/Styling';
-import Skins from './pages/Skins';
-import ServerSettings from './pages/ServerSettings';
-import ServerLibrary from './pages/ServerLibrary';
-import InstanceDetails from './pages/InstanceDetails';
-import Extensions from './pages/Extensions';
+import { Analytics } from './services/Analytics';
+
+const Login = React.lazy(() => import('./pages/Login'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Home = React.lazy(() => import('./pages/Home'));
+const ServerDashboard = React.lazy(() => import('./pages/ServerDashboard'));
+const ServerDetails = React.lazy(() => import('./pages/ServerDetails'));
+const Search = React.lazy(() => import('./pages/Search'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+const Styling = React.lazy(() => import('./pages/Styling'));
+const Skins = React.lazy(() => import('./pages/Skins'));
+const ServerSettings = React.lazy(() => import('./pages/ServerSettings'));
+const ServerLibrary = React.lazy(() => import('./pages/ServerLibrary'));
+const InstanceDetails = React.lazy(() => import('./pages/InstanceDetails'));
+const Extensions = React.lazy(() => import('./pages/Extensions'));
+
 import Sidebar from './components/Sidebar';
 import ServerSidebar from './components/ServerSidebar';
 import RightPanel from './components/RightPanel';
-import { Analytics } from './services/Analytics';
 
 function App() {
     const [currentView, setCurrentView] = useState('login');
+    const [isPending, startTransition] = React.useTransition();
     const [currentMode, setCurrentMode] = useState('client');
     const [userProfile, setUserProfile] = useState(null);
     const [theme, setTheme] = useState({
@@ -260,17 +263,23 @@ function App() {
 
     const handleLogout = () => {
         setUserProfile(null);
-        setCurrentView('login');
+        startTransition(() => {
+            setCurrentView('login');
+        });
     };
 
     const handleInstanceClick = (instance) => {
         setSelectedInstance(instance);
-        setCurrentView('instance-details');
+        startTransition(() => {
+            setCurrentView('instance-details');
+        });
     };
 
     const handleServerClick = (server) => {
         setSelectedServer(server);
-        setCurrentView('server-details');
+        startTransition(() => {
+            setCurrentView('server-details');
+        });
     };
 
     const handleInstanceUpdate = (updatedInstance) => {
@@ -284,7 +293,9 @@ function App() {
     const handleBackToDashboard = () => {
         setSelectedInstance(null);
         setSelectedServer(null);
-        setCurrentView(currentMode === 'client' ? 'dashboard' : 'server-dashboard');
+        startTransition(() => {
+            setCurrentView(currentMode === 'client' ? 'dashboard' : 'server-dashboard');
+        });
     };
 
     const handleModeSelect = (mode) => {
@@ -500,7 +511,18 @@ function App() {
                         style={{ backdropFilter: `blur(${theme.glassBlur}px)` }}
                     >
                         <div className="flex-1 overflow-hidden bg-surface/20 rounded-2xl relative flex flex-col">
-                            { }
+                            {/* Performance: Transition indicator for heavy page renders */}
+                            {isPending && (
+                                <div className="absolute top-0 left-0 w-full h-1 z-[100] overflow-hidden bg-white/5">
+                                    <div className="h-full bg-primary/50 animate-progress-fast"></div>
+                                </div>
+                            )}
+
+                            <React.Suspense fallback={
+                                <div className="flex-1 flex items-center justify-center bg-background/50 animate-pulse">
+                                    <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                                </div>
+                            }>
                             {currentMode === 'client' && (
                                 <>
                                     {currentView === 'dashboard' && <Home onInstanceClick={handleInstanceClick} runningInstances={runningInstances} onNavigateSearch={(category) => { setSearchCategory(category); setCurrentView('search'); }} />}
@@ -534,6 +556,7 @@ function App() {
                                     {currentView === 'server-settings' && <ServerSettings />}
                                 </>
                             )}
+                            </React.Suspense>
                         </div>
                     </main>
 
