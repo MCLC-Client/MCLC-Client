@@ -6,7 +6,7 @@ function Search() {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [projectType, setProjectType] = useState('mod'); // 'mod' or 'resourcepack'
+    const [projectType, setProjectType] = useState('mod'); // 'mod', 'resourcepack', 'modpack', 'shader'
 
     // Pagination
     const [offset, setOffset] = useState(0);
@@ -75,7 +75,62 @@ function Search() {
         if (offset - limit >= 0) setOffset(offset - limit);
     };
 
+    const toggleProjectType = (type) => {
+        setProjectType(type);
+        setOffset(0);
+        setResults([]);
+        setTotalHits(0);
+    };
+
+    const handleModpackInstall = async (mod) => {
+        if (installing) return;
+        setInstalling(true);
+        try {
+            addNotification(`Fetching versions for ${mod.title}...`, 'info');
+            // 1. Get versions
+            const res = await window.electronAPI.getModVersions(mod.slug, [], []);
+
+            if (!res || !res.success || !res.versions || res.versions.length === 0) {
+                addNotification("No versions found for this modpack.", 'error');
+                return;
+            }
+
+            // 2. Pick latest version's primary file
+            const versions = res.versions;
+            const latestVersion = versions[0];
+            const primaryFile = latestVersion.files.find(f => f.primary) || latestVersion.files[0];
+
+            if (!primaryFile) {
+                addNotification("No file found for the latest version.", 'error');
+                return;
+            }
+
+            // 3. Install
+            addNotification(`Starting installation of ${mod.title}...`, 'info');
+            const installRes = await window.electronAPI.installModpack(primaryFile.url, mod.title);
+
+            if (installRes.success) {
+                addNotification(`Successfully started installing ${mod.title}. Check Dashboard.`, 'success');
+                // Temporarily mark as installed/installing
+                setInstalledIds(prev => new Set(prev).add(mod.project_id));
+            } else {
+                addNotification(`Failed to install: ${installRes.error}`, 'error');
+            }
+
+        } catch (e) {
+            console.error("Modpack install error:", e);
+            addNotification("An error occurred during installation.", 'error');
+        } finally {
+            setInstalling(false);
+        }
+    };
+
     const openInstall = async (mod) => {
+        if (projectType === 'modpack') {
+            await handleModpackInstall(mod);
+            return;
+        }
+
         setSelectedMod(mod);
         const list = await window.electronAPI.getInstances();
         setInstances(list || []);
@@ -92,7 +147,13 @@ function Search() {
         setInstalling(true);
         try {
             addNotification(`Checking compatibility for ${instance.name}...`, 'info');
-            const res = await window.electronAPI.getModVersions(selectedMod.project_id, [instance.loader], [instance.version]);
+
+            // Relax loader filter for shaders and resourcepacks
+            const loaders = (selectedMod.project_type === 'shader' || selectedMod.project_type === 'resourcepack' || !instance.loader || instance.loader.toLowerCase() === 'vanilla')
+                ? []
+                : [instance.loader];
+
+            const res = await window.electronAPI.getModVersions(selectedMod.project_id, loaders, [instance.version]);
 
             if (res.success && res.versions.length > 0) {
                 const version = res.versions[0];
@@ -136,16 +197,28 @@ function Search() {
                 <h1 className="text-3xl font-bold text-white">Find Content</h1>
                 <div className="flex bg-surface rounded-xl p-1 border border-white/5">
                     <button
-                        onClick={() => { setProjectType('mod'); setOffset(0); }}
+                        onClick={() => toggleProjectType('mod')}
                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${projectType === 'mod' ? 'bg-primary text-black shadow-primary-glow' : 'text-gray-400 hover:text-white'}`}
                     >
                         Mods
                     </button>
                     <button
-                        onClick={() => { setProjectType('resourcepack'); setOffset(0); }}
+                        onClick={() => toggleProjectType('resourcepack')}
                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${projectType === 'resourcepack' ? 'bg-primary text-black shadow-primary-glow' : 'text-gray-400 hover:text-white'}`}
                     >
                         Resource Packs
+                    </button>
+                    <button
+                        onClick={() => toggleProjectType('modpack')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${projectType === 'modpack' ? 'bg-primary text-black shadow-primary-glow' : 'text-gray-400 hover:text-white'}`}
+                    >
+                        Modpacks
+                    </button>
+                    <button
+                        onClick={() => toggleProjectType('shader')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${projectType === 'shader' ? 'bg-primary text-black shadow-primary-glow' : 'text-gray-400 hover:text-white'}`}
+                    >
+                        Shaders
                     </button>
                 </div>
             </div>
@@ -155,7 +228,7 @@ function Search() {
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={`Search for ${projectType === 'mod' ? 'mods' : 'resource packs'}...`}
+                    placeholder={`Search for ${projectType === 'mod' ? 'mods' : projectType === 'resourcepack' ? 'resource packs' : projectType === 'modpack' ? 'modpacks' : 'shaders'}...`}
                     className="flex-1 bg-background-dark border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none shadow-inner"
                 />
                 <button
@@ -213,6 +286,7 @@ function Search() {
                                 <p className="text-sm text-gray-400 mb-4 line-clamp-2 flex-1 leading-relaxed">{mod.description}</p>
                                 <button
                                     onClick={() => openInstall(mod)}
+                                    disabled={installing}
                                     className={`w-full font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${installedIds.has(mod.project_id)
                                         ? 'bg-primary text-black'
                                         : 'bg-white/5 hover:bg-primary hover:text-black text-white group-hover:bg-white/10'
@@ -221,12 +295,12 @@ function Search() {
                                     {installedIds.has(mod.project_id) ? (
                                         <>
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-bounce" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                                            Installed
+                                            {projectType === 'modpack' ? 'Installing...' : 'Installed'}
                                         </>
                                     ) : (
                                         <>
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transition-transform group-hover:scale-110" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" /></svg>
-                                            Install
+                                            {projectType === 'modpack' ? 'Create Instance' : 'Install'}
                                         </>
                                     )}
                                 </button>

@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importInstance: () => ipcRenderer.invoke('instance:import'),
     importMrPack: () => ipcRenderer.invoke('instance:import-mrpack'),
     getInstances: () => ipcRenderer.invoke('instance:get-all'),
+    installModpack: (url, name) => ipcRenderer.invoke('instance:install-modpack', url, name),
     searchModrinth: (query, facets, options) => ipcRenderer.invoke('modrinth:search', query, facets, options),
     installMod: (data) => ipcRenderer.invoke('modrinth:install', data),
     installLocalMod: (instanceName, filePath) => ipcRenderer.invoke('instance:install-local-mod', instanceName, filePath),

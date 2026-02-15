@@ -1638,32 +1638,23 @@ module.exports = (ipcMain, win) => {
         }
     });
 
-    // Import instance from .mrpack file (Modrinth modpack format)
-    ipcMain.handle('instance:import-mrpack', async (_) => {
+    // Shared Modrinth Modpack Installer Logic
+    const installMrPack = async (packPath, nameOverride = null) => {
         try {
-            const { filePaths } = await dialog.showOpenDialog({
-                title: 'Import Modrinth Modpack',
-                filters: [{ name: 'Modrinth Modpack', extensions: ['mrpack'] }],
-                properties: ['openFile']
-            });
-
-            if (!filePaths || filePaths.length === 0) return { success: false, error: 'Cancelled' };
-
-            const packPath = filePaths[0];
             const AdmZip = require('adm-zip');
             const zip = new AdmZip(packPath);
 
             const indexEntry = zip.getEntry('modrinth.index.json');
-            if (!indexEntry) return { success: false, error: 'Invalid mrpack: missing modrinth.index.json' };
+            if (!indexEntry) throw new Error('Invalid mrpack: missing modrinth.index.json');
 
             const index = JSON.parse(indexEntry.getData().toString('utf8'));
-            let instanceName = index.name;
+            let instanceName = nameOverride || index.name;
 
             // Handle name collisions
             let targetDir = path.join(instancesDir, instanceName);
             let counter = 1;
             while (await fs.pathExists(targetDir)) {
-                instanceName = `${index.name} (${counter++})`;
+                instanceName = `${nameOverride || index.name} (${counter++})`;
                 targetDir = path.join(instancesDir, instanceName);
             }
 
@@ -1767,7 +1758,55 @@ module.exports = (ipcMain, win) => {
 
             return { success: true, instanceName };
         } catch (e) {
+            throw e;
+        }
+    };
+
+    // Import instance from .mrpack file (Modrinth modpack format)
+    ipcMain.handle('instance:import-mrpack', async (_) => {
+        try {
+            const { filePaths } = await dialog.showOpenDialog({
+                title: 'Import Modrinth Modpack',
+                filters: [{ name: 'Modrinth Modpack', extensions: ['mrpack'] }],
+                properties: ['openFile']
+            });
+
+            if (!filePaths || filePaths.length === 0) return { success: false, error: 'Cancelled' };
+
+            const packPath = filePaths[0];
+            return await installMrPack(packPath);
+        } catch (e) {
             console.error('[Import:MrPack] Dialog Error:', e);
+            return { success: false, error: e.message };
+        }
+    });
+
+    // Install Modpack from URL (Modrinth App/Direct)
+    ipcMain.handle('instance:install-modpack', async (_, url, name) => {
+        try {
+            console.log(`[Modpack:Install] URL: ${url}, Name: ${name}`);
+            const tempPath = path.join(os.tmpdir(), `mclc-modpack-${Date.now()}.mrpack`);
+
+            // Send initial progress if possible, using a dummy name or the provided one
+            if (win && win.webContents) {
+                win.webContents.send('install:progress', { instanceName: name, progress: 1, status: 'Downloading Modpack...' });
+            }
+
+            await downloadFile(url, tempPath);
+            console.log(`[Modpack:Install] Downloaded to ${tempPath}`);
+
+            const result = await installMrPack(tempPath, name);
+
+            // Cleanup temp file
+            // Note: installMrPack reads it synchronously mostly but startBackgroundInstall is async. 
+            // The zip reading happens early in installMrPack so we should be safe to delete after it returns?
+            // installMrPack returns { success: true, instanceName } AFTER starting background work.
+            // The zip object in installMrPack is not persistent.
+            await fs.remove(tempPath);
+
+            return result;
+        } catch (e) {
+            console.error('[Modpack:Install] Error:', e);
             return { success: false, error: e.message };
         }
     });
