@@ -59,6 +59,26 @@ function createWindow() {
         console.error('[Main] Error registering handlers:', error);
     }
 
+    // Window controls
+    ipcMain.on('window-minimize', () => mainWindow.minimize());
+    ipcMain.on('window-maximize', () => {
+        if (mainWindow.isMaximized()) mainWindow.unmaximize();
+        else mainWindow.maximize();
+    });
+    ipcMain.on('window-close', () => mainWindow.close());
+
+    // Open external links
+    ipcMain.handle('open-external', async (event, url) => {
+        try {
+            const { shell } = require('electron');
+            await shell.openExternal(url);
+            return { success: true };
+        } catch (error) {
+            console.error('Error opening external URL:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
     // Initialize Discord RPC
     try {
         const discord = require('./handlers/discord');
@@ -74,14 +94,6 @@ function createWindow() {
     } else {
         mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     }
-
-    // Window controls
-    ipcMain.on('window-minimize', () => mainWindow.minimize());
-    ipcMain.on('window-maximize', () => {
-        if (mainWindow.isMaximized()) mainWindow.unmaximize();
-        else mainWindow.maximize();
-    });
-    ipcMain.on('window-close', () => mainWindow.close());
 }
 
 app.whenReady().then(() => {

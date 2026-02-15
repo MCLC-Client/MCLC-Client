@@ -158,6 +158,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkServerEula: (serverName) => ipcRenderer.invoke('server:check-eula', serverName),
     acceptServerEula: (serverName) => ipcRenderer.invoke('server:accept-eula', serverName),
 
+    // Playit Plugin Management
+    checkPlayitAvailable: (software, version) => ipcRenderer.invoke('server:check-playit-available', software, version),
+    installPlayitPlugin: (serverName) => ipcRenderer.invoke('server:install-playit', serverName),
+
     // Server Events
     onServerStatus: (callback) => {
         const subscription = (_event, value) => callback(value);
@@ -184,7 +188,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('server:download-progress', subscription);
         return () => ipcRenderer.removeListener('server:download-progress', subscription);
     },
-    // Add this to the electronAPI object in preload.js
     onServerConsoleCleared: (callback) => {
         const subscription = (_event, value) => callback(value);
         ipcRenderer.on('server:console-cleared', subscription);
@@ -194,5 +197,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const subscription = (_event, value) => callback(value);
         ipcRenderer.on('server:eula-required', subscription);
         return () => ipcRenderer.removeListener('server:eula-required', subscription);
+    },
+    onServerPluginProgress: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('server:plugin-progress', subscription);
+        return () => ipcRenderer.removeListener('server:plugin-progress', subscription);
     }
 });

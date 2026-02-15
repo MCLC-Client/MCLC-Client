@@ -15,13 +15,110 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
         uptime: 0
     });
     const [currentStatus, setCurrentStatus] = useState(server.status || 'stopped');
-    const [isConnected, setIsConnected] = useState(true);
+    const [activeTab, setActiveTab] = useState('console'); // 'console' or 'publicity'
+
+    // Publicity State
+    const [playitCode, setPlayitCode] = useState(null);
+    const [playitChecked, setPlayitChecked] = useState(false);
+    const [playitAvailable, setPlayitAvailable] = useState(false);
+    const [playitChecking, setPlayitChecking] = useState(false);
 
     const consoleRef = useRef(null);
     const commandInputRef = useRef(null);
     const statsInterval = useRef(null);
 
+    // Extract Playit code from log line
+    const extractPlayitCode = (line) => {
+        const match = line.match(/https:\/\/playit\.gg\/claim\/([a-zA-Z0-9]+)/);
+        if (match && match[1]) {
+            return match[1];
+        }
+        return null;
+    };
+
+    // Check if Playit plugin is available for this server
+    const checkPlayitAvailability = async () => {
+        if (!server || playitChecked) return;
+
+        setPlayitChecking(true);
+        try {
+            if (window.electronAPI.checkPlayitAvailable) {
+                const result = await window.electronAPI.checkPlayitAvailable(server.software, server.version);
+                setPlayitAvailable(result.available || false);
+            } else {
+                // Fallback: assume it's available for non-vanilla servers
+                setPlayitAvailable(server.software !== 'vanilla');
+            }
+        } catch (error) {
+            console.error('Failed to check Playit availability:', error);
+            setPlayitAvailable(false);
+        } finally {
+            setPlayitChecking(false);
+            setPlayitChecked(true);
+        }
+    };
+
+    // Manually install Playit plugin
+    const installPlayitPlugin = async () => {
+        setIsLoading(true);
+        try {
+            if (window.electronAPI.installPlayitPlugin) {
+                const result = await window.electronAPI.installPlayitPlugin(server.name);
+                if (result.success) {
+                    addNotification('Playit plugin installed successfully', 'success');
+                    setPlayitAvailable(true);
+                } else {
+                    addNotification(`Failed to install Playit plugin: ${result.message || result.error}`, 'error');
+                }
+            } else {
+                addNotification('Playit plugin installation not available', 'error');
+            }
+        } catch (error) {
+            console.error('Failed to install Playit plugin:', error);
+            addNotification(`Failed to install Playit plugin: ${error.message}`, 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Open Playit claim page
+    const openPlayitClaim = () => {
+        if (playitCode) {
+            const url = `https://playit.gg/claim/${playitCode}`;
+            if (window.electronAPI.openExternal) {
+                window.electronAPI.openExternal(url)
+                    .then(result => {
+                        if (!result?.success) {
+                            console.error('Failed to open URL:', result?.error);
+                            // Fallback to window.open
+                            window.open(url, '_blank');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error opening URL:', error);
+                        // Fallback to window.open
+                        window.open(url, '_blank');
+                    });
+            } else {
+                // Fallback if electronAPI.openExternal is not available
+                window.open(url, '_blank');
+            }
+        } else {
+            // Open main Playit site
+            const url = 'https://playit.gg';
+            if (window.electronAPI.openExternal) {
+                window.electronAPI.openExternal(url)
+                    .catch(() => window.open(url, '_blank'));
+            } else {
+                window.open(url, '_blank');
+            }
+        }
+    };
+
     useEffect(() => {
+        // Check Playit availability on mount
+        checkPlayitAvailability();
+
         // Load console history immediately
         loadConsoleLog();
 
@@ -42,6 +139,13 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
             if (serverName === server.name) {
                 setConsoleLog(prev => {
                     const newLog = [...prev, log];
+
+                    // Check for Playit code in new log line
+                    const code = extractPlayitCode(log);
+                    if (code) {
+                        setPlayitCode(code);
+                    }
+
                     // Keep only last 500 lines
                     if (newLog.length > 500) {
                         return newLog.slice(-500);
@@ -71,6 +175,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
         const removeConsoleClearedListener = window.electronAPI.onServerConsoleCleared?.(({ serverName }) => {
             if (serverName === server.name) {
                 setConsoleLog([]);
+                setPlayitCode(null); // Reset Playit code when console is cleared
             }
         });
 
@@ -110,8 +215,21 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
 
     // Auto-scroll console to bottom when new lines arrive
     useEffect(() => {
-        if (consoleRef.current) {
+        if (consoleRef.current && activeTab === 'console') {
             consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+        }
+    }, [consoleLog, activeTab]);
+
+    // Scan existing console log for Playit code on load
+    useEffect(() => {
+        if (consoleLog.length > 0 && !playitCode) {
+            for (const line of consoleLog) {
+                const code = extractPlayitCode(line);
+                if (code) {
+                    setPlayitCode(code);
+                    break;
+                }
+            }
         }
     }, [consoleLog]);
 
@@ -135,6 +253,15 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
             const log = await window.electronAPI.getServerLogs(server.name);
             if (Array.isArray(log)) {
                 setConsoleLog(log.slice(-500)); // Keep only last 500 lines
+
+                // Check for Playit code in loaded logs
+                for (const line of log) {
+                    const code = extractPlayitCode(line);
+                    if (code) {
+                        setPlayitCode(code);
+                        break;
+                    }
+                }
             }
         } catch (error) {
             console.error('Failed to load console log:', error);
@@ -280,6 +407,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
                 await window.electronAPI.clearServerConsole(server.name);
             } else {
                 setConsoleLog([]);
+                setPlayitCode(null); // Reset Playit code
             }
             addNotification('Console cleared', 'success');
         } catch (error) {
@@ -393,14 +521,14 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
 
                 <div className="flex items-center gap-2">
                     <div className={`px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 ${isRunning ? 'bg-green-500/20 text-green-400' :
-                            isStarting || isRestarting ? 'bg-yellow-500/20 text-yellow-400' :
-                                isStopping ? 'bg-orange-500/20 text-orange-400' :
-                                    'bg-gray-500/20 text-gray-400'
+                        isStarting || isRestarting ? 'bg-yellow-500/20 text-yellow-400' :
+                            isStopping ? 'bg-orange-500/20 text-orange-400' :
+                                'bg-gray-500/20 text-gray-400'
                         }`}>
                         <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' :
-                                isStarting || isRestarting ? 'bg-yellow-500 animate-pulse' :
-                                    isStopping ? 'bg-orange-500 animate-pulse' :
-                                        'bg-gray-500'
+                            isStarting || isRestarting ? 'bg-yellow-500 animate-pulse' :
+                                isStopping ? 'bg-orange-500 animate-pulse' :
+                                    'bg-gray-500'
                             }`}></div>
                         {isRunning ? 'Running' :
                             isStarting ? 'Starting...' :
@@ -467,69 +595,190 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
                 </div>
             </div>
 
-            {/* Console */}
-            <div className="flex-1 p-6 flex flex-col min-h-0">
-                <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-bold text-white">Console</h2>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={handleClearConsole}
-                            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-gray-400 hover:text-white"
-                            title="Clear console"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                        <button
-                            onClick={copyConsoleToClipboard}
-                            className="p-2 hover:bg-white/5 rounded-lg transition-colors text-gray-400 hover:text-white"
-                            title="Copy console content"
-                            disabled={consoleLog.length === 0}
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div
-                    ref={consoleRef}
-                    className="flex-1 bg-black/40 rounded-xl p-4 font-mono text-sm overflow-y-auto custom-scrollbar mb-4 select-text"
+            {/* Tabs */}
+            <div className="flex gap-1 px-6 pt-4 border-b border-white/5">
+                <button
+                    onClick={() => setActiveTab('console')}
+                    className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeTab === 'console'
+                        ? 'bg-primary/20 text-primary border-b-2 border-primary'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        }`}
                 >
-                    {consoleLog.map((line, i) => (
-                        <div key={i} className="text-gray-300 whitespace-pre-wrap mb-1 hover:bg-white/5 cursor-text">
-                            {line}
-                        </div>
-                    ))}
-                    {consoleLog.length === 0 && (
-                        <div className="text-gray-500 italic">No console output yet</div>
-                    )}
-                </div>
+                    Console
+                </button>
+                <button
+                    onClick={() => setActiveTab('publicity')}
+                    className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeTab === 'publicity'
+                        ? 'bg-primary/20 text-primary border-b-2 border-primary'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        }`}
+                >
+                    Publicity
+                </button>
+            </div>
 
-                <form onSubmit={handleSendCommand} className="flex gap-2">
-                    <input
-                        ref={commandInputRef}
-                        type="text"
-                        value={command}
-                        onChange={(e) => setCommand(e.target.value)}
-                        placeholder="Enter command... (with or without /)"
-                        className="flex-1 bg-background border border-white/10 rounded-xl px-4 py-2 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                        disabled={!isRunning}
-                        autoFocus
-                    />
-                    <button
-                        type="submit"
-                        disabled={!isRunning || !command.trim()}
-                        className="px-6 py-2 bg-primary/20 text-primary rounded-xl font-bold hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Send
-                    </button>
-                </form>
-                {!isRunning && (
-                    <p className="text-xs text-gray-500 mt-2">
-                        Server must be running to send commands
-                    </p>
+            {/* Tab Content */}
+            <div className="flex-1 p-6 flex flex-col min-h-0">
+                {activeTab === 'console' ? (
+                    /* Console Tab */
+                    <>
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-lg font-bold text-white">Console</h2>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleClearConsole}
+                                    className="p-2 hover:bg-white/5 rounded-lg transition-colors text-gray-400 hover:text-white"
+                                    title="Clear console"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={copyConsoleToClipboard}
+                                    className="p-2 hover:bg-white/5 rounded-lg transition-colors text-gray-400 hover:text-white"
+                                    title="Copy console content"
+                                    disabled={consoleLog.length === 0}
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div
+                            ref={consoleRef}
+                            className="flex-1 bg-black/40 rounded-xl p-4 font-mono text-sm overflow-y-auto custom-scrollbar mb-4 select-text"
+                        >
+                            {consoleLog.map((line, i) => (
+                                <div key={i} className="text-gray-300 whitespace-pre-wrap mb-1 hover:bg-white/5 cursor-text">
+                                    {line}
+                                </div>
+                            ))}
+                            {consoleLog.length === 0 && (
+                                <div className="text-gray-500 italic">No console output yet</div>
+                            )}
+                        </div>
+
+                        <form onSubmit={handleSendCommand} className="flex gap-2">
+                            <input
+                                ref={commandInputRef}
+                                type="text"
+                                value={command}
+                                onChange={(e) => setCommand(e.target.value)}
+                                placeholder="Enter command... (with or without /)"
+                                className="flex-1 bg-background border border-white/10 rounded-xl px-4 py-2 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                                disabled={!isRunning}
+                                autoFocus
+                            />
+                            <button
+                                type="submit"
+                                disabled={!isRunning || !command.trim()}
+                                className="px-6 py-2 bg-primary/20 text-primary rounded-xl font-bold hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Send
+                            </button>
+                        </form>
+                        {!isRunning && (
+                            <p className="text-xs text-gray-500 mt-2">
+                                Server must be running to send commands
+                            </p>
+                        )}
+                    </>
+                ) : (
+                    /* Publicity Tab */
+                    <div className="flex flex-col items-center justify-center h-full">
+                        <div className="max-w-md w-full text-center">
+                            {/* Playit Logo/Icon */}
+                            <div className="mb-6">
+                                <svg className="w-20 h-20 mx-auto text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 4.034a2.5 2.5 0 0 1 3.62 0l3.156 3.156a2.5 2.5 0 0 1 0 3.62l-8.96 8.96a2.5 2.5 0 0 1-3.62 0L3.37 12.81a2.5 2.5 0 0 1 0-3.62l3.156-3.156a2.5 2.5 0 0 1 3.62 0L12 5.439l1.19-1.405z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m-3-3h6" />
+                                </svg>
+                            </div>
+
+                            <h2 className="text-2xl font-bold text-white mb-4">Playit.gg Tunnel</h2>
+
+                            {playitChecking ? (
+                                <div className="flex items-center justify-center gap-2 text-gray-400 mb-6">
+                                    <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                    <span>Checking availability...</span>
+                                </div>
+                            ) : playitCode ? (
+                                /* Code available */
+                                <>
+                                    <p className="text-gray-300 mb-4">
+                                        Your Playit tunnel code is ready! Click the button below to claim your tunnel.
+                                    </p>
+                                    <div className="bg-background/50 rounded-lg p-4 mb-6 font-mono text-sm">
+                                        <span className="text-primary">Code: </span>
+                                        <span className="text-white">{playitCode}</span>
+                                    </div>
+                                    <button
+                                        onClick={openPlayitClaim}
+                                        className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-lg"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.19 4.034a2.5 2.5 0 0 1 3.62 0l3.156 3.156a2.5 2.5 0 0 1 0 3.62l-8.96 8.96a2.5 2.5 0 0 1-3.62 0L3.37 12.81a2.5 2.5 0 0 1 0-3.62l3.156-3.156a2.5 2.5 0 0 1 3.62 0L12 5.439l1.19-1.405z" />
+                                        </svg>
+                                        Go Public
+                                    </button>
+                                </>
+                            ) : (
+                                /* No code available */
+                                <>
+                                    <p className="text-gray-400 mb-2">
+                                        {isRunning ? (
+                                            playitAvailable ? (
+                                                "Waiting for Playit code... Start the server and check the console for the claim code."
+                                            ) : (
+                                                <>
+                                                    Currently not available for this version.
+                                                    <br />
+                                                    Please use playit.gg manually.
+                                                </>
+                                            )
+                                        ) : (
+                                            playitAvailable ? (
+                                                "Start the server to generate a Playit tunnel code."
+                                            ) : (
+                                                <>
+                                                    Currently not available for this version.
+                                                    <br />
+                                                    Please use playit.gg manually.
+                                                </>
+                                            )
+                                        )}
+                                    </p>
+
+                                    {!playitAvailable && !playitChecking && (
+                                        <button
+                                            onClick={installPlayitPlugin}
+                                            disabled={isLoading}
+                                            className="mt-4 px-6 py-3 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                                        >
+                                            Install Playit Plugin
+                                        </button>
+                                    )}
+
+                                    <button
+                                        onClick={openPlayitClaim}
+                                        className="w-full bg-primary/20 hover:bg-primary/30 text-primary font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-lg mt-2"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        PLAYIT.GG
+                                    </button>
+                                </>
+                            )}
+
+                            {/* Help text */}
+                            <p className="text-xs text-gray-600 mt-6">
+                                Playit.gg creates a secure tunnel to make your server accessible online without port forwarding.
+                            </p>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

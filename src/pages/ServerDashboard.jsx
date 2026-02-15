@@ -66,10 +66,6 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
 
     // Memory options
     const memoryOptions = [
-        { value: '512', label: '512 MB' },
-        { value: '1024', label: '1 GB' },
-        { value: '2048', label: '2 GB' },
-        { value: '3072', label: '3 GB' },
         { value: '4096', label: '4 GB' },
         { value: '6144', label: '6 GB' },
         { value: '8192', label: '8 GB' },
@@ -184,13 +180,22 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
 
         try {
             // First, get the download URL from MCUtils
+            console.log(`Fetching version info for ${selectedSoftware}/${selectedVersion}`);
             const versionResponse = await fetch(`https://mcutils.com/api/server-jars/${selectedSoftware}/${selectedVersion}`);
 
             if (!versionResponse.ok) {
-                throw new Error(`Failed to fetch version info: ${versionResponse.status}`);
+                const errorText = await versionResponse.text();
+                console.error('MCUtils API error:', errorText);
+                throw new Error(`Failed to fetch version info: ${versionResponse.status} - ${errorText}`);
             }
 
             const versionData = await versionResponse.json();
+            console.log('Version data received:', versionData);
+
+            if (!versionData.downloadUrl) {
+                console.error('No downloadUrl in response:', versionData);
+                throw new Error('No download URL provided in response');
+            }
 
             // Prepare server data as a single object
             const serverData = {
@@ -204,7 +209,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                 downloadUrl: versionData.downloadUrl
             };
 
-            console.log('Sending server data:', serverData); // For debugging
+            console.log('Sending server data:', serverData);
 
             const result = await window.electronAPI.createServer(serverData);
 

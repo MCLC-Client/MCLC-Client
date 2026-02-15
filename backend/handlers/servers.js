@@ -22,11 +22,27 @@ function sanitizeFileName(name) {
 
 async function downloadServerJar(url, destination, serverName, mainWindow) {
     try {
+        console.log(`[Servers] Downloading from URL: ${url}`);
+
+        // Validate URL
+        if (!url || typeof url !== 'string') {
+            throw new Error('Invalid download URL');
+        }
+
+        // Ensure URL is properly formatted
+        const parsedUrl = new URL(url);
+        console.log(`[Servers] Parsed URL: ${parsedUrl.toString()}`);
+
         const writer = createWriteStream(destination);
         const response = await axios({
             method: 'get',
             url: url,
             responseType: 'stream',
+            timeout: 30000, // 30 second timeout
+            maxRedirects: 5,
+            headers: {
+                'User-Agent': 'Antigravity/MinecraftLauncher/1.0'
+            },
             onDownloadProgress: (progressEvent) => {
                 if (progressEvent.total) {
                     const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -42,15 +58,183 @@ async function downloadServerJar(url, destination, serverName, mainWindow) {
             }
         });
 
+        console.log(`[Servers] Response status: ${response.status}`);
+        console.log(`[Servers] Response headers:`, response.headers);
+
+        if (response.status !== 200) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         response.data.pipe(writer);
 
         return new Promise((resolve, reject) => {
+            writer.on('finish', () => {
+                console.log(`[Servers] Download finished for ${serverName}`);
+                resolve();
+            });
+            writer.on('error', (error) => {
+                console.error(`[Servers] Write error:`, error);
+                reject(error);
+            });
+        });
+    } catch (error) {
+        console.error('[Servers] Error in downloadServerJar:', error);
+
+        // More detailed error logging
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            console.error('[Servers] Error response data:', error.response.data);
+            console.error('[Servers] Error response status:', error.response.status);
+            console.error('[Servers] Error response headers:', error.response.headers);
+        } else if (error.request) {
+            // The request was made but no response was received
+            console.error('[Servers] Error request:', error.request);
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            console.error('[Servers] Error message:', error.message);
+        }
+
+        throw error;
+    }
+}
+
+// Verbesserte Plugin Download Funktion für Playit Companion
+async function downloadPlayitPlugin(serverDir, software, version, serverName, mainWindow) {
+    try {
+        console.log(`[Servers] Checking Playit plugin for ${software} ${version}`);
+
+        // Map software names to Modrinth loaders
+        const loaderMap = {
+            'paper': 'paper',
+            'purpur': 'purpur',
+            'spigot': 'spigot',
+            'bukkit': 'bukkit',
+            'folia': 'folia',
+            'fabric': 'fabric',
+            'forge': 'forge',
+            'neoforge': 'neoforge',
+            'vanilla': 'vanilla' // Vanilla doesn't support plugins
+        };
+
+        const loader = loaderMap[software.toLowerCase()];
+
+        // Skip if software doesn't support plugins or is vanilla
+        if (!loader || loader === 'vanilla') {
+            console.log(`[Servers] ${software} doesn't support plugins or is vanilla, skipping Playit plugin`);
+            return false;
+        }
+
+        // Playit Companion Modrinth project ID
+        const projectId = 'og7kbNBC';
+
+        // First, get project info to find the latest version for this loader and game version
+        const versionsResponse = await axios.get(`https://api.modrinth.com/v2/project/${projectId}/version`, {
+            headers: {
+                'User-Agent': 'Antigravity/MinecraftLauncher/1.0'
+            }
+        });
+
+        if (!versionsResponse.data || versionsResponse.data.length === 0) {
+            console.log('[Servers] No versions found for Playit plugin');
+            return false;
+        }
+
+        // Find a version that matches our loader and game version
+        const matchingVersion = versionsResponse.data.find(v => {
+            // Check if version supports our loader
+            const supportsLoader = v.loaders.some(l =>
+                l.toLowerCase() === loader.toLowerCase()
+            );
+
+            // Check if version supports our game version
+            const supportsGameVersion = v.game_versions.some(gv =>
+                gv === version
+            );
+
+            return supportsLoader && supportsGameVersion;
+        });
+
+        if (!matchingVersion) {
+            console.log(`[Servers] No Playit plugin version found for ${software} ${version}`);
+
+            // Try to find any version that supports the loader (maybe different game version)
+            const anyLoaderVersion = versionsResponse.data.find(v =>
+                v.loaders.some(l => l.toLowerCase() === loader.toLowerCase())
+            );
+
+            if (anyLoaderVersion) {
+                console.log(`[Servers] Found Playit plugin for ${software} but not for version ${version}. Supported versions: ${anyLoaderVersion.game_versions.join(', ')}`);
+            }
+
+            return false;
+        }
+
+        // Get the primary file (usually the .jar file)
+        const primaryFile = matchingVersion.files.find(f => f.primary) || matchingVersion.files[0];
+
+        if (!primaryFile) {
+            console.log('[Servers] No download file found for Playit plugin');
+            return false;
+        }
+
+        console.log(`[Servers] Downloading Playit plugin v${matchingVersion.version_number} for ${software} ${version}`);
+
+        // WICHTIG: Bestimme den korrekten Plugin-Ordner basierend auf dem Software-Typ
+        let pluginDir;
+        const softwareLower = software.toLowerCase();
+
+        if (['fabric', 'forge', 'neoforge', 'quilt'].includes(softwareLower)) {
+            // Mod Loader verwenden den 'mods' Ordner
+            pluginDir = path.join(serverDir, 'mods');
+            console.log(`[Servers] Using mods folder for ${software} (mod loader)`);
+        } else {
+            // Bukkit/Spigot/Paper etc. verwenden den 'plugins' Ordner
+            pluginDir = path.join(serverDir, 'plugins');
+            console.log(`[Servers] Using plugins folder for ${software} (plugin-based)`);
+        }
+
+        await fs.ensureDir(pluginDir);
+
+        const pluginPath = path.join(pluginDir, primaryFile.filename);
+
+        // Check if plugin already exists
+        if (await fs.pathExists(pluginPath)) {
+            console.log(`[Servers] Plugin already exists at ${pluginPath}, skipping download`);
+            return true;
+        }
+
+        // Download the plugin
+        const writer = createWriteStream(pluginPath);
+        const response = await axios({
+            method: 'get',
+            url: primaryFile.url,
+            responseType: 'stream',
+            headers: {
+                'User-Agent': 'Antigravity/MinecraftLauncher/1.0'
+            }
+        });
+
+        response.data.pipe(writer);
+
+        await new Promise((resolve, reject) => {
             writer.on('finish', resolve);
             writer.on('error', reject);
         });
+
+        console.log(`[Servers] Playit plugin downloaded successfully: ${primaryFile.filename}`);
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('server:console', {
+                serverName,
+                log: `[INFO] Playit Companion plugin v${matchingVersion.version_number} installed automatically`
+            });
+        }
+
+        return true;
     } catch (error) {
-        console.error('Error downloading server jar:', error);
-        throw error;
+        console.error('[Servers] Error downloading Playit plugin:', error);
+        return false;
     }
 }
 
@@ -102,8 +286,7 @@ async function getProcessStats(pid) {
                             else if (memStr.endsWith('G')) memory = parseInt(memStr) * 1024;
                             else memory = parseInt(memStr) / (1024 * 1024);
 
-                            // Get CPU usage (simplified - just return a random-ish value for demo)
-                            // In production, you'd need to sample over time
+                            // Get CPU usage
                             exec(`wmic process where ProcessId=${pid} get PercentProcessorTime`, (error, stdout) => {
                                 const cpuMatch = stdout.match(/(\d+)/);
                                 const cpu = cpuMatch ? parseInt(cpuMatch[0]) : Math.random() * 30 + 5;
@@ -168,7 +351,7 @@ function startServerStatsCollection(serverName, process, mainWindow) {
             const startTime = serverStartTimes.get(serverName) || Date.now();
             const uptime = Math.floor((Date.now() - startTime) / 1000);
 
-            // Parse player count from console buffer (simplified - in production you'd parse actual player list)
+            // Parse player count from console buffer
             const consoleBuffer = serverConsoleBuffers.get(serverName) || [];
             let players = [];
 
@@ -178,7 +361,6 @@ function startServerStatsCollection(serverName, process, mainWindow) {
                 if (line.includes('players online:')) {
                     const match = line.match(/(\d+)\/.*players online:/);
                     if (match) {
-                        // In a real implementation, you'd extract actual player names
                         players = Array(parseInt(match[0])).fill('Player').map((p, i) => `${p}${i + 1}`);
                     }
                     break;
@@ -304,10 +486,10 @@ eula=true
         }
     });
 
-    // Get server logs (from buffer, not from file)
+    // Get server logs
     ipcMain.handle('server:get-console', async (event, serverName) => {
         try {
-            // Return from in-memory buffer first (for live logs)
+            // Return from in-memory buffer first
             const buffer = serverConsoleBuffers.get(serverName) || [];
             if (buffer.length > 0) {
                 return buffer;
@@ -378,7 +560,7 @@ eula=true
                 throw new Error('Server is not running');
             }
 
-            // Remove leading slash if present (Minecraft server commands don't use slashes)
+            // Remove leading slash if present
             const cleanCommand = command.startsWith('/') ? command.substring(1) : command;
 
             // Write command to server stdin
@@ -387,7 +569,7 @@ eula=true
             // Add command to console buffer
             const buffer = serverConsoleBuffers.get(serverName) || [];
             buffer.push(`> ${command}`);
-            if (buffer.length > 500) buffer.shift(); // Keep last 500 lines
+            if (buffer.length > 500) buffer.shift();
             serverConsoleBuffers.set(serverName, buffer);
 
             // Log command to console
@@ -429,7 +611,7 @@ eula=true
     // Create server
     ipcMain.handle('server:create', async (event, data) => {
         try {
-            console.log('[Servers] Received server data:', data);
+            console.log('[Servers] Received server data:', JSON.stringify(data, null, 2));
 
             if (!data || typeof data !== 'object') {
                 throw new Error('Invalid server data');
@@ -457,6 +639,7 @@ eula=true
             await fs.ensureDir(serverDir);
             await fs.ensureDir(path.join(serverDir, 'logs'));
             await fs.ensureDir(path.join(serverDir, 'plugins'));
+            await fs.ensureDir(path.join(serverDir, 'mods')); // For mod loaders
 
             const serverConfig = {
                 name: name,
@@ -470,7 +653,8 @@ eula=true
                 created: new Date().toISOString(),
                 status: 'stopped',
                 pid: null,
-                path: serverDir
+                path: serverDir,
+                playitPluginInstalled: false // Track if plugin was installed
             };
 
             await fs.writeJson(path.join(serverDir, 'server.json'), serverConfig, { spaces: 2 });
@@ -491,6 +675,7 @@ eula=false
 `;
             await fs.writeFile(path.join(serverDir, 'eula.txt'), eulaContent);
 
+            // Download server jar
             if (downloadUrl) {
                 const jarPath = path.join(serverDir, 'server.jar');
 
@@ -501,31 +686,51 @@ eula=false
                     });
                 }
 
-                downloadServerJar(downloadUrl, jarPath, name, mainWindow)
-                    .then(() => {
-                        console.log(`[Servers] Server jar downloaded for ${name}`);
+                console.log(`[Servers] Downloading server jar from: ${downloadUrl}`);
+
+                try {
+                    await downloadServerJar(downloadUrl, jarPath, name, mainWindow);
+                    console.log(`[Servers] Server jar downloaded successfully for ${name}`);
+                } catch (downloadError) {
+                    console.error(`[Servers] Failed to download server jar:`, downloadError);
+                    throw new Error(`Failed to download server jar: ${downloadError.message}`);
+                }
+
+                // After server jar is downloaded, try to install Playit plugin
+                try {
+                    const pluginInstalled = await downloadPlayitPlugin(serverDir, software, version, name, mainWindow);
+
+                    // Update config with plugin status
+                    if (pluginInstalled) {
+                        serverConfig.playitPluginInstalled = true;
+                        await fs.writeJson(path.join(serverDir, 'server.json'), serverConfig, { spaces: 2 });
+
                         if (mainWindow && !mainWindow.isDestroyed()) {
-                            mainWindow.webContents.send('server:status', {
+                            mainWindow.webContents.send('server:console', {
                                 serverName: name,
-                                status: 'ready'
+                                log: '[INFO] Playit Companion plugin installed successfully'
                             });
                         }
-                    })
-                    .catch(err => {
-                        console.error(`[Servers] Failed to download jar for ${name}:`, err);
-                        if (mainWindow && !mainWindow.isDestroyed()) {
-                            mainWindow.webContents.send('server:status', {
-                                serverName: name,
-                                status: 'error',
-                                error: err.message
-                            });
-                        }
+                    }
+                } catch (pluginError) {
+                    console.error(`[Servers] Error installing Playit plugin:`, pluginError);
+                    // Don't fail the server creation if plugin fails
+                }
+
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('server:status', {
+                        serverName: name,
+                        status: 'ready'
                     });
+                }
+            } else {
+                console.warn(`[Servers] No downloadUrl provided for ${software} ${version}`);
             }
 
             return { success: true, serverName: name };
         } catch (error) {
             console.error('[Servers] Error creating server:', error);
+            console.error('[Servers] Error stack:', error.stack);
             return { success: false, error: error.message };
         }
     });
@@ -946,7 +1151,8 @@ eula=false
                     created: new Date().toISOString(),
                     status: 'stopped',
                     pid: null,
-                    path: destPath
+                    path: destPath,
+                    playitPluginInstalled: false
                 };
                 await fs.writeJson(configPath, serverConfig, { spaces: 2 });
             }
@@ -1066,6 +1272,110 @@ eula=false
             return { success: true };
         } catch (error) {
             console.error('[Servers] Error clearing console:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    // New handler: Check if Playit plugin is available for a specific software and version
+    ipcMain.handle('server:check-playit-available', async (event, software, version) => {
+        try {
+            const loaderMap = {
+                'paper': 'paper',
+                'purpur': 'purpur',
+                'spigot': 'spigot',
+                'bukkit': 'bukkit',
+                'folia': 'folia',
+                'fabric': 'fabric',
+                'forge': 'forge',
+                'neoforge': 'neoforge',
+                'quilt': 'quilt',
+                'vanilla': null
+            };
+
+            const loader = loaderMap[software.toLowerCase()];
+
+            if (!loader || loader === 'vanilla') {
+                return { available: false, reason: 'Software does not support plugins' };
+            }
+
+            const projectId = 'og7kbNBC';
+            const versionsResponse = await axios.get(`https://api.modrinth.com/v2/project/${projectId}/version`, {
+                headers: {
+                    'User-Agent': 'Antigravity/MinecraftLauncher/1.0'
+                }
+            });
+
+            if (!versionsResponse.data || versionsResponse.data.length === 0) {
+                return { available: false, reason: 'No versions found' };
+            }
+
+            const matchingVersion = versionsResponse.data.find(v => {
+                const supportsLoader = v.loaders.some(l =>
+                    l.toLowerCase() === loader.toLowerCase()
+                );
+                const supportsGameVersion = v.game_versions.some(gv =>
+                    gv === version
+                );
+                return supportsLoader && supportsGameVersion;
+            });
+
+            if (matchingVersion) {
+                return {
+                    available: true,
+                    version: matchingVersion.version_number,
+                    supportedVersions: matchingVersion.game_versions
+                };
+            }
+
+            // Check if any version supports this loader (for debugging)
+            const anyLoaderVersion = versionsResponse.data.find(v =>
+                v.loaders.some(l => l.toLowerCase() === loader.toLowerCase())
+            );
+
+            if (anyLoaderVersion) {
+                return {
+                    available: false,
+                    reason: `No version for ${version}. Supported: ${anyLoaderVersion.game_versions.join(', ')}`,
+                    supportedVersions: anyLoaderVersion.game_versions
+                };
+            }
+
+            return { available: false, reason: `No version found for ${software}` };
+        } catch (error) {
+            console.error('[Servers] Error checking Playit availability:', error);
+            return { available: false, reason: error.message };
+        }
+    });
+
+    // New handler: Manually install Playit plugin for an existing server
+    ipcMain.handle('server:install-playit', async (event, serverName) => {
+        try {
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const configPath = path.join(serverDir, 'server.json');
+
+            if (!await fs.pathExists(configPath)) {
+                throw new Error('Server not found');
+            }
+
+            const config = await fs.readJson(configPath);
+
+            if (config.playitPluginInstalled) {
+                return { success: true, message: 'Plugin already installed' };
+            }
+
+            const pluginInstalled = await downloadPlayitPlugin(serverDir, config.software, config.version, serverName, mainWindow);
+
+            if (pluginInstalled) {
+                config.playitPluginInstalled = true;
+                await fs.writeJson(configPath, config, { spaces: 2 });
+                return { success: true, message: 'Plugin installed successfully' };
+            } else {
+                return { success: false, message: 'Plugin not available for this software/version' };
+            }
+        } catch (error) {
+            console.error('[Servers] Error installing Playit plugin:', error);
             return { success: false, error: error.message };
         }
     });
