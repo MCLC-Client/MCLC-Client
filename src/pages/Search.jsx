@@ -184,6 +184,8 @@ function Search({ initialCategory, onCategoryConsumed }) {
                 // Temporarily mark as installed/installing
                 setInstalledIds(prev => new Set(prev).add(mod.project_id));
                 Analytics.trackDownload('modpack', mod.title, mod.project_id);
+                // Also track as a client instance creation
+                Analytics.trackInstanceCreation('modpack', 'latest');
             } else {
                 addNotification(`Failed to install: ${installRes.error}`, 'error');
             }

@@ -12,9 +12,10 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*", // Allow all origins for simplicity (Client + Admin)
+        origin: "*",
         methods: ["GET", "POST"]
-    }
+    },
+    transports: ['websocket', 'polling']
 });
 
 const PORT = process.env.PORT || 3001;
@@ -39,6 +40,14 @@ let stats = {
     launchesPerDay: {}, // { "2023-10-27": 150 }
     // User base
     clientVersions: {}, // { "1.0.0": 10 }
+    software: {
+        client: {}, // { "Fabric": 10, "Vanilla": 5 }
+        server: {}
+    },
+    gameVersions: {
+        client: {}, // { "1.21": 8 }
+        server: {}
+    }
 };
 
 // Load analytics
@@ -52,6 +61,9 @@ if (fs.existsSync(ANALYTICS_FILE)) {
             stats.clientVersions = loaded.clientVersions || {};
         } else {
             stats = { ...stats, ...loaded }; // Merge to ensure structure
+            // Ensure new structures exist
+            if (!stats.software) stats.software = { client: {}, server: {} };
+            if (!stats.gameVersions) stats.gameVersions = { client: {}, server: {} };
         }
     } catch (e) {
         console.error("Failed to load analytics:", e);
@@ -103,28 +115,52 @@ io.on('connection', (socket) => {
         emitLiveStats();
     });
 
-    // 2. Status Update (Launching/Stopping Game)
+    // 2. Client Status Update (isPlaying)
     socket.on('update-status', (data) => {
         const session = activeSessions.get(socket.id);
-        if (!session) return;
+        if (session) {
+            // Check if we just started playing
+            if (data.isPlaying && !session.isPlaying) {
+                // Persistent tracking on Launch
+                const today = new Date().toISOString().split('T')[0];
+                stats.launchesPerDay[today] = (stats.launchesPerDay[today] || 0) + 1;
 
-        const wasPlaying = session.isPlaying;
-        const isNowPlaying = !!data.isPlaying;
+                // Track Software and Game Version
+                const mode = data.mode === 'server' ? 'server' : 'client';
+                if (data.software) {
+                    stats.software[mode][data.software] = (stats.software[mode][data.software] || 0) + 1;
+                }
+                if (data.gameVersion) {
+                    stats.gameVersions[mode][data.gameVersion] = (stats.gameVersions[mode][data.gameVersion] || 0) + 1;
+                }
+                saveAnalytics();
+            }
 
-        session.isPlaying = isNowPlaying;
-        session.instance = data.instance || null;
-        activeSessions.set(socket.id, session);
-
-        // Only count launch if transitioning from NOT playing to PLAYING
-        // This prevents re-counting on page refresh if the client sends "I'm playing" immediately
-        if (!wasPlaying && isNowPlaying) {
-            const today = new Date().toISOString().split('T')[0];
-            stats.launchesPerDay[today] = (stats.launchesPerDay[today] || 0) + 1;
-            saveAnalytics(); // Save meaningful events immediately
+            session.isPlaying = data.isPlaying;
+            session.instance = data.instance || null;
+            activeSessions.set(socket.id, session);
         }
-
         emitLiveStats();
         // Also emit persistent stats update because launchesPerDay changed
+        io.to('admin').emit('live-update', {
+            live: getLiveStats(),
+            persistent: stats
+        });
+    });
+
+    // 2.5 Track Creation (e.g. Server created in Dashboard)
+    socket.on('track-creation', (data) => {
+        // data: { software: "paper", version: "1.21.1", mode: "server" }
+        const mode = data.mode === 'server' ? 'server' : 'client';
+        console.log(`[Analytics] Track Creation (${mode}):`, data.software, data.version);
+        if (data.software) {
+            stats.software[mode][data.software] = (stats.software[mode][data.software] || 0) + 1;
+        }
+        if (data.version) {
+            stats.gameVersions[mode][data.version] = (stats.gameVersions[mode][data.version] || 0) + 1;
+        }
+        saveAnalytics();
+
         io.to('admin').emit('live-update', {
             live: getLiveStats(),
             persistent: stats
@@ -244,8 +280,8 @@ const adminPublicPath = fs.existsSync(path.join(__dirname, 'public'))
     ? path.join(__dirname, 'public')
     : path.join(__dirname, 'news-admin/public');
 
-console.log(`[Static] Serving website from: ${websitePath}`);
-console.log(`[Static] Serving admin from: ${adminPublicPath}`);
+console.log(`[Static] Serving website from: ${path.resolve(websitePath)}`);
+console.log(`[Static] Serving admin from: ${path.resolve(adminPublicPath)}`);
 
 app.use(express.static(websitePath));
 app.use(express.static(adminPublicPath));

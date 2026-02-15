@@ -97,15 +97,15 @@ function App() {
             applyTheme(newTheme);
         });
 
-        const removeStatusListener = window.electronAPI.onInstanceStatus(({ instanceName, status }) => {
+        const removeStatusListener = window.electronAPI.onInstanceStatus(({ instanceName, status, loader, version }) => {
             setRunningInstances(prev => {
                 const next = { ...prev };
                 if (status === 'stopped' || status === 'deleted') {
                     delete next[instanceName];
-                    if (status === 'stopped') Analytics.updateStatus(false, instanceName);
+                    if (status === 'stopped') Analytics.updateStatus(false, instanceName, { loader, version, mode: currentMode });
                 } else {
                     next[instanceName] = status;
-                    if (status === 'running') Analytics.updateStatus(true, instanceName);
+                    if (status === 'running') Analytics.updateStatus(true, instanceName, { loader, version, mode: currentMode });
                 }
                 return next;
             });

@@ -395,7 +395,12 @@ Add-Type -TypeDefinition $code -Language CSharp
             }
 
             // Emit launching status
-            mainWindow.webContents.send('instance:status', { instanceName, status: 'launching' });
+            mainWindow.webContents.send('instance:status', {
+                instanceName,
+                status: 'launching',
+                loader: config.loader || 'Vanilla',
+                version: config.version
+            });
             runningInstances.set(instanceName, Date.now());
 
             // Update Discord RPC
@@ -454,7 +459,12 @@ Add-Type -TypeDefinition $code -Language CSharp
             });
 
             launcher.on('arguments', (e) => {
-                mainWindow.webContents.send('instance:status', { instanceName, status: 'running' });
+                mainWindow.webContents.send('instance:status', {
+                    instanceName,
+                    status: 'running',
+                    loader: config.loader || 'Vanilla',
+                    version: config.version
+                });
                 try {
                     const discord = require('./discord');
                     discord.setActivity(`Playing ${instanceName}`, 'In Game', 'minecraft', 'Minecraft', runningInstances.get(instanceName));

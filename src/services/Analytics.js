@@ -4,32 +4,39 @@ import { io } from "socket.io-client";
 class AnalyticsService {
     constructor() {
         this.socket = null;
-        this.socket = null;
         this.serverUrl = 'https://mclc.pluginhub.de'; // Production URL
         this.clientVersion = '1.3.3';
         this.os = 'win32';
         this.userProfile = null;
     }
 
+    // Default to localhost for debugging, switch to 'https://mclc.pluginhub.de' for production
     init(serverUrl = 'https://mclc.pluginhub.de') {
         if (this.socket) return;
 
         console.log('[Analytics] Initializing connection to', serverUrl);
         this.serverUrl = serverUrl;
 
-
-
         this.socket = io(this.serverUrl, {
-            reconnectionDelayMax: 10000,
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            timeout: 20000,
+            transports: ['polling', 'websocket'] // Prioritize polling because host blocks WS
         });
 
         this.socket.on("connect", () => {
-            console.log("[Analytics] Connected");
+            console.log("[Analytics] Connected to", this.serverUrl);
             this.register();
         });
 
-        this.socket.on("disconnect", () => {
-            console.log("[Analytics] Disconnected");
+        this.socket.on("connect_error", (err) => {
+            console.error("[Analytics] Connection error:", err.message);
+        });
+
+        this.socket.on("disconnect", (reason) => {
+            console.log("[Analytics] Disconnected:", reason);
         });
     }
 
@@ -51,12 +58,48 @@ class AnalyticsService {
         this.socket.emit('register', data);
     }
 
-    updateStatus(isPlaying, instanceName = null) {
-        if (!this.socket) return;
-        // console.log('[Analytics] Update Status:', isPlaying, instanceName);
+    updateStatus(isPlaying, instanceName = null, metadata = {}) {
+        if (!this.socket) {
+            console.warn('[Analytics] Update status skipped: No socket');
+            return;
+        }
+        console.log('[Analytics] Update Status:', isPlaying, instanceName, metadata);
         this.socket.emit('update-status', {
             isPlaying,
-            instance: instanceName
+            instance: instanceName,
+            software: metadata.loader,
+            gameVersion: metadata.version,
+            mode: metadata.mode // 'client' or 'server'
+        });
+    }
+
+    trackLaunch(instanceName, metadata = {}) {
+        this.updateStatus(true, instanceName, metadata);
+    }
+
+    trackServerCreation(software, version) {
+        if (!this.socket) {
+            console.warn('[Analytics] Track server creation skipped: No socket');
+            return;
+        }
+        console.log('[Analytics] Track Server Creation:', software, version);
+        this.socket.emit('track-creation', {
+            software,
+            version,
+            mode: 'server'
+        });
+    }
+
+    trackInstanceCreation(software, version) {
+        if (!this.socket) {
+            console.warn('[Analytics] Track instance creation skipped: No socket');
+            return;
+        }
+        console.log('[Analytics] Track Instance Creation:', software, version);
+        this.socket.emit('track-creation', {
+            software,
+            version,
+            mode: 'client'
         });
     }
 

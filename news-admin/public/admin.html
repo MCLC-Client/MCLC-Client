@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- MCLC Admin v1.2 - Software, Versions & Path Debugging -->
 <html lang="en">
 
 <head>
@@ -26,6 +27,7 @@
             margin-top: 5px;
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
@@ -70,7 +72,16 @@
     <header>
         <div class="container">
             <button onclick="logout()" class="btn-logout">LOGOUT</button>
-            <h1>MCLC <span style="font-weight:300; opacity:0.6; font-size:0.5em;">ADMIN PANEL</span></h1>
+            <div style="display:flex; align-items:center; gap:15px;">
+                <h1>MCLC <span style="font-weight:300; opacity:0.6; font-size:0.5em;">ADMIN PANEL</span></h1>
+                <div id="connection-status"
+                    class="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold border border-red-500/20"
+                    style="display:flex; align-items:center; gap:6px; border-radius:10px; padding:2px 8px;">
+                    <div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"
+                        style="width:6px; height:6px; background:#e74c3c; border-radius:50%;"></div>
+                    Disconnected
+                </div>
+            </div>
         </div>
     </header>
 
@@ -119,14 +130,51 @@
                 </div>
             </div>
 
-            <!-- Charts -->
+            <!-- New Analytics Charts (Top Software & Top Versions) -->
             <div class="charts-grid">
+                <!-- TOP SOFTWARE CHART -->
                 <div class="card">
-                    <h3 style="margin-bottom:15px; color:var(--text-main);">Software Distribution</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3 style="color:var(--text-main); margin:0;">Top Software</h3>
+                        <div style="display:flex; gap:5px;">
+                            <button id="tab-software-client" class="tab-btn active"
+                                onclick="switchSoftwareTab('client')">Client</button>
+                            <button id="tab-software-server" class="tab-btn"
+                                onclick="switchSoftwareTab('server')">Server</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-software"></canvas>
+                    </div>
+                </div>
+
+                <!-- TOP VERSIONS CHART -->
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3 style="color:var(--text-main); margin:0;">Top Versions</h3>
+                        <div style="display:flex; gap:5px;">
+                            <button id="tab-gameversion-client" class="tab-btn active"
+                                onclick="switchGameVersionTab('client')">Client</button>
+                            <button id="tab-gameversion-server" class="tab-btn"
+                                onclick="switchGameVersionTab('server')">Server</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-gameversions"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-grid" style="margin-top:20px;">
+                <!-- LAUNCHER VERSIONS (Doughnut) -->
+                <div class="card">
+                    <h3 style="margin-bottom:15px; color:var(--text-main);">Launcher Distribution</h3>
                     <div class="chart-container">
                         <canvas id="chart-versions"></canvas>
                     </div>
                 </div>
+
+                <!-- TOP DOWNLOADS (Mods, RPs, etc.) -->
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                         <h3 style="color:var(--text-main); margin:0;">Top Downloads</h3>
@@ -146,11 +194,12 @@
                 </div>
             </div>
 
-            <div class="card">
+            <!-- Activity Log -->
+            <div class="card" style="margin-top: 20px;">
                 <h3 style="margin-bottom:15px; color:var(--text-main);">Real-time Activity Log</h3>
                 <div id="activity-log"
                     style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">
-                    <div style="padding: 5px 0;">Waiting for activity...</div>
+                    <div style="padding: 5px 0;" id="activity-log-placeholder">Waiting for activity...</div>
                 </div>
             </div>
         </div>
@@ -180,9 +229,7 @@
 
                     <label
                         style="color:var(--text-muted); font-size:0.8rem; margin-bottom:5px; display:block;">Image</label>
-                    <!-- File Upload -->
                     <input type="file" id="fileInput" accept="image/*">
-                    <!-- URL Fallback -->
                     <input type="url" id="image" placeholder="OR Enter Image URL directly" style="margin-top:5px;">
                     <img id="preview" class="news-img-preview">
 
@@ -199,15 +246,26 @@
     </div>
 
     <script>
+        // --- AUTH ---
         const password = localStorage.getItem('admin_password');
         if (!password) window.location.href = 'index.html';
 
-        // --- Tabs ---
+        console.log('[MCLC Admin] v1.2 Initializing...');
+        console.log('[MCLC Admin] Running from:', window.location.href);
+
+        function logout() {
+            localStorage.removeItem('admin_password');
+            window.location.href = 'index.html';
+        }
+
+        // --- View Switching ---
         function switchView(v) {
             document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('section-' + v).classList.add('active');
-            document.getElementById('tab-' + v).classList.add('active');
+            const section = document.getElementById('section-' + v);
+            const tab = document.getElementById('tab-' + v);
+            if (section) section.classList.add('active');
+            if (tab) tab.classList.add('active');
         }
 
         // --- News Logic ---
@@ -219,12 +277,13 @@
                 news = await res.json();
                 renderNews();
             } catch (e) {
-                console.error(e);
+                console.error('[News] Load error:', e);
             }
         }
 
         function renderNews() {
             const container = document.getElementById('news-container');
+            if (!container) return;
             if (news.length === 0) {
                 container.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px;">No news yet.</p>';
                 return;
@@ -244,12 +303,17 @@
         }
 
         async function saveNewsData() {
-            const res = await fetch('/api/news', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ news, password })
-            });
-            if (!res.ok) alert('Failed to save. Check password or connection.');
+            try {
+                const res = await fetch('/api/news', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ news, password })
+                });
+                if (!res.ok) throw new Error('Failed to save news');
+            } catch (err) {
+                console.error('[News] Save error:', err);
+                alert('Failed to save. Check password or connection.');
+            }
         }
 
         window.removeNews = (index) => {
@@ -259,160 +323,44 @@
             renderNews();
         };
 
-        // --- Add News Form ---
-        // Image Preview
-        document.getElementById('fileInput').addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    document.getElementById('preview').src = e.target.result;
-                    document.getElementById('preview').style.display = 'block';
-                }
-                reader.readAsDataURL(file);
-            }
-        });
-
-        document.getElementById('addForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.innerText = 'Publishing...';
-
-            let imageUrl = document.getElementById('image').value;
-            const fileInput = document.getElementById('fileInput');
-
-            // Handle File Upload
-            if (fileInput.files.length > 0) {
-                const formData = new FormData();
-                formData.append('image', fileInput.files[0]);
-
-                try {
-                    const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                    const uploadData = await uploadRes.json();
-                    if (uploadData.success) {
-                        imageUrl = uploadData.url;
-                    } else {
-                        alert('Image upload failed: ' + uploadData.error);
-                        btn.disabled = false;
-                        btn.innerText = 'PUBLISH NEWS';
-                        return;
-                    }
-                } catch (err) {
-                    alert('Upload failed');
-                    console.error(err);
-                    btn.disabled = false;
-                    btn.innerText = 'PUBLISH NEWS';
-                    return;
-                }
-            }
-
-            const newItem = {
-                title: document.getElementById('title').value,
-                description: document.getElementById('description').value,
-                image: imageUrl,
-                link: document.getElementById('link').value,
-                date: new Date().toISOString().split('T')[0]
-            };
-
-            news.unshift(newItem);
-            await saveNewsData();
-
-            // Reset and switch view
-            e.target.reset();
-            document.getElementById('preview').style.display = 'none';
-            btn.disabled = false;
-            btn.innerText = 'PUBLISH NEWS';
-            switchView('list');
-            renderNews();
-        });
-
-        function logout() {
-            localStorage.removeItem('admin_password');
-            window.location.href = 'index.html';
-        }
-
-        loadNews();
-
         // --- DASHBOARD ANALYTICS ---
-        const socket = io();
+        const socket = io({
+            transports: ['polling', 'websocket'] // Ensure polling is tried first here too
+        });
         let charts = {};
         let currentDownloadCategory = 'mod';
+        let currentSoftwareCategory = 'client';
+        let currentGameVersionCategory = 'client';
         let statsData = {
             downloads: { mod: {}, resourcepack: {}, shader: {}, modpack: {} },
             clientVersions: {},
-            launchesPerDay: {}
+            launchesPerDay: {},
+            software: { client: {}, server: {} },
+            gameVersions: { client: {}, server: {} }
         };
-
-        // --- Console Debugging ---
-        function debugCharts() {
-            console.log('Charts State:', charts);
-            console.log('Downloads Chart:', charts.downloads);
-            if (charts.downloads) console.log('Downloads Data:', charts.downloads.data);
-        }
 
         // Initialize Charts safely
         function initCharts() {
-            console.log('Initializing charts...');
+            console.log('[Dashboard] Initializing Charts...');
             try {
-                // Versions Chart
-                const ctxVersions = document.getElementById('chart-versions');
-                if (ctxVersions) {
-                    charts.versions = new Chart(ctxVersions.getContext('2d'), {
-                        type: 'doughnut',
-                        data: {
-                            labels: [],
-                            datasets: [{
-                                data: [],
-                                backgroundColor: ['#00ff88', '#00b8ff', '#ff0055', '#ffcc00', '#9900ff'],
-                                borderWidth: 0
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { position: 'right', labels: { color: '#a0aec0' } }
-                            }
-                        }
-                    });
-                } else {
-                    console.error('Canvas chart-versions not found');
-                }
+                // Shared options
+                const barOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0aec0' } },
+                        x: { grid: { display: false }, ticks: { color: '#a0aec0' } }
+                    },
+                    plugins: { legend: { display: false } }
+                };
 
-                // Downloads Chart
-                const ctxDownloads = document.getElementById('chart-downloads');
-                if (ctxDownloads) {
-                    charts.downloads = new Chart(ctxDownloads.getContext('2d'), {
-                        type: 'bar',
-                        data: {
-                            labels: [],
-                            datasets: [{
-                                label: 'Downloads',
-                                data: [],
-                                backgroundColor: '#3498db',
-                                borderRadius: 4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0aec0' } },
-                                x: { grid: { display: false }, ticks: { color: '#a0aec0' } }
-                            },
-                            plugins: {
-                                legend: { display: false }
-                            }
-                        }
-                    });
-                } else {
-                    console.error('Canvas chart-downloads not found');
-                }
+                const doughnutOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { color: '#a0aec0' } } }
+                };
 
-                debugCharts();
-
-                // Live Activity Chart
+                // 1. Activity Chart
                 const ctxActivity = document.getElementById('chart-activity');
                 if (ctxActivity) {
                     charts.activity = new Chart(ctxActivity.getContext('2d'), {
@@ -420,91 +368,133 @@
                         data: {
                             labels: [],
                             datasets: [
-                                {
-                                    label: 'Active Launchers',
-                                    data: [],
-                                    borderColor: '#00ff88',
-                                    backgroundColor: 'rgba(0, 255, 136, 0.1)',
-                                    tension: 0.4,
-                                    fill: true
-                                },
-                                {
-                                    label: 'In-Game',
-                                    data: [],
-                                    borderColor: '#00b8ff',
-                                    backgroundColor: 'rgba(0, 184, 255, 0.1)',
-                                    tension: 0.4,
-                                    fill: true
-                                }
+                                { label: 'Active Launchers', data: [], borderColor: '#00ff88', backgroundColor: 'rgba(0, 255, 136, 0.1)', tension: 0.4, fill: true },
+                                { label: 'In-Game', data: [], borderColor: '#00b8ff', backgroundColor: 'rgba(0, 184, 255, 0.1)', tension: 0.4, fill: true }
                             ]
                         },
                         options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            animation: false, // Performance
-                            interaction: { mode: 'index', intersect: false },
-                            scales: {
-                                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0aec0', stepSize: 1 } },
-                                x: { grid: { display: false }, ticks: { color: '#a0aec0', maxTicksLimit: 10 } }
-                            },
-                            plugins: {
-                                legend: { labels: { color: '#a0aec0' } }
-                            }
+                            ...barOptions,
+                            plugins: { legend: { labels: { color: '#a0aec0' } } },
+                            animation: false,
+                            interaction: { mode: 'index', intersect: false }
                         }
                     });
                 }
+
+                // 2. Software Chart
+                const ctxSoftware = document.getElementById('chart-software');
+                if (ctxSoftware) {
+                    charts.software = new Chart(ctxSoftware, {
+                        type: 'bar',
+                        data: { labels: [], datasets: [{ label: 'Launches', data: [], backgroundColor: '#2ecc71', borderRadius: 4 }] },
+                        options: barOptions
+                    });
+                }
+
+                // 3. Game Versions Chart
+                const ctxGameVersions = document.getElementById('chart-gameversions');
+                if (ctxGameVersions) {
+                    charts.gameversions = new Chart(ctxGameVersions, {
+                        type: 'bar',
+                        data: { labels: [], datasets: [{ label: 'Launches', data: [], backgroundColor: '#f1c40f', borderRadius: 4 }] },
+                        options: barOptions
+                    });
+                }
+
+                // 4. Launcher Distribution (Doughnut)
+                const ctxVersions = document.getElementById('chart-versions');
+                if (ctxVersions) {
+                    charts.versions = new Chart(ctxVersions, {
+                        type: 'doughnut',
+                        data: { labels: [], datasets: [{ data: [], backgroundColor: ['#00ff88', '#00b8ff', '#ff0055', '#ffcc00', '#9900ff'], borderWidth: 0 }] },
+                        options: doughnutOptions
+                    });
+                }
+
+                // 5. Downloads Chart
+                const ctxDownloads = document.getElementById('chart-downloads');
+                if (ctxDownloads) {
+                    charts.downloads = new Chart(ctxDownloads, {
+                        type: 'bar',
+                        data: { labels: [], datasets: [{ label: 'Downloads', data: [], backgroundColor: '#3498db', borderRadius: 4 }] },
+                        options: barOptions
+                    });
+                }
+
+                console.log('[Dashboard] Charts initialized successfully:', Object.keys(charts));
             } catch (err) {
-                console.error('Error initializing charts:', err);
+                console.error('[Dashboard] Error initializing charts:', err);
             }
         }
 
-        // ... existing switchDownloadTab ...
-
-        function updateActivityChart(active, playing) {
-            if (!charts.activity) return;
-
-            const now = new Date().toLocaleTimeString();
-            const data = charts.activity.data;
-
-            if (data.labels.length > 20) {
-                data.labels.shift();
-                data.datasets[0].data.shift();
-                data.datasets[1].data.shift();
-            }
-
-            data.labels.push(now);
-            data.datasets[0].data.push(active);
-            data.datasets[1].data.push(playing);
-
-            charts.activity.update();
-        }
-
-        // Ensure DOM is ready
-        document.addEventListener('DOMContentLoaded', () => {
-            initCharts();
-        });
-
+        // --- Tab Switching ---
         function switchDownloadTab(category) {
             currentDownloadCategory = category;
-            // Update active button state
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('[id^="tab-mod"], [id^="tab-resourcepack"], [id^="tab-shader"], [id^="tab-modpack"]').forEach(btn => btn.classList.remove('active'));
             document.getElementById('tab-' + category).classList.add('active');
-
             updateDownloadsChart();
+        }
+
+        function switchSoftwareTab(category) {
+            currentSoftwareCategory = category;
+            document.querySelectorAll('[id^="tab-software-"]').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab-software-' + category).classList.add('active');
+            updateSoftwareChart();
+        }
+
+        function switchGameVersionTab(category) {
+            currentGameVersionCategory = category;
+            document.querySelectorAll('[id^="tab-gameversion-"]').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab-gameversion-' + category).classList.add('active');
+            updateGameVersionChart();
+        }
+
+        // --- Chart Updates ---
+        function updateSoftwareChart() {
+            if (!charts.software || !statsData.software || !statsData.software[currentSoftwareCategory]) return;
+            const data = statsData.software[currentSoftwareCategory];
+            const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+            charts.software.data.labels = sorted.map(s => s[0]);
+            charts.software.data.datasets[0].data = sorted.map(s => s[1]);
+            charts.software.update();
+        }
+
+        function updateGameVersionChart() {
+            if (!charts.gameversions || !statsData.gameVersions || !statsData.gameVersions[currentGameVersionCategory]) return;
+            const data = statsData.gameVersions[currentGameVersionCategory];
+            const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+            charts.gameversions.data.labels = sorted.map(s => s[0]);
+            charts.gameversions.data.datasets[0].data = sorted.map(s => s[1]);
+            charts.gameversions.update();
         }
 
         function updateDownloadsChart() {
             if (!charts.downloads || !statsData.downloads || !statsData.downloads[currentDownloadCategory]) return;
-
             const data = statsData.downloads[currentDownloadCategory];
-            // Sort by count descending
-            const sorted = Object.entries(data)
-                .sort(([, a], [, b]) => b - a)
-                .slice(0, 10); // Top 10
-
+            const sorted = Object.entries(data).sort(([, a], [, b]) => b - a).slice(0, 10);
             charts.downloads.data.labels = sorted.map(([name]) => name);
             charts.downloads.data.datasets[0].data = sorted.map(([, count]) => count);
             charts.downloads.update();
+        }
+
+        function updateCharts() {
+            if (!statsData) return;
+            updateDownloadsChart();
+            updateVersionsChart(statsData.clientVersions || {});
+            updateSoftwareChart();
+            updateGameVersionChart();
+
+            // Stats Cards
+            const today = new Date().toISOString().split('T')[0];
+            const launchesEl = document.getElementById('stat-daily-launches');
+            if (launchesEl) launchesEl.innerText = statsData.launchesPerDay?.[today] || 0;
+
+            let totalDl = 0;
+            if (statsData.downloads) {
+                Object.values(statsData.downloads).forEach(cat => Object.values(cat).forEach(c => totalDl += c));
+            }
+            const downloadsEl = document.getElementById('stat-total-downloads');
+            if (downloadsEl) downloadsEl.innerText = totalDl;
         }
 
         function updateVersionsChart(versions) {
@@ -514,62 +504,71 @@
             charts.versions.update();
         }
 
+        function updateActivityChart(active, playing) {
+            if (!charts.activity) return;
+            const now = new Date().toLocaleTimeString();
+            const data = charts.activity.data;
+            if (data.labels.length > 20) {
+                data.labels.shift();
+                data.datasets[0].data.shift();
+                data.datasets[1].data.shift();
+            }
+            data.labels.push(now);
+            data.datasets[0].data.push(active);
+            data.datasets[1].data.push(playing);
+            charts.activity.update();
+        }
+
         function logActivity(message) {
             const list = document.getElementById('activity-log');
-            const item = document.createElement('li');
+            if (!list) return;
+            const placeholder = document.getElementById('activity-log-placeholder');
+            if (placeholder) placeholder.remove();
+
+            const item = document.createElement('div');
             item.innerHTML = `<span style="color:var(--primary)">[${new Date().toLocaleTimeString()}]</span> ${message}`;
             item.style.padding = '5px 0';
             item.style.borderBottom = '1px solid var(--border-light)';
             list.prepend(item);
-            if (list.children.length > 50) list.lastElementChild.remove(); // Keep max 50 logs
+            if (list.children.length > 50) list.lastElementChild.remove();
         }
 
         // --- Socket Events ---
         socket.on('connect', () => {
-            console.log('Connected to analytics server');
+            console.log('[Socket] Connected (Transport:', socket.io.engine.transport.name, ')');
             socket.emit('admin-subscribe', password);
+
+            const statusEl = document.getElementById('connection-status');
+            if (statusEl) {
+                statusEl.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-[10px] font-bold border border-green-500/20';
+                statusEl.innerHTML = '<div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>Connected';
+            }
         });
 
-        // Initial Data Load
+        socket.on('disconnect', (reason) => {
+            console.warn('[Socket] Disconnected:', reason);
+            const statusEl = document.getElementById('connection-status');
+            if (statusEl) {
+                statusEl.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold border border-red-500/20';
+                statusEl.innerHTML = '<div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>Disconnected';
+            }
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('[Socket] Connection error:', error);
+        });
+
         socket.on('init-stats', (data) => {
-            console.log('Init stats:', data);
-
-            // 1. Persistent Data
-            if (data.persistent) {
-                statsData = data.persistent;
-                // Ensure structure
-                if (!statsData.downloads) statsData.downloads = { mod: {}, resourcepack: {}, shader: {}, modpack: {} };
-                if (!statsData.clientVersions) statsData.clientVersions = {};
-                if (!statsData.launchesPerDay) statsData.launchesPerDay = {};
-
-                updateDownloadsChart();
-                updateVersionsChart(statsData.clientVersions);
-
-                // Update Daily Launches (sum for today)
-                const today = new Date().toISOString().split('T')[0];
-                const todayLaunches = statsData.launchesPerDay[today] || 0;
-                document.getElementById('stat-daily-launches').innerText = todayLaunches;
-
-                // Update Total Downloads (sum all categories)
-                let total = 0;
-                Object.values(statsData.downloads).forEach(cat => {
-                    Object.values(cat).forEach(count => total += count);
-                });
-                document.getElementById('stat-total-downloads').innerText = total;
-            }
-
-            // 2. Live Data
-            if (data.live) {
-                document.getElementById('stat-active-users').innerText = data.live.activeUsers;
-                document.getElementById('stat-playing-users').innerText = data.live.playingUsers;
-                // Initialize chart with current data
-                updateActivityChart(data.live.activeUsers || 0, data.live.playingUsers || 0);
-            }
+            console.log('[Socket] Init stats received:', data);
+            handleUpdate(data);
         });
 
-        // ... live-update ...
         socket.on('live-update', (data) => {
-            // ... existing code ...
+            console.log('[Socket] Live update received:', data);
+            handleUpdate(data);
+        });
+
+        function handleUpdate(data) {
             const live = data.live || data;
             const persistent = data.persistent;
 
@@ -578,53 +577,41 @@
                 if (live.playingUsers !== undefined) document.getElementById('stat-playing-users').innerText = live.playingUsers;
                 updateActivityChart(live.activeUsers || 0, live.playingUsers || 0);
             }
-            // ... existing persistent code ...
+
             if (persistent) {
                 statsData = persistent;
-                updateDownloadsChart();
-                updateVersionsChart(statsData.clientVersions);
+                // Safety: ensure structures exist
+                if (!statsData.software) statsData.software = { client: {}, server: {} };
+                if (!statsData.gameVersions) statsData.gameVersions = { client: {}, server: {} };
+                if (!statsData.downloads) statsData.downloads = { mod: {}, resourcepack: {}, shader: {}, modpack: {} };
 
-                // Update Daily Launches
-                const today = new Date().toISOString().split('T')[0];
-                const todayLaunches = statsData.launchesPerDay[today] || 0;
-                document.getElementById('stat-daily-launches').innerText = todayLaunches;
-
-                // Update Total Downloads
-                let total = 0;
-                Object.values(statsData.downloads).forEach(cat => {
-                    Object.values(cat).forEach(count => total += count);
-                });
-                document.getElementById('stat-total-downloads').innerText = total;
+                updateCharts();
             }
-        });
-
-        // Heartbeat to keep graph alive even if no changes
-        setInterval(() => {
-            const active = parseInt(document.getElementById('stat-active-users').innerText) || 0;
-            const playing = parseInt(document.getElementById('stat-playing-users').innerText) || 0;
-            updateActivityChart(active, playing);
-        }, 2000);
+        }
 
         socket.on('new-download', (data) => {
             const user = data.username ? `<strong style="color:var(--secondary)">${data.username}</strong>` : 'User';
             logActivity(`${user} downloaded <strong style="color:white">${data.name || data.id}</strong> (${data.type})`);
-            // We could update the chart live here, but simplified to wait for full sync or manual refresh for persistent stats.
-            // In a real app we'd update proper local state.
-        });
-
-        socket.on('disconnect', () => {
-            // console.log('Disconnected');
         });
 
         socket.on('error', (err) => {
-            console.error('Socket error:', err);
+            console.error('[Socket] Error:', err);
             if (err === 'Invalid password') logout();
         });
 
+        // Keep Alive Heartbeat
+        setInterval(() => {
+            const active = parseInt(document.getElementById('stat-active-users').innerText) || 0;
+            const playing = parseInt(document.getElementById('stat-playing-users').innerText) || 0;
+            updateActivityChart(active, playing);
+        }, 3000);
 
-
+        // --- Start Everything ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            loadNews();
+        });
     </script>
-
 </body>
 
 </html>

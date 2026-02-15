@@ -5,6 +5,7 @@ import { useNotification } from '../context/NotificationContext';
 import LoadingOverlay from '../components/LoadingOverlay';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ServerConsole from '../components/ServerConsole'; // Neue Import
+import { Analytics } from '../services/Analytics';
 
 const DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='4' width='20' height='16' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='8' y1='9' x2='16' y2='9'%3E%3C/line%3E%3Cline x1='8' y1='13' x2='16' y2='13'%3E%3C/line%3E%3Cline x1='8' y1='17' x2='12' y2='17'%3E%3C/line%3E%3C/svg%3E";
 
@@ -217,6 +218,9 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                 setShowCreateModal(false);
                 await loadServers();
                 addNotification(`Started creating server: ${result.serverName || nameToUse}`, 'success');
+
+                // Track creation in Analytics
+                Analytics.trackServerCreation(selectedSoftware, selectedVersion);
             } else {
                 const errorMsg = result?.error || 'Unknown error occurred';
                 addNotification(`Failed to create server: ${errorMsg}`, 'error');
