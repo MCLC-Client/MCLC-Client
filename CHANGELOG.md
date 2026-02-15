@@ -6,46 +6,52 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 ## [Unreleased]
 
-### Added
+Bereits implementiert
 
-* Instance configuration sharing
-* Focus mode
-* Server-side mod validation
-* Mod compatibility overview
-* Minimal mode (system tray integration, configurable in settings)
-* Quick server join (partially implemented)
-* Client-side quick join mod
-* Script support
-* Log analysis utility
-* Cloud synchronization for worlds and configurations (e.g., Google Drive, Dropbox, OneDrive)
-* Mod dependency validation
-* Mobile application for the administration panel
+* Skin- und Cape-Editor
+* Gruppeninstanzen
+* Nachrichtensystem
+* Instanzsystem
+* Unterstützung mehrerer Versionen und Softwarearten
+* Benutzerdefiniertes Design und eigene Hintergründe
+* Automatischer Aktualisierer
+* Modrinth-Unterstützung
+* Benutzerdefinierte Startparameter
+* Eigener Java-Installer
+* Discord-Statusanzeige (Rich Presence)
+* MCLOGS-Unterstützung
+* Tasteneinstellungen auf andere Instanzen übertragen
+* Mehrere Benutzerkonten verwalten
+* Unterstützung für Modrinth-Instanzen
+* Unterstützung für Entwicklerversionen
+* Shader-Bereich mit Modrinth-Anbindung (automatische Installation von Iris und Sodium)
+* Automatische Installation der Fabric-API bei Erstellung einer Fabric-Instanz
+* Unterstützung für Modpakete von Modrinth
+* Analysefunktionen für Software-Versionen und Nutzungsdaten im Administrationsbereich
+* Automatischer Java-Download
+* Shader-Vorschau
+* Startseiten-Bereich hinzugefügt
+* Serversystem (Server erstellen und verwalten)
 
-## [1.3.3 and earlier] - 2026-02-15
 
-### Added
+### Noch Offen:
 
-* Skin and Cape editor
-* Group instances
-* News system
-* Instance management system
-* Multi-version and multi-software support
-* Custom themes and backgrounds
-* Automatic updater
-* Modrinth integration
-* Custom launch arguments
-* Built-in Java installer
-* Discord Rich Presence integration
-* MCLogs integration
-* Transfer keybindings between instances
-* Multi-account management
-* Modrinth instance support
-* Development build support
-* Shader section with Modrinth integration (automatic installation of Iris and Sodium)
-* Automatic Fabric API installation when creating a Fabric instance
-* Support for Modrinth modpacks
-* Software version and usage analytics in the admin panel
-* Automatic Java download
-* Shader preview
-* Added home section
-* Server system (create and manage servers)
+* System zum Teilen von Instanz-Konfigurationen
+* Fokusmodus
+* Serverseitige Mod-Prüfung
+* Mod-Kompatibilitätsübersicht
+* Minimalmodus (Systemablage, aktivierbar über die Einstellungen)
+* Schnellbeitritt zu Servern (noch nicht vollständig umgesetzt)
+* Client-Mod für Schnellbeitritt
+
+### Weitere mögliche Funktionen:
+
+* Skript-Unterstützung
+* Werkzeug zur Protokollanalyse
+* Cloud-Synchronisierung für Welten und Konfigurationen (z. B. über Google Drive, Dropbox oder OneDrive)
+* Abhängigkeitsprüfung für Mods
+* Mobile Anwendung für das Administrationspanel
+
+#### Optional (spätere Umsetzung):
+
+* Kommandozeilen-Unterstützung
