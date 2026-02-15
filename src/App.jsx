@@ -54,7 +54,7 @@ function App() {
                     if (profile) {
                         setUserProfile(profile);
                         Analytics.setProfile(profile);
-                        setCurrentView('dashboard');
+                        setCurrentView('library');
                         return;
                     }
                 }
@@ -63,7 +63,7 @@ function App() {
                 if (profile) {
                     setUserProfile(profile);
                     Analytics.setProfile(profile);
-                    setCurrentView('dashboard');
+                    setCurrentView('library');
                 }
             }
         };
@@ -233,7 +233,7 @@ function App() {
     const handleLoginSuccess = (profile) => {
         setUserProfile(profile);
         Analytics.setProfile(profile);
-        setCurrentView('dashboard');
+        setCurrentView('library');
         setCurrentMode('client');
     };
 
@@ -263,12 +263,12 @@ function App() {
     const handleBackToDashboard = () => {
         setSelectedInstance(null);
         setSelectedServer(null);
-        setCurrentView(currentMode === 'client' ? 'dashboard' : 'server-dashboard');
+        setCurrentView(currentMode === 'client' ? 'library' : 'server-dashboard');
     };
 
     const handleModeSelect = (mode) => {
         setCurrentMode(mode);
-        setCurrentView(mode === 'client' ? 'dashboard' : 'server-dashboard');
+        setCurrentView(mode === 'client' ? 'library' : 'server-dashboard');
         setSelectedInstance(null);
         setSelectedServer(null);
         setShowModeMenu(false);
@@ -313,7 +313,7 @@ function App() {
 
             {/* Title Bar */}
             <div
-                className="h-16 w-full titlebar z-[60] flex justify-between items-center pl-2 pr-6 bg-surface/30 border-b border-white/5 flex-none relative"
+                className="h-16 w-full titlebar z-[60] flex justify-between items-center pl-6 pr-6 bg-surface/30 border-b border-white/5 flex-none relative"
                 style={{ backdropFilter: `blur(${theme.glassBlur}px)` }}
             >
                 <div className="flex items-center gap-2 drag no-drag">
@@ -481,7 +481,7 @@ function App() {
                             {/* Client Views */}
                             {currentMode === 'client' && (
                                 <>
-                                    {currentView === 'dashboard' && <Dashboard onInstanceClick={handleInstanceClick} runningInstances={runningInstances} />}
+                                    {currentView === 'library' && <Dashboard onInstanceClick={handleInstanceClick} runningInstances={runningInstances} />}
                                     {currentView === 'search' && <Search />}
                                     {currentView === 'skins' && <Skins onLogout={handleLogout} />}
                                     {currentView === 'styling' && <Styling />}

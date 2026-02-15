@@ -75,6 +75,58 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
     const [checkingUpdates, setCheckingUpdates] = useState(false);
     const [updatingMod, setUpdatingMod] = useState(null); // projectId being updated
 
+    // Preview & Lightbox State
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
+    const [previewProject, setPreviewProject] = useState(null);
+    const [lightboxIndex, setLightboxIndex] = useState(-1);
+
+    const handleNextImage = (e) => {
+        e.stopPropagation();
+        if (previewProject && previewProject.gallery) {
+            setLightboxIndex((prev) => (prev + 1) % previewProject.gallery.length);
+        }
+    };
+
+    const handlePrevImage = (e) => {
+        e.stopPropagation();
+        if (previewProject && previewProject.gallery) {
+            setLightboxIndex((prev) => (prev - 1 + previewProject.gallery.length) % previewProject.gallery.length);
+        }
+    };
+
+    // Keyboard navigation for lightbox
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (lightboxIndex === -1) return;
+            if (e.key === 'ArrowRight') handleNextImage(e);
+            if (e.key === 'ArrowLeft') handlePrevImage(e);
+            if (e.key === 'Escape') setLightboxIndex(-1);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [lightboxIndex, previewProject]);
+
+    const handlePreview = async (project) => {
+        try {
+            addNotification(`Loading preview for ${project.title}...`, 'info');
+            const res = await window.electronAPI.getModrinthProject(project.project_id);
+            if (res.success) {
+                const fullProject = {
+                    ...res.project,
+                    project_id: res.project.id,
+                    project_type: project.project_type
+                };
+                setPreviewProject(fullProject);
+                setShowPreviewModal(true);
+            } else {
+                addNotification('Failed to load preview: ' + res.error, 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            addNotification('Error loading preview.', 'error');
+        }
+    };
+
     const handleSettingsSave = (newConfig) => {
         // Update parent state so UI reflects changes immediately
         if (onInstanceUpdate) {
@@ -1006,6 +1058,13 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                         <div className="flex gap-2 text-[10px] text-gray-500 mt-0.5">
                                                             <span className="opacity-50">{shader.name}</span>
                                                         </div>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handlePreview(shader); }}
+                                                            className="text-[10px] bg-white/5 hover:bg-white/10 text-gray-300 px-2 py-0.5 rounded mt-1 border border-white/5 flex items-center gap-1 transition-colors"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                            Preview
+                                                        </button>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-6">
@@ -1089,6 +1148,15 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                         <span className="text-[10px] bg-background-dark text-gray-400 px-1.5 py-0.5 rounded border border-white/5">{result.project_type}</span>
                                                     </div>
                                                     <p className="text-sm text-gray-400 line-clamp-1">{result.description}</p>
+                                                    {result.project_type === 'shader' && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handlePreview(result); }}
+                                                            className="text-xs bg-white/5 hover:bg-white/10 text-gray-300 px-3 py-1 rounded-lg mt-2 border border-white/5 flex items-center gap-2 transition-colors w-fit"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                            Preview
+                                                        </button>
+                                                    )}
                                                 </div>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleInstall(result); }}
@@ -1311,7 +1379,149 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                 )
             }
 
-            {/* Delete Confirmation Modal */}
+            {/* Preview Modal */}
+            {showPreviewModal && previewProject && (
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-surface w-full max-w-5xl h-[85vh] rounded-2xl border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-scale-in">
+                        {/* Header */}
+                        <div className="p-6 border-b border-white/5 flex justify-between items-start bg-background-dark/50">
+                            <div className="flex gap-4">
+                                <img
+                                    src={previewProject.icon_url || 'https://cdn.modrinth.com/placeholder.svg'}
+                                    className="w-16 h-16 rounded-xl shadow-lg"
+                                    alt=""
+                                />
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white mb-1">{previewProject.title}</h2>
+                                    <p className="text-gray-400 text-sm max-w-xl line-clamp-2">{previewProject.description}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowPreviewModal(false)}
+                                className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Gallery Content */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-background/50">
+                            {previewProject.gallery && previewProject.gallery.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {previewProject.gallery.map((img, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="relative group rounded-xl overflow-hidden border border-white/5 bg-background-dark aspect-video cursor-zoom-in"
+                                            onClick={() => setLightboxIndex(idx)}
+                                        >
+                                            <img
+                                                src={img.url}
+                                                alt={img.title || 'Gallery Image'}
+                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            />
+                                            {img.title && (
+                                                <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/70 backdrop-blur-sm text-xs text-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {img.title}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p>No gallery images available for this project.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="p-6 border-t border-white/5 bg-surface flex justify-end gap-4">
+                            <button
+                                onClick={() => setShowPreviewModal(false)}
+                                className="px-6 py-3 rounded-xl hover:bg-white/5 text-white font-bold transition-colors"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowPreviewModal(false);
+                                    handleInstall(previewProject);
+                                }}
+                                disabled={installationStatus[previewProject.project_id] === 'installing' || installationStatus[previewProject.project_id] === 'success'}
+                                className="bg-primary text-black font-bold px-8 py-3 rounded-xl hover:bg-primary-hover hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                                </svg>
+                                Install
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Gallery Lightbox Slider */}
+            {lightboxIndex !== -1 && previewProject && previewProject.gallery && (
+                <div
+                    className="fixed inset-0 bg-black/95 z-[210] flex items-center justify-center animate-fade-in backdrop-blur-xl select-none"
+                    onClick={() => setLightboxIndex(-1)}
+                >
+                    {/* Close Button */}
+                    <button
+                        className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-50"
+                        onClick={() => setLightboxIndex(-1)}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+
+                    {/* Navigation Buttons */}
+                    <button
+                        className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-white/10 rounded-full text-white transition-colors z-50 backdrop-blur-sm group"
+                        onClick={handlePrevImage}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <button
+                        className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-white/10 rounded-full text-white transition-colors z-50 backdrop-blur-sm group"
+                        onClick={handleNextImage}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+
+                    {/* Image Counter */}
+                    <div className="absolute top-6 left-6 text-white font-bold bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
+                        {lightboxIndex + 1} / {previewProject.gallery.length}
+                    </div>
+
+                    {/* Main Image */}
+                    <div
+                        className="w-full h-full flex items-center justify-center p-4 md:p-20"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <img
+                            src={previewProject.gallery[lightboxIndex].url}
+                            alt={previewProject.gallery[lightboxIndex].title || "Gallery Image"}
+                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-scale-in"
+                        />
+                        {previewProject.gallery[lightboxIndex].title && (
+                            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-6 py-3 rounded-full text-white font-medium">
+                                {previewProject.gallery[lightboxIndex].title}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
             {
                 modToDelete && (
                     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">

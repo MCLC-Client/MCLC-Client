@@ -240,4 +240,13 @@ module.exports = (ipcMain, win) => {
             return { success: false, error: e.message };
         }
     });
+    ipcMain.handle('modrinth:get-project', async (_, projectId) => {
+        try {
+            const response = await axios.get(`${MODRINTH_API}/project/${projectId}`);
+            return { success: true, project: response.data };
+        } catch (e) {
+            console.error("Modrinth Get Project Error:", e.response ? e.response.data : e.message);
+            return { success: false, error: e.message };
+        }
+    });
 };
