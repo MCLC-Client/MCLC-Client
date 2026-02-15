@@ -60,6 +60,7 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 - **UI Refinement**:
   - New `ToggleBox` component for high-performance, consistent switches project-wide.
   - Integrated "Show Snapshots" toggle in Instance Settings.
+  - Added "Show Disabled Features" setting to toggle visibility of disabled sidebar items (grayed out vs hidden).
 - **Splash Screen**: Implemented `ready-to-show` window transition in Electron to eliminate initial white flashes.
 
 ### Fixed

@@ -1,6 +1,26 @@
 import React from 'react';
 
 function ServerSidebar({ currentView, setView, onLogout }) {
+    const [settings, setSettings] = React.useState({ showDisabledFeatures: false });
+
+    React.useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const res = await window.electronAPI.getSettings();
+                if (res.success) setSettings(res.settings);
+            } catch (e) {}
+        };
+        loadSettings();
+
+        const cleanupSettings = window.electronAPI.onSettingsUpdated((newSettings) => {
+            setSettings(newSettings);
+        });
+
+        return () => {
+            if (cleanupSettings) cleanupSettings();
+        };
+    }, []);
+
     const menuItems = [
         { id: 'server-dashboard', label: 'Dashboard', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z M14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z M4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2z M14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
         { id: 'search', label: 'Search', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
@@ -9,10 +29,12 @@ function ServerSidebar({ currentView, setView, onLogout }) {
         { id: 'server-settings', label: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' }
     ];
 
+    const visibleMenuItems = menuItems.filter(item => !item.disabled || settings.showDisabledFeatures);
+
     return (
         <div className="w-16 my-4 ml-4 mr-2 bg-surface/10 rounded-2xl border border-white/5 shadow-2xl flex flex-col items-center py-6 gap-2 relative z-50"
             style={{ backdropFilter: 'blur(10px)' }}>
-            {menuItems.map((item) => (
+            {visibleMenuItems.map((item) => (
                 <button
                     key={item.id}
                     onClick={() => setView(item.id)}

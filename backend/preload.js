@@ -120,6 +120,11 @@ const electronAPI = {
         ipcRenderer.on('theme:updated', subscription);
         return () => ipcRenderer.removeListener('theme:updated', subscription);
     },
+    onSettingsUpdated: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('settings:updated', subscription);
+        return () => ipcRenderer.removeListener('settings:updated', subscription);
+    },
     onJavaProgress: (callback) => {
         const subscription = (_event, value) => callback(value);
         ipcRenderer.on('java:progress', subscription);

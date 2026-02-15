@@ -12,6 +12,7 @@ function Settings() {
         resolutionHeight: 480,
         enableDiscordRPC: true,
         autoUploadLogs: true,
+        showDisabledFeatures: false,
         copySettingsEnabled: false,
         copySettingsSourceInstance: ''
     });
@@ -360,6 +361,13 @@ function Settings() {
                         onChange={(val) => handleChange('autoUploadLogs', val)}
                         label="Auto-upload logs on crash"
                         description="Automatically upload logs to mclo.gs if the game crashes"
+                    />
+                    <ToggleBox
+                        className="mt-4 pt-4 border-t border-white/5"
+                        checked={settings.showDisabledFeatures || false}
+                        onChange={(val) => handleChange('showDisabledFeatures', val)}
+                        label="Show Disabled Features"
+                        description="Hides or grays out features that are currently disabled (like the Extensions button)."
                     />
                 </div>
             </div>

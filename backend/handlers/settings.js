@@ -12,6 +12,7 @@ module.exports = (ipcMain) => {
         resolutionWidth: 854,
         resolutionHeight: 480,
         enableDiscordRPC: true,
+        showDisabledFeatures: false,
         copySettingsEnabled: false,
         copySettingsSourceInstance: '',
         theme: {
@@ -43,6 +44,7 @@ module.exports = (ipcMain) => {
             await fs.writeJson(settingsPath, newSettings, { spaces: 4 });
             BrowserWindow.getAllWindows().forEach(win => {
                 win.webContents.send('theme:updated', newSettings.theme);
+                win.webContents.send('settings:updated', newSettings);
             });
             app.emit('settings-updated', newSettings);
 
