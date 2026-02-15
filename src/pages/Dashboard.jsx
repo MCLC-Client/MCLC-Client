@@ -16,10 +16,18 @@ const formatPlaytime = (ms) => {
     return `${minutes}m`;
 };
 
-function Dashboard({ onInstanceClick, runningInstances = {} }) {
+function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCreateHandled }) {
     const { addNotification } = useNotification();
     const [instances, setInstances] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
+
+    // Handle external create trigger from sidebar + button
+    useEffect(() => {
+        if (triggerCreate) {
+            setShowCreateModal(true);
+            if (onCreateHandled) onCreateHandled();
+        }
+    }, [triggerCreate]);
     const [contextMenu, setContextMenu] = useState(null); // { x, y, instance }
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [instanceToDelete, setInstanceToDelete] = useState(null);

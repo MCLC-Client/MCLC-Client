@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
 import ServerDashboard from './pages/ServerDashboard';
 import ServerDetails from './pages/ServerDetails';
 import Search from './pages/Search';
@@ -37,6 +38,8 @@ function App() {
     const [showDownloads, setShowDownloads] = useState(false);
     const [showSessions, setShowSessions] = useState(false);
     const [showModeMenu, setShowModeMenu] = useState(false);
+    const [searchCategory, setSearchCategory] = useState(null);
+    const [triggerCreateInstance, setTriggerCreateInstance] = useState(false);
 
     const downloadsRef = useRef(null);
     const sessionsRef = useRef(null);
@@ -47,6 +50,15 @@ function App() {
         Analytics.init(); // Uses default URL (https://mclc.pluginhub.de)
 
         const checkSession = async () => {
+            // Get startup page preference
+            let startPage = 'dashboard';
+            try {
+                const settingsRes = await window.electronAPI.getSettings();
+                if (settingsRes.success && settingsRes.settings.startPage) {
+                    startPage = settingsRes.settings.startPage;
+                }
+            } catch (e) { /* use default */ }
+
             if (window.electronAPI.validateSession) {
                 const res = await window.electronAPI.validateSession();
                 if (res.success) {
@@ -54,7 +66,7 @@ function App() {
                     if (profile) {
                         setUserProfile(profile);
                         Analytics.setProfile(profile);
-                        setCurrentView('library');
+                        setCurrentView(startPage);
                         return;
                     }
                 }
@@ -63,7 +75,7 @@ function App() {
                 if (profile) {
                     setUserProfile(profile);
                     Analytics.setProfile(profile);
-                    setCurrentView('library');
+                    setCurrentView(startPage);
                 }
             }
         };
@@ -230,10 +242,17 @@ function App() {
         }
     };
 
-    const handleLoginSuccess = (profile) => {
+    const handleLoginSuccess = async (profile) => {
         setUserProfile(profile);
         Analytics.setProfile(profile);
-        setCurrentView('library');
+        let startPage = 'dashboard';
+        try {
+            const settingsRes = await window.electronAPI.getSettings();
+            if (settingsRes.success && settingsRes.settings.startPage) {
+                startPage = settingsRes.settings.startPage;
+            }
+        } catch (e) { /* use default */ }
+        setCurrentView(startPage);
         setCurrentMode('client');
     };
 
@@ -263,12 +282,12 @@ function App() {
     const handleBackToDashboard = () => {
         setSelectedInstance(null);
         setSelectedServer(null);
-        setCurrentView(currentMode === 'client' ? 'library' : 'server-dashboard');
+        setCurrentView(currentMode === 'client' ? 'dashboard' : 'server-dashboard');
     };
 
     const handleModeSelect = (mode) => {
         setCurrentMode(mode);
-        setCurrentView(mode === 'client' ? 'library' : 'server-dashboard');
+        setCurrentView(mode === 'client' ? 'dashboard' : 'server-dashboard');
         setSelectedInstance(null);
         setSelectedServer(null);
         setShowModeMenu(false);
@@ -469,7 +488,7 @@ function App() {
                 <div className="flex flex-1 overflow-hidden">
                     {/* Dynamische Sidebar basierend auf Mode */}
                     {currentMode === 'client' ? (
-                        <Sidebar currentView={currentView} setView={setCurrentView} onLogout={handleLogout} />
+                        <Sidebar currentView={currentView} setView={setCurrentView} onLogout={handleLogout} onInstanceClick={handleInstanceClick} onCreateInstance={() => { setCurrentView('library'); setTriggerCreateInstance(true); }} />
                     ) : (
                         <ServerSidebar currentView={currentView} setView={setCurrentView} onLogout={handleLogout} />
                     )}
@@ -481,8 +500,9 @@ function App() {
                             {/* Client Views */}
                             {currentMode === 'client' && (
                                 <>
-                                    {currentView === 'library' && <Dashboard onInstanceClick={handleInstanceClick} runningInstances={runningInstances} />}
-                                    {currentView === 'search' && <Search />}
+                                    {currentView === 'dashboard' && <Home onInstanceClick={handleInstanceClick} runningInstances={runningInstances} onNavigateSearch={(category) => { setSearchCategory(category); setCurrentView('search'); }} />}
+                                    {currentView === 'library' && <Dashboard onInstanceClick={handleInstanceClick} runningInstances={runningInstances} triggerCreate={triggerCreateInstance} onCreateHandled={() => setTriggerCreateInstance(false)} />}
+                                    {currentView === 'search' && <Search initialCategory={searchCategory} onCategoryConsumed={() => setSearchCategory(null)} />}
                                     {currentView === 'skins' && <Skins onLogout={handleLogout} />}
                                     {currentView === 'styling' && <Styling />}
                                     {currentView === 'settings' && <Settings />}

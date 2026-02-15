@@ -37,7 +37,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getLog: (instanceName, filename) => ipcRenderer.invoke('instance:get-log', instanceName, filename),
 
     // Launcher
-    launchGame: (instanceName) => ipcRenderer.invoke('launcher:launch', instanceName),
+    launchGame: (instanceName, quickPlay) => ipcRenderer.invoke('launcher:launch', instanceName, quickPlay),
     getLiveLogs: (instanceName) => ipcRenderer.invoke('launcher:get-live-logs', instanceName),
     killGame: (instanceName) => ipcRenderer.invoke('launcher:kill', instanceName),
     abortLaunch: (instanceName) => ipcRenderer.invoke('launcher:abort-launch', instanceName),

@@ -129,7 +129,7 @@ Add-Type -TypeDefinition $code -Language CSharp
         return { success: false, error: 'No running process found for this instance.' };
     });
 
-    ipcMain.handle('launcher:launch', async (_, instanceName) => {
+    ipcMain.handle('launcher:launch', async (_, instanceName, quickPlay) => {
         if (runningInstances.has(instanceName) || activeLaunches.has(instanceName)) {
             console.warn(`[Launcher] Blocked launch attempt for ${instanceName} - Already ${activeLaunches.has(instanceName) ? 'launching' : 'running'}`);
             return { success: false, error: 'Instance is already running or launching' };
@@ -552,6 +552,23 @@ Add-Type -TypeDefinition $code -Language CSharp
                 }
 
                 activeLaunches.delete(instanceName); // active launch phase over, now running phase
+
+                // QuickPlay: auto-join a world or server on launch
+                if (quickPlay) {
+                    if (!opts.customLaunchArgs) opts.customLaunchArgs = [];
+                    if (quickPlay.world) {
+                        // Use --quickPlaySingleplayer for 1.20+ and --world for older versions
+                        const v = config.version.split('.');
+                        const minor = parseInt(v[1]) || 0;
+                        if (minor >= 20) {
+                            opts.customLaunchArgs.push('--quickPlaySingleplayer', quickPlay.world);
+                        }
+                        console.log(`[Launcher] QuickPlay: World "${quickPlay.world}"`);
+                    } else if (quickPlay.server) {
+                        opts.customLaunchArgs.push('--quickPlayMultiplayer', quickPlay.server);
+                        console.log(`[Launcher] QuickPlay: Server "${quickPlay.server}"`);
+                    }
+                }
 
                 const proc = await launcher.launch(opts);
                 if (proc && proc.pid) {

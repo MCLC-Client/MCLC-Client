@@ -155,6 +155,26 @@ function Settings() {
             </div>
 
             <div className="space-y-6 max-w-3xl">
+                {/* General Settings */}
+                <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                    <h2 className="text-lg font-bold mb-6 text-white">General</h2>
+
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <div className="font-medium text-white">Startup Page</div>
+                            <div className="text-sm text-gray-500 mt-1">Choose which page to show when you open the app</div>
+                        </div>
+                        <select
+                            value={settings.startPage || 'dashboard'}
+                            onChange={(e) => handleChange('startPage', e.target.value)}
+                            className="bg-background border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-primary outline-none text-gray-300 cursor-pointer min-w-[160px]"
+                        >
+                            <option value="dashboard">Dashboard</option>
+                            <option value="library">Library</option>
+                        </select>
+                    </div>
+                </div>
+
                 {/* Java Install Modal */}
                 {showJavaModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">

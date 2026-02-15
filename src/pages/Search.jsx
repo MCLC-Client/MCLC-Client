@@ -2,18 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { useNotification } from '../context/NotificationContext';
 import { Analytics } from '../services/Analytics';
 
-function Search() {
+function Search({ initialCategory, onCategoryConsumed }) {
     const { addNotification } = useNotification();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [projectType, setProjectType] = useState('mod'); // 'mod', 'resourcepack', 'modpack', 'shader'
+    const [projectType, setProjectType] = useState(initialCategory || 'mod'); // 'mod', 'resourcepack', 'modpack', 'shader'
 
     // Pagination
     const [offset, setOffset] = useState(0);
     const limit = 20;
     const [totalHits, setTotalHits] = useState(0);
     const [sortMethod, setSortMethod] = useState('relevance');
+
+    // Apply initial category from navigation
+    useEffect(() => {
+        if (initialCategory) {
+            setProjectType(initialCategory);
+            if (onCategoryConsumed) onCategoryConsumed();
+        }
+    }, [initialCategory]);
 
     // Install Modal State
     const [showInstallModal, setShowInstallModal] = useState(false);
