@@ -7,6 +7,9 @@
     <title>MCLC News Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- Chart.js and Socket.IO -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         .news-img-preview {
             width: 100%;
@@ -26,6 +29,39 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: black;
+            border-color: var(--primary);
+            font-weight: 600;
+        }
     </style>
 </head>
 
@@ -34,18 +70,93 @@
     <header>
         <div class="container">
             <button onclick="logout()" class="btn-logout">LOGOUT</button>
-            <h1>MCLC <span style="font-weight:300; opacity:0.6; font-size:0.5em;">NEWS ADMIN</span></h1>
+            <h1>MCLC <span style="font-weight:300; opacity:0.6; font-size:0.5em;">ADMIN PANEL</span></h1>
         </div>
     </header>
 
     <div class="container">
         <div class="nav-tabs">
-            <div id="tab-list" class="nav-tab active" onclick="switchView('list')">News List</div>
+            <div id="tab-dashboard" class="nav-tab active" onclick="switchView('dashboard')">Dashboard</div>
+            <div id="tab-list" class="nav-tab" onclick="switchView('list')">News List</div>
             <div id="tab-add" class="nav-tab" onclick="switchView('add')">Add News</div>
         </div>
 
+        <!-- Dashboard Section -->
+        <div id="section-dashboard" class="view-section active">
+            <!-- Live Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span id="stat-active-users" class="stat-val" style="color:var(--primary)">0</span>
+                    <span
+                        style="color:var(--text-muted); font-size:0.8rem; letter-spacing:1px; text-transform:uppercase;">Active
+                        Launchers</span>
+                </div>
+                <div class="stat-card">
+                    <span id="stat-playing-users" class="stat-val" style="color:var(--secondary)">0</span>
+                    <span
+                        style="color:var(--text-muted); font-size:0.8rem; letter-spacing:1px; text-transform:uppercase;">Players
+                        In-Game</span>
+                </div>
+                <div class="stat-card">
+                    <span id="stat-daily-launches" class="stat-val" style="color:#f1c40f">0</span>
+                    <span
+                        style="color:var(--text-muted); font-size:0.8rem; letter-spacing:1px; text-transform:uppercase;">Daily
+                        Launches</span>
+                </div>
+                <div class="stat-card">
+                    <span id="stat-total-downloads" class="stat-val" style="color:#e74c3c">0</span>
+                    <span
+                        style="color:var(--text-muted); font-size:0.8rem; letter-spacing:1px; text-transform:uppercase;">Total
+                        Content Downloads</span>
+                </div>
+            </div>
+
+            <!-- Real-Time Activity Graph -->
+            <div class="card" style="margin-bottom: 20px;">
+                <h3 style="margin-bottom:15px; color:var(--text-main);">Live Activity</h3>
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="chart-activity"></canvas>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-grid">
+                <div class="card">
+                    <h3 style="margin-bottom:15px; color:var(--text-main);">Software Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-versions"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3 style="color:var(--text-main); margin:0;">Top Downloads</h3>
+                        <div style="display:flex; gap:5px;">
+                            <button id="tab-mod" class="tab-btn active" onclick="switchDownloadTab('mod')">Mods</button>
+                            <button id="tab-resourcepack" class="tab-btn"
+                                onclick="switchDownloadTab('resourcepack')">RPs</button>
+                            <button id="tab-shader" class="tab-btn"
+                                onclick="switchDownloadTab('shader')">Shaders</button>
+                            <button id="tab-modpack" class="tab-btn"
+                                onclick="switchDownloadTab('modpack')">Packs</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-downloads"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom:15px; color:var(--text-main);">Real-time Activity Log</h3>
+                <div id="activity-log"
+                    style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">
+                    <div style="padding: 5px 0;">Waiting for activity...</div>
+                </div>
+            </div>
+        </div>
+
         <!-- News List Section -->
-        <div id="section-list" class="view-section active">
+        <div id="section-list" class="view-section">
             <div class="card">
                 <div id="news-container">
                     <!-- News items will be loaded here -->
@@ -91,8 +202,7 @@
         const password = localStorage.getItem('admin_password');
         if (!password) window.location.href = 'index.html';
 
-        let news = [];
-
+        // --- Tabs ---
         function switchView(v) {
             document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -100,17 +210,20 @@
             document.getElementById('tab-' + v).classList.add('active');
         }
 
+        // --- News Logic ---
+        let news = [];
+
         async function loadNews() {
             try {
                 const res = await fetch('/news.json');
                 news = await res.json();
-                render();
+                renderNews();
             } catch (e) {
                 console.error(e);
             }
         }
 
-        function render() {
+        function renderNews() {
             const container = document.getElementById('news-container');
             if (news.length === 0) {
                 container.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px;">No news yet.</p>';
@@ -130,7 +243,7 @@
         `).join('');
         }
 
-        async function save() {
+        async function saveNewsData() {
             const res = await fetch('/api/news', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -142,10 +255,11 @@
         window.removeNews = (index) => {
             if (!confirm('Delete this news item?')) return;
             news.splice(index, 1);
-            save();
-            render();
+            saveNewsData();
+            renderNews();
         };
 
+        // --- Add News Form ---
         // Image Preview
         document.getElementById('fileInput').addEventListener('change', function (e) {
             const file = e.target.files[0];
@@ -174,10 +288,7 @@
                 formData.append('image', fileInput.files[0]);
 
                 try {
-                    const uploadRes = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
+                    const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
                     const uploadData = await uploadRes.json();
                     if (uploadData.success) {
                         imageUrl = uploadData.url;
@@ -205,7 +316,7 @@
             };
 
             news.unshift(newItem);
-            await save();
+            await saveNewsData();
 
             // Reset and switch view
             e.target.reset();
@@ -213,7 +324,7 @@
             btn.disabled = false;
             btn.innerText = 'PUBLISH NEWS';
             switchView('list');
-            render();
+            renderNews();
         });
 
         function logout() {
@@ -222,6 +333,296 @@
         }
 
         loadNews();
+
+        // --- DASHBOARD ANALYTICS ---
+        const socket = io();
+        let charts = {};
+        let currentDownloadCategory = 'mod';
+        let statsData = {
+            downloads: { mod: {}, resourcepack: {}, shader: {}, modpack: {} },
+            clientVersions: {},
+            launchesPerDay: {}
+        };
+
+        // --- Console Debugging ---
+        function debugCharts() {
+            console.log('Charts State:', charts);
+            console.log('Downloads Chart:', charts.downloads);
+            if (charts.downloads) console.log('Downloads Data:', charts.downloads.data);
+        }
+
+        // Initialize Charts safely
+        function initCharts() {
+            console.log('Initializing charts...');
+            try {
+                // Versions Chart
+                const ctxVersions = document.getElementById('chart-versions');
+                if (ctxVersions) {
+                    charts.versions = new Chart(ctxVersions.getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: [],
+                            datasets: [{
+                                data: [],
+                                backgroundColor: ['#00ff88', '#00b8ff', '#ff0055', '#ffcc00', '#9900ff'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'right', labels: { color: '#a0aec0' } }
+                            }
+                        }
+                    });
+                } else {
+                    console.error('Canvas chart-versions not found');
+                }
+
+                // Downloads Chart
+                const ctxDownloads = document.getElementById('chart-downloads');
+                if (ctxDownloads) {
+                    charts.downloads = new Chart(ctxDownloads.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: [],
+                            datasets: [{
+                                label: 'Downloads',
+                                data: [],
+                                backgroundColor: '#3498db',
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0aec0' } },
+                                x: { grid: { display: false }, ticks: { color: '#a0aec0' } }
+                            },
+                            plugins: {
+                                legend: { display: false }
+                            }
+                        }
+                    });
+                } else {
+                    console.error('Canvas chart-downloads not found');
+                }
+
+                debugCharts();
+
+                // Live Activity Chart
+                const ctxActivity = document.getElementById('chart-activity');
+                if (ctxActivity) {
+                    charts.activity = new Chart(ctxActivity.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: [],
+                            datasets: [
+                                {
+                                    label: 'Active Launchers',
+                                    data: [],
+                                    borderColor: '#00ff88',
+                                    backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                },
+                                {
+                                    label: 'In-Game',
+                                    data: [],
+                                    borderColor: '#00b8ff',
+                                    backgroundColor: 'rgba(0, 184, 255, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            animation: false, // Performance
+                            interaction: { mode: 'index', intersect: false },
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0aec0', stepSize: 1 } },
+                                x: { grid: { display: false }, ticks: { color: '#a0aec0', maxTicksLimit: 10 } }
+                            },
+                            plugins: {
+                                legend: { labels: { color: '#a0aec0' } }
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Error initializing charts:', err);
+            }
+        }
+
+        // ... existing switchDownloadTab ...
+
+        function updateActivityChart(active, playing) {
+            if (!charts.activity) return;
+
+            const now = new Date().toLocaleTimeString();
+            const data = charts.activity.data;
+
+            if (data.labels.length > 20) {
+                data.labels.shift();
+                data.datasets[0].data.shift();
+                data.datasets[1].data.shift();
+            }
+
+            data.labels.push(now);
+            data.datasets[0].data.push(active);
+            data.datasets[1].data.push(playing);
+
+            charts.activity.update();
+        }
+
+        // Ensure DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+        });
+
+        function switchDownloadTab(category) {
+            currentDownloadCategory = category;
+            // Update active button state
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab-' + category).classList.add('active');
+
+            updateDownloadsChart();
+        }
+
+        function updateDownloadsChart() {
+            if (!charts.downloads || !statsData.downloads || !statsData.downloads[currentDownloadCategory]) return;
+
+            const data = statsData.downloads[currentDownloadCategory];
+            // Sort by count descending
+            const sorted = Object.entries(data)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 10); // Top 10
+
+            charts.downloads.data.labels = sorted.map(([name]) => name);
+            charts.downloads.data.datasets[0].data = sorted.map(([, count]) => count);
+            charts.downloads.update();
+        }
+
+        function updateVersionsChart(versions) {
+            if (!charts.versions) return;
+            charts.versions.data.labels = Object.keys(versions);
+            charts.versions.data.datasets[0].data = Object.values(versions);
+            charts.versions.update();
+        }
+
+        function logActivity(message) {
+            const list = document.getElementById('activity-log');
+            const item = document.createElement('li');
+            item.innerHTML = `<span style="color:var(--primary)">[${new Date().toLocaleTimeString()}]</span> ${message}`;
+            item.style.padding = '5px 0';
+            item.style.borderBottom = '1px solid var(--border-light)';
+            list.prepend(item);
+            if (list.children.length > 50) list.lastElementChild.remove(); // Keep max 50 logs
+        }
+
+        // --- Socket Events ---
+        socket.on('connect', () => {
+            console.log('Connected to analytics server');
+            socket.emit('admin-subscribe', password);
+        });
+
+        // Initial Data Load
+        socket.on('init-stats', (data) => {
+            console.log('Init stats:', data);
+
+            // 1. Persistent Data
+            if (data.persistent) {
+                statsData = data.persistent;
+                // Ensure structure
+                if (!statsData.downloads) statsData.downloads = { mod: {}, resourcepack: {}, shader: {}, modpack: {} };
+                if (!statsData.clientVersions) statsData.clientVersions = {};
+                if (!statsData.launchesPerDay) statsData.launchesPerDay = {};
+
+                updateDownloadsChart();
+                updateVersionsChart(statsData.clientVersions);
+
+                // Update Daily Launches (sum for today)
+                const today = new Date().toISOString().split('T')[0];
+                const todayLaunches = statsData.launchesPerDay[today] || 0;
+                document.getElementById('stat-daily-launches').innerText = todayLaunches;
+
+                // Update Total Downloads (sum all categories)
+                let total = 0;
+                Object.values(statsData.downloads).forEach(cat => {
+                    Object.values(cat).forEach(count => total += count);
+                });
+                document.getElementById('stat-total-downloads').innerText = total;
+            }
+
+            // 2. Live Data
+            if (data.live) {
+                document.getElementById('stat-active-users').innerText = data.live.activeUsers;
+                document.getElementById('stat-playing-users').innerText = data.live.playingUsers;
+                // Initialize chart with current data
+                updateActivityChart(data.live.activeUsers || 0, data.live.playingUsers || 0);
+            }
+        });
+
+        // ... live-update ...
+        socket.on('live-update', (data) => {
+            // ... existing code ...
+            const live = data.live || data;
+            const persistent = data.persistent;
+
+            if (live) {
+                if (live.activeUsers !== undefined) document.getElementById('stat-active-users').innerText = live.activeUsers;
+                if (live.playingUsers !== undefined) document.getElementById('stat-playing-users').innerText = live.playingUsers;
+                updateActivityChart(live.activeUsers || 0, live.playingUsers || 0);
+            }
+            // ... existing persistent code ...
+            if (persistent) {
+                statsData = persistent;
+                updateDownloadsChart();
+                updateVersionsChart(statsData.clientVersions);
+
+                // Update Daily Launches
+                const today = new Date().toISOString().split('T')[0];
+                const todayLaunches = statsData.launchesPerDay[today] || 0;
+                document.getElementById('stat-daily-launches').innerText = todayLaunches;
+
+                // Update Total Downloads
+                let total = 0;
+                Object.values(statsData.downloads).forEach(cat => {
+                    Object.values(cat).forEach(count => total += count);
+                });
+                document.getElementById('stat-total-downloads').innerText = total;
+            }
+        });
+
+        // Heartbeat to keep graph alive even if no changes
+        setInterval(() => {
+            const active = parseInt(document.getElementById('stat-active-users').innerText) || 0;
+            const playing = parseInt(document.getElementById('stat-playing-users').innerText) || 0;
+            updateActivityChart(active, playing);
+        }, 2000);
+
+        socket.on('new-download', (data) => {
+            const user = data.username ? `<strong style="color:var(--secondary)">${data.username}</strong>` : 'User';
+            logActivity(`${user} downloaded <strong style="color:white">${data.name || data.id}</strong> (${data.type})`);
+            // We could update the chart live here, but simplified to wait for full sync or manual refresh for persistent stats.
+            // In a real app we'd update proper local state.
+        });
+
+        socket.on('disconnect', () => {
+            // console.log('Disconnected');
+        });
+
+        socket.on('error', (err) => {
+            console.error('Socket error:', err);
+            if (err === 'Invalid password') logout();
+        });
+
+
+
     </script>
 
 </body>

@@ -482,8 +482,8 @@ Add-Type -TypeDefinition $code -Language CSharp
                         console.log(`[Launcher] Updated total playtime for ${instanceName}: ${currentConfig.playtime}ms`);
 
                         // Handle Crashes & mclo.gs Upload
-                        const sessionTime = Date.now() - startTime;
-                        // A session shorter than 15 seconds that wasn't manual kill is likely a crash/early exit
+                        // Handle Crashes & mclo.gs Upload
+                        // const sessionTime = Date.now() - startTime; // Use outer scope
                         const isShortSession = sessionTime < 15000;
                         const isCrash = (code !== 0 && code !== null) || logCrashDetected || isShortSession;
 

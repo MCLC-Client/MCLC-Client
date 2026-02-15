@@ -49,7 +49,7 @@ function createWindow() {
     console.log('[Main] Registering auth handler...');
     require('../backend/handlers/auth')(ipcMain, mainWindow);
     console.log('[Main] Registering instances handler...');
-    require('../backend/handlers/instances')(ipcMain, mainWindow);
+    require('../backend/handlers/instances')(ipcMain, mainWindow); // Load instances logic
     console.log('[Main] Registering launcher handler...');
     require('../backend/handlers/launcher')(ipcMain, mainWindow);
     require('../backend/handlers/servers')(ipcMain, mainWindow);

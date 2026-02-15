@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '../context/NotificationContext';
+import { Analytics } from '../services/Analytics';
 
 function Search() {
     const { addNotification } = useNotification();
@@ -113,6 +114,7 @@ function Search() {
                 addNotification(`Successfully started installing ${mod.title}. Check Dashboard.`, 'success');
                 // Temporarily mark as installed/installing
                 setInstalledIds(prev => new Set(prev).add(mod.project_id));
+                Analytics.trackDownload('modpack', mod.title, mod.project_id);
             } else {
                 addNotification(`Failed to install: ${installRes.error}`, 'error');
             }
@@ -180,6 +182,7 @@ function Search() {
                 }, 3000);
 
                 addNotification(`Successfully installed ${selectedMod.title}!`, 'success');
+                Analytics.trackDownload(selectedMod.project_type, selectedMod.title, selectedMod.project_id);
                 setShowInstallModal(false);
             } else {
                 addNotification(`No compatible versions found for ${instance.version} (${instance.loader})`, 'error');

@@ -13,6 +13,7 @@ import InstanceDetails from './pages/InstanceDetails';
 import Sidebar from './components/Sidebar';
 import ServerSidebar from './components/ServerSidebar';
 import RightPanel from './components/RightPanel';
+import { Analytics } from './services/Analytics';
 
 function App() {
     const [currentView, setCurrentView] = useState('login');
@@ -43,6 +44,8 @@ function App() {
     const logoRef = useRef(null);
 
     useEffect(() => {
+        Analytics.init(); // Uses default URL (https://mclc.pluginhub.de)
+
         const checkSession = async () => {
             if (window.electronAPI.validateSession) {
                 const res = await window.electronAPI.validateSession();
@@ -50,6 +53,7 @@ function App() {
                     const profile = await window.electronAPI.getProfile();
                     if (profile) {
                         setUserProfile(profile);
+                        Analytics.setProfile(profile);
                         setCurrentView('dashboard');
                         return;
                     }
@@ -58,6 +62,7 @@ function App() {
                 const profile = await window.electronAPI.getProfile();
                 if (profile) {
                     setUserProfile(profile);
+                    Analytics.setProfile(profile);
                     setCurrentView('dashboard');
                 }
             }
@@ -85,8 +90,10 @@ function App() {
                 const next = { ...prev };
                 if (status === 'stopped' || status === 'deleted') {
                     delete next[instanceName];
+                    if (status === 'stopped') Analytics.updateStatus(false, instanceName);
                 } else {
                     next[instanceName] = status;
+                    if (status === 'running') Analytics.updateStatus(true, instanceName);
                 }
                 return next;
             });
@@ -225,6 +232,7 @@ function App() {
 
     const handleLoginSuccess = (profile) => {
         setUserProfile(profile);
+        Analytics.setProfile(profile);
         setCurrentView('dashboard');
         setCurrentMode('client');
     };

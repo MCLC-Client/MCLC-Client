@@ -5,9 +5,212 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 
+const http = require('http');
+const { Server } = require("socket.io");
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Allow all origins for simplicity (Client + Admin)
+        methods: ["GET", "POST"]
+    }
+});
+
 const PORT = process.env.PORT || 3001;
 const NEWS_FILE = path.join(__dirname, 'news.json');
+const ANALYTICS_FILE = path.join(__dirname, 'analytics.json');
+
+// --- Analytics Storage ---
+// In-memory active sessions
+// Map<SocketID, { version: string, os: string, isPlaying: boolean, instance: string, startTime: number }>
+const activeSessions = new Map();
+
+// Persistent stats structure
+let stats = {
+    // Downloads by category
+    downloads: {
+        mod: {},        // { "Fabric API": 120 }
+        resourcepack: {},
+        shader: {},
+        modpack: {}
+    },
+    // Daily tracking
+    launchesPerDay: {}, // { "2023-10-27": 150 }
+    // User base
+    clientVersions: {}, // { "1.0.0": 10 }
+};
+
+// Load analytics
+if (fs.existsSync(ANALYTICS_FILE)) {
+    try {
+        const loaded = JSON.parse(fs.readFileSync(ANALYTICS_FILE, 'utf8'));
+        // Migration: If old format, convert
+        if (loaded.totalDownloads && !loaded.downloads) {
+            stats.downloads.mod = loaded.totalDownloads; // Assume old are mods
+            stats.launchesPerDay = loaded.launchesPerDay || {};
+            stats.clientVersions = loaded.clientVersions || {};
+        } else {
+            stats = { ...stats, ...loaded }; // Merge to ensure structure
+        }
+    } catch (e) {
+        console.error("Failed to load analytics:", e);
+    }
+} else {
+    fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(stats, null, 2));
+}
+
+const saveAnalytics = () => {
+    fs.writeFile(ANALYTICS_FILE, JSON.stringify(stats, null, 2), (err) => {
+        if (err) console.error("Error saving analytics:", err);
+    });
+};
+
+// Save every 30 seconds
+setInterval(saveAnalytics, 30 * 1000);
+
+// --- Socket.IO Logic ---
+io.on('connection', (socket) => {
+    // Default session data
+    activeSessions.set(socket.id, {
+        version: 'unknown',
+        os: 'unknown',
+        isPlaying: false,
+        instance: null,
+        startTime: Date.now()
+    });
+
+    // Send initial live stats to THIS client (if they are admin) or just broadcast update to admins
+    // Actually we should just emit live stats to admins whenever connection changes
+    emitLiveStats();
+
+    // 1. Client Register (On Startup)
+    socket.on('register', (data) => {
+        const session = activeSessions.get(socket.id);
+        if (session) {
+            session.version = data.version || 'unknown';
+            session.os = data.os || 'unknown';
+            session.username = data.username || 'Anonymous'; // Store username
+            session.uuid = data.uuid || null;
+            activeSessions.set(socket.id, session);
+        }
+
+        // Update persistent version stats
+        if (data.version) {
+            stats.clientVersions[data.version] = (stats.clientVersions[data.version] || 0) + 1;
+        }
+
+        emitLiveStats();
+    });
+
+    // 2. Status Update (Launching/Stopping Game)
+    socket.on('update-status', (data) => {
+        const session = activeSessions.get(socket.id);
+        if (!session) return;
+
+        const wasPlaying = session.isPlaying;
+        const isNowPlaying = !!data.isPlaying;
+
+        session.isPlaying = isNowPlaying;
+        session.instance = data.instance || null;
+        activeSessions.set(socket.id, session);
+
+        // Only count launch if transitioning from NOT playing to PLAYING
+        // This prevents re-counting on page refresh if the client sends "I'm playing" immediately
+        if (!wasPlaying && isNowPlaying) {
+            const today = new Date().toISOString().split('T')[0];
+            stats.launchesPerDay[today] = (stats.launchesPerDay[today] || 0) + 1;
+            saveAnalytics(); // Save meaningful events immediately
+        }
+
+        emitLiveStats();
+        // Also emit persistent stats update because launchesPerDay changed
+        io.to('admin').emit('live-update', {
+            live: getLiveStats(),
+            persistent: stats
+        });
+    });
+
+    // 3. Track Download
+    socket.on('track-download', (data) => {
+        // data: { type: "mod", name: "Fabric API", id: "P7dR8mSH", username: "..." }
+        const type = data.type || 'mod';
+        const key = data.name || data.id || 'unknown';
+        const session = activeSessions.get(socket.id);
+        const username = data.username || (session ? session.username : 'Anonymous');
+
+        // Initialize category if missing (safety)
+        if (!stats.downloads[type]) stats.downloads[type] = {};
+
+        if (key) {
+            stats.downloads[type][key] = (stats.downloads[type][key] || 0) + 1;
+
+            saveAnalytics();
+
+            // Notify admins - Send FULL stats update to keep UI in sync
+            // Attach username to the event for the real-time log
+            io.to('admin').emit('new-download', { ...data, username });
+            io.to('admin').emit('live-update', {
+                live: getLiveStats(),
+                persistent: stats
+            });
+        }
+    });
+
+    // 4. Admin Subscribe
+    socket.on('admin-subscribe', (password) => {
+        if (password === ADMIN_PASSWORD) {
+            socket.join('admin');
+            // Send full initial state
+            socket.emit('init-stats', {
+                live: getLiveStats(),
+                persistent: stats
+            });
+        } else {
+            socket.emit('error', 'Invalid password');
+        }
+    });
+
+    socket.on('disconnect', () => {
+        activeSessions.delete(socket.id);
+        emitLiveStats();
+    });
+});
+
+function getLiveStats() {
+    let activeUsers = 0;
+    let playingUsers = 0;
+    const versions = {};
+    const playingInstances = {};
+
+    activeSessions.forEach((session) => {
+        activeUsers++;
+        if (session.isPlaying) {
+            playingUsers++;
+            if (session.instance) {
+                playingInstances[session.instance] = (playingInstances[session.instance] || 0) + 1;
+            }
+        }
+        if (session.version) {
+            versions[session.version] = (versions[session.version] || 0) + 1;
+        }
+    });
+
+    return {
+        activeUsers,
+        playingUsers,
+        versions,
+        playingInstances
+    };
+}
+
+function emitLiveStats() {
+    io.to('admin').emit('live-update', {
+        live: getLiveStats(),
+        persistent: stats // Always send persistent stats too for simplicity
+    });
+}
+
 
 // Multer Storage
 const storage = multer.diskStorage({
@@ -103,6 +306,15 @@ app.post('/api/news', (req, res) => {
     res.json({ success: true });
 });
 
-app.listen(PORT, () => {
-    console.log(`News Admin Server running on port ${PORT}`);
+// Analytics API (Optional, for polling if socket fails)
+app.get('/api/analytics', (req, res) => {
+    if (req.query.password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Unauthorized' });
+    res.json({
+        live: getLiveStats(),
+        persistent: stats
+    });
+});
+
+server.listen(PORT, () => {
+    console.log(`News Admin Server (with Socket.IO) running on port ${PORT}`);
 });

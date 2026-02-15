@@ -1903,6 +1903,36 @@ module.exports = (ipcMain, win) => {
         }
     });
 
+
+
+    ipcMain.handle('instance:update-file', async (_, data) => {
+        console.log(`Updating file for ${data.instanceName}: ${data.oldFileName} -> ${data.newFileName}`);
+        try {
+            const instancePath = path.join(instancesDir, data.instanceName);
+            let subDir = 'mods';
+            if (data.projectType === 'resourcepack') subDir = 'resourcepacks';
+            if (data.projectType === 'shader') subDir = 'shaderpacks';
+
+            const targetDir = path.join(instancePath, subDir);
+
+            const oldPath = path.join(targetDir, data.oldFileName);
+            if (await fs.pathExists(oldPath)) {
+                await fs.remove(oldPath);
+            }
+
+            const newPath = path.join(targetDir, data.newFileName);
+            await downloadFile(data.url, newPath);
+
+            const modCachePath = path.join(appData, 'mod_cache.json');
+
+
+            return { success: true };
+        } catch (e) {
+            console.error('Update failed:', e);
+            return { success: false, error: e.message };
+        }
+    });
+
     console.log('[Instances] Instance handlers registered.');
     return ipcMain;
 };

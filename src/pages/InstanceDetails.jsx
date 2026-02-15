@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Dropdown from '../components/Dropdown';
 import InstanceSettingsModal from '../components/InstanceSettingsModal';
 import { useNotification } from '../context/NotificationContext';
+import { Analytics } from '../services/Analytics';
 
 function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate }) {
     const [activeTab, setActiveTab] = useState('content');
@@ -251,7 +252,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
         }
     };
 
-    const handleCheckUpdates = async () => {
+    const handleCheckUpdates = async (silent = false) => {
         setCheckingUpdates(true);
         try {
             const contentToCheck = [
@@ -261,7 +262,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
             ];
 
             if (contentToCheck.length === 0) {
-                addNotification("No Modrinth content found to check for updates.", 'info');
+                if (!silent) addNotification("No Modrinth content found to check for updates.", 'info');
                 return;
             }
 
@@ -274,20 +275,30 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                 setUpdates(updateMap);
                 const count = Object.keys(updateMap).length;
                 if (count > 0) {
-                    addNotification(`Found ${count} update(s)!`, 'success');
+                    if (!silent) addNotification(`Found ${count} update(s)!`, 'success');
                 } else {
-                    addNotification("All mods and resource packs are up to date.", 'success');
+                    if (!silent) addNotification("All mods and resource packs are up to date.", 'success');
                 }
             } else {
-                addNotification("Failed to check for updates: " + res.error, 'error');
+                if (!silent) addNotification("Failed to check for updates: " + res.error, 'error');
             }
         } catch (e) {
             console.error(e);
-            addNotification("Error checking updates: " + e.message, 'error');
+            if (!silent) addNotification("Error checking updates: " + e.message, 'error');
         } finally {
             setCheckingUpdates(false);
         }
     };
+
+    // Auto-check updates when content is loaded
+    useEffect(() => {
+        if (activeTab === 'content' && (mods.length > 0 || resourcePacks.length > 0)) {
+            // Check if we already have updates (simple debounce/cache check)
+            if (Object.keys(updates).length === 0 && !checkingUpdates) {
+                handleCheckUpdates(true);
+            }
+        }
+    }, [mods.length, resourcePacks.length, activeTab]);
 
     const handleUpdateMod = async (updateData) => {
         setUpdatingMod(updateData.projectId);
@@ -475,6 +486,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
             if (installRes && installRes.success) {
                 addNotification(`Installed ${project.title}!`, 'success');
                 setInstallationStatus(prev => ({ ...prev, [project.project_id]: 'success' }));
+                Analytics.trackDownload(searchCategory, project.title, project.project_id);
                 // Reload lists if on installed view
                 if (contentView === 'mods') loadMods();
                 if (contentView === 'resourcepacks') loadResourcePacks();
@@ -526,6 +538,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
             if (installRes && installRes.success) {
                 addNotification(`Installed ${selectedProject.title}!`, 'success');
                 setInstallationStatus(prev => ({ ...prev, [selectedProject.project_id]: 'success' }));
+                Analytics.trackDownload(searchCategory, selectedProject.title, selectedProject.project_id);
                 if (contentView === 'mods') loadMods();
                 if (contentView === 'resourcepacks') loadResourcePacks();
                 setSelectedProject(null);
