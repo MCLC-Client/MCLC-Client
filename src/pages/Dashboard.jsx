@@ -217,6 +217,16 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
 
     useEffect(() => {
         loadInstances();
+        // Backend connectivity test
+        const testBackend = async () => {
+            try {
+                const pong = await window.electronAPI.ping();
+                console.log('📡 [Dashboard] Backend Ping Result:', pong);
+            } catch (err) {
+                console.warn('📡 [Dashboard] Backend Ping Failed:', err.message);
+            }
+        };
+        testBackend();
         const removeInstallListener = window.electronAPI.onInstallProgress((data) => {
             setInstallProgress(prev => {
                 if (data.progress >= 100) {
@@ -602,34 +612,28 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                     <button
                                         onClick={async () => {
                                             setShowCreateMenu(false);
-                                            const result = await window.electronAPI.importMrPack();
-                                            if (result.success) {
-                                                addNotification(`Importing Modpack: ${result.instanceName}...`, 'info');
-                                                loadInstances();
-                                            } else if (result.error !== 'Cancelled') {
-                                                addNotification(`Import failed: ${result.error}`, 'error');
+                                            console.log('[Dashboard] 📁 Unified Import triggered (Header)');
+                                            try {
+                                                if (!window.electronAPI.importFile) {
+                                                    throw new Error('electronAPI.importFile is not defined. Please restart the application.');
+                                                }
+                                                const result = await window.electronAPI.importFile();
+                                                console.log('[Dashboard] 📁 Unified Import result:', result);
+                                                if (result.success) {
+                                                    addNotification(`Importing Modpack: ${result.instanceName}...`, 'info');
+                                                    loadInstances();
+                                                } else if (result.error !== 'Cancelled') {
+                                                    addNotification(`Import failed: ${result.error}`, 'error');
+                                                }
+                                            } catch (err) {
+                                                console.error('[Dashboard] 📁 Unified Import error:', err);
+                                                addNotification(`Import error: ${err.message}`, 'error');
                                             }
                                         }}
                                         className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-sm"
                                     >
-                                        <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12.551 2c-1.397.01-2.731.332-3.926.892L3.196 5.37a2.035 2.035 0 0 0-.916 2.766l2.42 4.192c-.221.734-.37 1.48-.445 2.238l-4.148 1.408A2.035 2.035 0 0 0 0 17.893V22.8c.002.54.218 1.056.6 1.436.381.38.897.597 1.437.599h19.926c1.124 0 2.037-.912 2.037-2.037v-4.907c0-.986-.703-1.83-1.637-2.001l-4.148-1.408c-.075-.757-.224-1.504-.445-2.238l2.42-4.192a2.035 2.035 0 0 0-.916-2.766l-5.429-2.478c-1.192-.558-2.525-.88-3.923-.89zm-.06.772c1.284.009 2.502.296 3.593.805l5.428 2.478a1.264 1.264 0 0 1 .57 1.719l-2.422 4.193a12.82 12.82 0 0 1 .496 2.493l4.148 1.406a1.264 1.264 0 0 1 .818 1.157V22.8c-.001.333-.135.654-.37.89-.236.236-.557.37-.891.371H14.162c.328-.507.502-1.096.502-1.706V16.35c0-1.706-1.383-3.089-3.089-3.089-1.706 0-3.089 1.383-3.089 3.089V22.355c0 .61.174 1.199.502 1.706H2.126c-.334-.001-.655-.135-.891-.371a1.26 1.26 0 0 1-.371-.89v-4.907c0-.332.134-.653.37-.889l4.148-1.406a12.82 12.82 0 0 1 .496-2.493L3.456 6.055a1.264 1.264 0 0 1 .57-1.719l5.428-2.478c1.091-.509 2.31-.796 3.593-.805zM11.575 14.033c.966 0 1.748.783 1.748 1.748V22.355c0 .965-.782 1.748-1.748 1.748-.965 0-1.748-.783-1.748-1.748V15.781c0-.965.783-1.748 1.748-1.748z" /></svg>
-                                        Import .mrpack (Modrinth)
-                                    </button>
-                                    <button
-                                        onClick={async () => {
-                                            setShowCreateMenu(false);
-                                            const result = await window.electronAPI.importInstance();
-                                            if (result.success) {
-                                                addNotification(`Imported instance: ${result.instanceName}`, 'success');
-                                                loadInstances();
-                                            } else if (result.error !== 'Cancelled') {
-                                                addNotification(`Import failed: ${result.error}`, 'error');
-                                            }
-                                        }}
-                                        className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-sm"
-                                    >
-                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                        Import .mcpack (Client)
+                                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                        Import from File
                                     </button>
                                     <button
                                         onClick={() => {
@@ -877,37 +881,29 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                                     type="button"
                                                     onClick={async () => {
                                                         setShowModalImportMenu(false);
-                                                        const result = await window.electronAPI.importMrPack();
-                                                        if (result.success) {
-                                                            addNotification(`Importing Modpack: ${result.instanceName}...`, 'info');
-                                                            setShowCreateModal(false);
-                                                            loadInstances();
-                                                        } else if (result.error !== 'Cancelled') {
-                                                            addNotification(`Import failed: ${result.error}`, 'error');
+                                                        console.log('[Dashboard] 📁 Unified Import triggered (Modal)');
+                                                        try {
+                                                            if (!window.electronAPI.importFile) {
+                                                                throw new Error('electronAPI.importFile is not defined. Please restart the application.');
+                                                            }
+                                                            const result = await window.electronAPI.importFile();
+                                                            console.log('[Dashboard] 📁 Unified Import result:', result);
+                                                            if (result.success) {
+                                                                addNotification(`Importing Modpack: ${result.instanceName}...`, 'info');
+                                                                setShowCreateModal(false);
+                                                                loadInstances();
+                                                            } else if (result.error !== 'Cancelled') {
+                                                                addNotification(`Import failed: ${result.error}`, 'error');
+                                                            }
+                                                        } catch (err) {
+                                                            console.error('[Dashboard] 📁 Unified Import error:', err);
+                                                            addNotification(`Import error: ${err.message}`, 'error');
                                                         }
                                                     }}
                                                     className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-xs text-gray-200"
                                                 >
-                                                    <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12.551 2c-1.397.01-2.731.332-3.926.892L3.196 5.37a2.035 2.035 0 0 0-.916 2.766l2.42 4.192c-.221.734-.37 1.48-.445 2.238l-4.148 1.408A2.035 2.035 0 0 0 0 17.893V22.8c.002.54.218 1.056.6 1.436.381.38.897.597 1.437.599h19.926c1.124 0 2.037-.912 2.037-2.037v-4.907c0-.986-.703-1.83-1.637-2.001l-4.148-1.408c-.075-.757-.224-1.504-.445-2.238l2.42-4.192a2.035 2.035 0 0 0-.916-2.766l-5.429-2.478c-1.192-.558-2.525-.88-3.923-.89zm-.06.772c1.284.009 2.502.296 3.593.805l5.428 2.478a1.264 1.264 0 0 1 .57 1.719l-2.422 4.193a12.82 12.82 0 0 1 .496 2.493l4.148 1.406a1.264 1.264 0 0 1 .818 1.157V22.8c-.001.333-.135.654-.37.89-.236.236-.557.37-.891.371H14.162c.328-.507.502-1.096.502-1.706V16.35c0-1.706-1.383-3.089-3.089-3.089-1.706 0-3.089 1.383-3.089 3.089V22.355c0 .61.174 1.199.502 1.706H2.126c-.334-.001-.655-.135-.891-.371a1.26 1.26 0 0 1-.371-.89v-4.907c0-.332.134-.653.37-.889l4.148-1.406a12.82 12.82 0 0 1 .496-2.493L3.456 6.055a1.264 1.264 0 0 1 .57-1.719l5.428-2.478c1.091-.509 2.31-.796 3.593-.805zM11.575 14.033c.966 0 1.748.783 1.748 1.748V22.355c0 .965-.782 1.748-1.748 1.748-.965 0-1.748-.783-1.748-1.748V15.781c0-.965.783-1.748 1.748-1.748z" /></svg>
-                                                    Modrinth .mrpack
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={async () => {
-                                                        setShowModalImportMenu(false);
-                                                        const result = await window.electronAPI.importInstance();
-                                                        if (result.success) {
-                                                            addNotification(`Imported instance: ${result.instanceName}`, 'success');
-                                                            setShowCreateModal(false);
-                                                            loadInstances();
-                                                        } else if (result.error !== 'Cancelled') {
-                                                            addNotification(`Import failed: ${result.error}`, 'error');
-                                                        }
-                                                    }}
-                                                    className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-xs text-gray-200"
-                                                >
-                                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                                    Client .mcpack
+                                                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                                    Import from File
                                                 </button>
                                                 <button
                                                     type="button"

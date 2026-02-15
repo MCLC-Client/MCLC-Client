@@ -3,7 +3,7 @@
   "name": "mclc",
   "description": "Lightweight, open-source Minecraft launcher (Electron + React) by Fernsehheft — features profile & modpack management, skin preview, Discord Rich Presence, and a modern UI for easy installs and updates.",
   "author": "Fernsehheft",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"cross-env NODE_ENV=development electron .\"",
@@ -48,6 +48,7 @@
     "minecraft-launcher-core": "^3.18.2",
     "msmc": "^4.0.0",
     "nanoid": "^5.1.6",
+    "prismarine-nbt": "^2.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-virtualized-auto-sizer": "^2.0.3",

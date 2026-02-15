@@ -58,7 +58,7 @@ function Sidebar({ currentView, setView, onLogout, onInstanceClick, onCreateInst
                     <button
                         onClick={() => !item.disabled && setView(item.id)}
                         className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all group relative ${currentView === item.id
-                            ? 'bg-primary/20 text-primary border border-primary/30'
+                            ? 'bg-primary text-black shadow-[0_0_20px_rgba(var(--primary-color-rgb),0.3)]'
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                             } ${item.disabled ? 'opacity-40 grayscale cursor-not-allowed pointer-events-none' : ''}`}
                     >

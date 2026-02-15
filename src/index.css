@@ -4,9 +4,12 @@
 
 :root {
   --primary-color: #1bd96a;
+  --primary-color-rgb: 27, 217, 106;
   --background-color: #111111;
   --background-dark-color: #0b0b0b;
+  --background-dark-color-rgb: 11, 11, 11;
   --surface-color: #1c1c1c;
+  --surface-color-rgb: 28, 28, 28;
   --glass-blur: 10px;
   --glass-opacity: 0.8;
   --border-radius: 12px;

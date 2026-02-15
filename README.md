@@ -6,6 +6,10 @@
 
 MCLC is a high-performance, modern, and beautiful Minecraft launcher built with **Electron**, **React**, and **Tailwind CSS**. It provides a premium experience for managing instances, skins, and modpacks with a focus on speed and aesthetics.
 
+--
+
+Virus Total Scan (v1.4.0): https://www.virustotal.com/gui/file/9d1c902e5e67a396716cd7299c329b2c88c0df69f8fe3303f85f92cb2066a966?nocache=1
+
 ---
 
 ## ✨ Key Features

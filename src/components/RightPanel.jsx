@@ -43,7 +43,7 @@ function RightPanel({ userProfile, onProfileUpdate }) {
 
     useEffect(() => {
         loadNews();
-        const interval = setInterval(loadNews, 30000);
+        const interval = setInterval(loadNews, 60000);
         return () => clearInterval(interval);
     }, []);
 

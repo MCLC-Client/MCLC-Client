@@ -1,4 +1,11 @@
 const { app, BrowserWindow, ipcMain, protocol, net } = require('electron');
+console.log('☢️ NUCLEAR STARTUP CHECK: main.js is running!');
+
+ipcMain.handle('ping', () => {
+    console.log('📥 Ping received!');
+    return 'pong';
+});
+
 const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
@@ -50,7 +57,17 @@ function createWindow() {
     console.log('[Main] Registering auth handler...');
     require('../backend/handlers/auth')(ipcMain, mainWindow);
     console.log('[Main] Registering instances handler...');
-    require('../backend/handlers/instances')(ipcMain, mainWindow);
+    try {
+        require('../backend/handlers/instances')(ipcMain, mainWindow);
+        console.log('[Main] ✅ Instances handler registered successfully.');
+    } catch (e) {
+        console.error('[Main] ❌ CRITICAL: Failed to register instances handler:');
+        console.error('Message:', e.message);
+        console.error('Stack:', e.stack);
+        if (process.env.NODE_ENV === 'development') {
+            process.exit(1); // Fail fast in development
+        }
+    }
     console.log('[Main] Registering launcher handler...');
     require('../backend/handlers/launcher')(ipcMain, mainWindow);
     require('../backend/handlers/servers')(ipcMain, mainWindow);

@@ -11,9 +11,14 @@ const zlib = require('zlib');
 const { promisify } = require('util');
 const gunzip = promisify(zlib.gunzip);
 const crypto = require('crypto');
+const AdmZip = require('adm-zip');
+const archiver = require('archiver');
+const { spawn } = require('child_process');
+const nbt = require('prismarine-nbt');
 
-let appData = app.getPath('userData');
-const instancesDir = path.join(appData, 'instances');
+// Initialize these lazily when the handler is registered (app is ready)
+let appData;
+let instancesDir;
 
 async function calculateSha1(filePath) {
     return new Promise((resolve, reject) => {
@@ -33,6 +38,35 @@ async function downloadFile(url, destPath) {
     const response = await axios({ url, responseType: 'arraybuffer' });
     await fs.writeFile(destPath, response.data);
 }
+
+async function getFolderSize(directory) {
+    let size = 0;
+    const files = await fs.readdir(directory);
+    for (const file of files) {
+        const filePath = path.join(directory, file);
+        const stats = await fs.stat(filePath);
+        if (stats.isDirectory()) {
+            size += await getFolderSize(filePath);
+        } else {
+            size += stats.size;
+        }
+    }
+    return size;
+}
+
+const GAME_MODES = {
+    0: 'Survival',
+    1: 'Creative',
+    2: 'Adventure',
+    3: 'Spectator'
+};
+
+const DIFFICULTIES = {
+    0: 'Peaceful',
+    1: 'Easy',
+    2: 'Normal',
+    3: 'Hard'
+};
 async function installFabricLoader(instanceDir, mcVersion, loaderVersion, onProgress, logCallback) {
     const log = (msg) => {
         console.log(msg);
@@ -112,7 +146,6 @@ async function installQuiltLoader(instanceDir, mcVersion, loaderVersion, onProgr
     }
 }
 async function extractVersionUid(installerPath, filesToLookFor = ['version.json', 'install_profile.json']) {
-    const AdmZip = require('adm-zip');
     const zip = new AdmZip(installerPath);
     const zipEntries = zip.getEntries();
     let entry = zipEntries.find(e => e.entryName === 'version.json');
@@ -176,7 +209,6 @@ async function runInstaller(installerPath, instanceDir, onProgress, logCallback)
     };
 
     return new Promise((resolve, reject) => {
-        const { spawn } = require('child_process');
         console.log(`Running installer: java -jar "${installerPath}" --installClient "${instanceDir}"`);
         const child = spawn('java', ['-jar', installerPath, '--installClient', instanceDir]);
         const instanceName = path.basename(instanceDir);
@@ -312,12 +344,73 @@ async function installNeoForgeLoader(instanceDir, mcVersion, loaderVersion, onPr
 }
 
 module.exports = (ipcMain, win) => {
-    console.log('--- INSTANCES HANDLER INIT START ---');
-    console.log('[Instances] Registering Instance Handlers...');
+    try {
+        // Initialize paths now that app is ready
+        if (!appData) {
+            appData = app.getPath('userData');
+            instancesDir = path.join(appData, 'instances');
+            console.log('[Instances] Initialized paths:', { appData, instancesDir });
+        }
+        
+        console.log('--- INSTANCES HANDLER INIT START ---');
+        console.log('[Instances] Stage 1: Registration start');
+        // Move this to the top to ensure it's registered
+        console.log('[Instances] Stage 2: Registering instance:unified-import-v3...');
+        ipcMain.handle('instance:unified-import-v3', async (_) => {
+            console.log('[Backend] 📥 IPC Received: instance:unified-import-v3');
+            try {
+                const { filePaths } = await dialog.showOpenDialog({
+                    title: 'Import Modpack',
+                    filters: [
+                        { name: 'Modpacks', extensions: ['mrpack', 'mcpack', 'zip'] },
+                        { name: 'Modrinth Modpack', extensions: ['mrpack'] },
+                        { name: 'MCLC Modpack', extensions: ['mcpack'] },
+                        { name: 'Curseforge Modpack', extensions: ['zip'] }
+                    ],
+                    properties: ['openFile']
+                });
 
-    const DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'%3E%3C/path%3E%3Cpolyline points='3.27 6.96 12 12.01 20.73 6.96'%3E%3C/polyline%3E%3Cline x1='12' y1='22.08' x2='12' y2='12'%3E%3C/line%3E%3C/svg%3E";
+                if (!filePaths || filePaths.length === 0) return { success: false, error: 'Cancelled' };
 
-    ipcMain.handle('instance:get-resourcepacks', async (_, instanceName) => {
+                const packPath = filePaths[0];
+                const ext = path.extname(packPath).toLowerCase();
+
+                const zip = new AdmZip(packPath);
+
+                if (ext === '.mrpack' || zip.getEntry('modrinth.index.json')) {
+                    return await installMrPack(packPath);
+                } else if (ext === '.mcpack' || zip.getEntry('instance.json')) {
+                    const instanceJsonEntry = zip.getEntry('instance.json');
+                    const instanceConfig = JSON.parse(instanceJsonEntry.getData().toString('utf8'));
+                    let instanceName = instanceConfig.name || path.basename(packPath, path.extname(packPath));
+                    let targetDir = path.join(instancesDir, instanceName);
+                    let counter = 1;
+                    while (await fs.pathExists(targetDir)) {
+                        instanceName = `${instanceConfig.name || 'Imported'} (${counter++})`;
+                        targetDir = path.join(instancesDir, instanceName);
+                    }
+                    await fs.ensureDir(targetDir);
+                    zip.extractAllTo(targetDir, true);
+                    instanceConfig.name = instanceName;
+                    instanceConfig.imported = Date.now();
+                    await fs.writeJson(path.join(targetDir, 'instance.json'), instanceConfig, { spaces: 4 });
+                    return { success: true, instanceName };
+                } else if (zip.getEntry('manifest.json')) {
+                    return await installCurseForgePack(packPath);
+                } else {
+                    return { success: false, error: 'Unrecognized modpack format' };
+                }
+            } catch (e) {
+                console.error('[Import:File] Error:', e);
+                return { success: false, error: e.message };
+            }
+        });
+        console.log('[Instances] ✅ Checkpoint 1: Import handler registered');
+
+        const DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'%3E%3C/path%3E%3Cpolyline points='3.27 6.96 12 12.01 20.73 6.96'%3E%3C/polyline%3E%3Cline x1='12' y1='22.08' x2='12' y2='12'%3E%3C/line%3E%3C/svg%3E";
+        console.log('[Instances] ✅ Checkpoint 2: About to register get-resourcepacks');
+
+        ipcMain.handle('instance:get-resourcepacks', async (_, instanceName) => {
         console.log(`[Instances:RP] Getting resource packs for: ${instanceName}`);
         try {
             const rpDir = path.join(instancesDir, instanceName, 'resourcepacks');
@@ -745,6 +838,7 @@ module.exports = (ipcMain, win) => {
             }
         })();
     };
+    console.log('[Instances] ✅ Checkpoint 3: About to register instance:get-all');
 
     ipcMain.handle('instance:get-all', async () => {
         try {
@@ -820,17 +914,135 @@ module.exports = (ipcMain, win) => {
                 const worldPath = path.join(savesDir, dir);
                 const stats = await fs.stat(worldPath);
                 if (stats.isDirectory()) {
-                    worlds.push({
+                    const levelDatPath = path.join(worldPath, 'level.dat');
+                    const iconPath = path.join(worldPath, 'icon.png');
+                    
+                    let worldData = {
+                        folderName: dir,
                         name: dir,
-                        lastPlayed: stats.mtime,
-                        folder: true
-                    });
+                        lastPlayed: stats.mtimeMs,
+                        folder: true,
+                        size: 0,
+                        hasIcon: false,
+                        iconData: null
+                    };
+
+                    try {
+                        worldData.size = await getFolderSize(worldPath);
+                    } catch (e) {
+                        console.warn(`Could not get size for world ${dir}:`, e.message);
+                    }
+
+                    if (await fs.pathExists(levelDatPath)) {
+                        try {
+                            const buffer = await fs.readFile(levelDatPath);
+                            const { parsed } = await nbt.parse(buffer);
+                            const data = parsed.value.Data.value;
+                            
+                            worldData.name = data.LevelName?.value || dir;
+                            worldData.lastPlayed = data.LastPlayed?.value ? Number(data.LastPlayed.value) : stats.mtimeMs;
+                            worldData.gameMode = GAME_MODES[data.GameType?.value] || 'Unknown';
+                            worldData.difficulty = DIFFICULTIES[data.Difficulty?.value] || 'Unknown';
+                            worldData.version = data.Version?.value.Name.value || 'Unknown';
+                            worldData.hardcore = data.hardcore?.value === 1;
+                        } catch (e) {
+                            console.error(`Error parsing level.dat for ${dir}:`, e);
+                        }
+                    }
+
+                    if (await fs.pathExists(iconPath)) {
+                        try {
+                            const iconBuffer = await fs.readFile(iconPath);
+                            worldData.hasIcon = true;
+                            worldData.iconData = `data:image/png;base64,${iconBuffer.toString('base64')}`;
+                        } catch (e) {
+                            console.error(`Error reading icon for ${dir}:`, e);
+                        }
+                    }
+
+                    worlds.push(worldData);
                 }
             }
 
             return { success: true, worlds: worlds.sort((a, b) => b.lastPlayed - a.lastPlayed) };
         } catch (e) {
             console.error('Error getting worlds:', e);
+            return { success: false, error: e.message };
+        }
+    });
+
+    ipcMain.handle('instance:open-world-folder', async (_, instanceName, folderName) => {
+        try {
+            const worldPath = path.join(instancesDir, instanceName, 'saves', folderName);
+            if (await fs.pathExists(worldPath)) {
+                shell.openPath(worldPath);
+                return { success: true };
+            }
+            return { success: false, error: 'World folder not found' };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    });
+
+    ipcMain.handle('instance:backup-world', async (_, instanceName, folderName) => {
+        try {
+            const worldPath = path.join(instancesDir, instanceName, 'saves', folderName);
+            const backupsDir = path.join(instancesDir, instanceName, 'backups');
+            await fs.ensureDir(backupsDir);
+            
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const backupFile = path.join(backupsDir, `${folderName}-backup-${timestamp}.zip`);
+            
+            const output = fs.createWriteStream(backupFile);
+            const archive = archiver('zip');
+            
+            return new Promise((resolve, reject) => {
+                output.on('close', () => resolve({ success: true, backupFile }));
+                archive.on('error', (err) => resolve({ success: false, error: err.message }));
+                archive.pipe(output);
+                archive.directory(worldPath, false);
+                archive.finalize();
+            });
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    });
+
+    ipcMain.handle('instance:delete-world', async (_, instanceName, folderName) => {
+        try {
+            const worldPath = path.join(instancesDir, instanceName, 'saves', folderName);
+            if (await fs.pathExists(worldPath)) {
+                await fs.remove(worldPath);
+                return { success: true };
+            }
+            return { success: false, error: 'World folder not found' };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    });
+
+    ipcMain.handle('instance:export-world', async (_, instanceName, folderName) => {
+        try {
+            const { filePath } = await dialog.showSaveDialog({
+                title: 'Export World',
+                defaultPath: `${folderName}.zip`,
+                filters: [{ name: 'Zip Archive', extensions: ['zip'] }]
+            });
+
+            if (!filePath) return { success: false, error: 'Export cancelled' };
+
+            const worldPath = path.join(instancesDir, instanceName, 'saves', folderName);
+            const output = fs.createWriteStream(filePath);
+            const archive = archiver('zip');
+
+            return new Promise((resolve, reject) => {
+                output.on('close', () => resolve({ success: true }));
+                archive.on('error', (err) => resolve({ success: false, error: err.message }));
+                archive.pipe(output);
+                archive.directory(worldPath, false);
+                archive.finalize();
+            });
+        } catch (e) {
             return { success: false, error: e.message };
         }
     });
@@ -1446,7 +1658,6 @@ module.exports = (ipcMain, win) => {
             });
 
             if (!filePath) return { success: false, error: 'Cancelled' };
-            const archiver = require('archiver');
             const output = fs.createWriteStream(filePath);
             const archive = archiver('zip', { zlib: { level: 9 } });
 
@@ -1473,7 +1684,6 @@ module.exports = (ipcMain, win) => {
     });
     const installMrPack = async (packPath, nameOverride = null) => {
         try {
-            const AdmZip = require('adm-zip');
             const zip = new AdmZip(packPath);
 
             const indexEntry = zip.getEntry('modrinth.index.json');
@@ -1548,7 +1758,6 @@ module.exports = (ipcMain, win) => {
 
                     const totalFiles = index.files.length;
                     let downloaded = 0;
-                    const pLimit = require('p-limit');
 
                     const chunks = [];
                     for (let i = 0; i < index.files.length; i += 5) {
@@ -1582,23 +1791,132 @@ module.exports = (ipcMain, win) => {
             throw e;
         }
     };
-    ipcMain.handle('instance:import-mrpack', async (_) => {
+    const installCurseForgePack = async (packPath) => {
         try {
-            const { filePaths } = await dialog.showOpenDialog({
-                title: 'Import Modrinth Modpack',
-                filters: [{ name: 'Modrinth Modpack', extensions: ['mrpack'] }],
-                properties: ['openFile']
-            });
+            const zip = new AdmZip(packPath);
 
-            if (!filePaths || filePaths.length === 0) return { success: false, error: 'Cancelled' };
+            const manifestEntry = zip.getEntry('manifest.json');
+            if (!manifestEntry) throw new Error('Invalid CurseForge pack: missing manifest.json');
 
-            const packPath = filePaths[0];
-            return await installMrPack(packPath);
+            const manifest = JSON.parse(manifestEntry.getData().toString('utf8'));
+            let instanceName = manifest.name || path.basename(packPath, '.zip');
+            let targetDir = path.join(instancesDir, instanceName);
+            let counter = 1;
+            while (await fs.pathExists(targetDir)) {
+                instanceName = `${manifest.name || 'Imported CF'} (${counter++})`;
+                targetDir = path.join(instancesDir, instanceName);
+            }
+
+            await fs.ensureDir(targetDir);
+
+            const mcVersion = manifest.minecraft.version;
+            let loaderType = 'Vanilla';
+            let loaderVersion = '';
+
+            if (manifest.minecraft.modLoaders && manifest.minecraft.modLoaders.length > 0) {
+                const loaderInfo = manifest.minecraft.modLoaders[0];
+                const id = loaderInfo.id; // e.g., forge-47.2.0
+                if (id.startsWith('forge-')) {
+                    loaderType = 'Forge';
+                    loaderVersion = id.replace('forge-', '');
+                } else if (id.startsWith('fabric-')) {
+                    loaderType = 'Fabric';
+                    loaderVersion = id.replace('fabric-', '');
+                } else if (id.startsWith('neoforge-')) {
+                    loaderType = 'NeoForge';
+                    loaderVersion = id.replace('neoforge-', '');
+                } else if (id.startsWith('quilt-')) {
+                    loaderType = 'Quilt';
+                    loaderVersion = id.replace('quilt-', '');
+                }
+            }
+
+            const instanceConfig = {
+                name: instanceName,
+                version: mcVersion,
+                loader: loaderType,
+                loaderVersion: loaderVersion,
+                icon: DEFAULT_ICON,
+                status: 'installing',
+                created: Date.now()
+            };
+
+            await fs.writeJson(path.join(targetDir, 'instance.json'), instanceConfig, { spaces: 4 });
+
+            (async () => {
+                try {
+                    const sendProgress = (progress, status) => {
+                        if (win && win.webContents) {
+                            win.webContents.send('install:progress', { instanceName, progress, status });
+                        }
+                    };
+
+                    sendProgress(5, 'Extracting overrides...');
+
+                    const entries = zip.getEntries();
+                    for (const entry of entries) {
+                        if (entry.entryName.startsWith('overrides/')) {
+                            const relPath = entry.entryName.replace('overrides/', '');
+                            if (relPath) {
+                                const dest = path.join(targetDir, relPath);
+                                if (entry.isDirectory) {
+                                    await fs.ensureDir(dest);
+                                } else {
+                                    await fs.ensureDir(path.dirname(dest));
+                                    await fs.writeFile(dest, entry.getData());
+                                }
+                            }
+                        }
+                    }
+
+                    const mods = manifest.files || [];
+                    const totalMods = mods.length;
+                    let downloaded = 0;
+
+                    if (totalMods > 0) {
+                        sendProgress(20, `Downloading ${totalMods} mods...`);
+                        const modsDir = path.join(targetDir, 'mods');
+                        await fs.ensureDir(modsDir);
+
+                        for (const mod of mods) {
+                            try {
+                                const fileRes = await axios.get(`https://api.curse.tools/v1/cf/mods/${mod.projectID}/files/${mod.fileID}`, {
+                                    headers: { 'User-Agent': 'Client/MCLC/1.0' }
+                                });
+                                const fileData = fileRes.data.data;
+                                const downloadUrl = fileData.downloadUrl;
+                                const fileName = fileData.fileName;
+
+                                const dest = path.join(modsDir, fileName);
+                                await downloadFile(downloadUrl, dest);
+                                downloaded++;
+                                const progress = 20 + Math.round((downloaded / totalMods) * 60);
+                                sendProgress(progress, `Downloading: ${fileName} (${downloaded}/${totalMods})`);
+                            } catch (e) {
+                                console.error(`[Import:CF] Failed to download mod ID ${mod.projectID}:`, e.message);
+                            }
+                        }
+                    }
+
+                    sendProgress(90, 'Finalizing installation...');
+                    await startBackgroundInstall(instanceName, instanceConfig, false, false);
+
+                } catch (err) {
+                    console.error('[Import:CF] Error:', err);
+                    if (win && win.webContents) {
+                        win.webContents.send('instance:status', { instanceName, status: 'error', error: err.message });
+                    }
+                }
+            })();
+
+            return { success: true, instanceName };
         } catch (e) {
-            console.error('[Import:MrPack] Dialog Error:', e);
+            console.error('[Import:CF] Error:', e);
             return { success: false, error: e.message };
         }
-    });
+    };
+
+
     ipcMain.handle('instance:install-modpack', async (_, url, name) => {
         try {
             console.log(`[Modpack:Install] URL: ${url}, Name: ${name}`);
@@ -1616,46 +1934,6 @@ module.exports = (ipcMain, win) => {
             return result;
         } catch (e) {
             console.error('[Modpack:Install] Error:', e);
-            return { success: false, error: e.message };
-        }
-    });
-    ipcMain.handle('instance:import', async (_) => {
-        try {
-
-            const { filePaths } = await dialog.showOpenDialog({
-                title: 'Import Instance',
-                filters: [{ name: 'Modpack', extensions: ['mcpack', 'zip'] }],
-                properties: ['openFile']
-            });
-
-            if (!filePaths || filePaths.length === 0) {
-                return { success: false, error: 'Cancelled' };
-            }
-
-            const packPath = filePaths[0];
-            const AdmZip = require('adm-zip');
-            const zip = new AdmZip(packPath);
-            const instanceJsonEntry = zip.getEntry('instance.json');
-            if (!instanceJsonEntry) {
-                return { success: false, error: 'Invalid modpack: missing instance.json' };
-            }
-
-            const instanceConfig = JSON.parse(instanceJsonEntry.getData().toString('utf8'));
-            let instanceName = instanceConfig.name || path.basename(packPath, path.extname(packPath));
-            let targetDir = path.join(instancesDir, instanceName);
-            let counter = 1;
-            while (await fs.pathExists(targetDir)) {
-                instanceName = `${instanceConfig.name || 'Imported'} (${counter++})`;
-                targetDir = path.join(instancesDir, instanceName);
-            }
-            await fs.ensureDir(targetDir);
-            zip.extractAllTo(targetDir, true);
-            instanceConfig.name = instanceName;
-            instanceConfig.imported = Date.now();
-            await fs.writeJson(path.join(targetDir, 'instance.json'), instanceConfig, { spaces: 4 });
-
-            return { success: true, instanceName };
-        } catch (e) {
             return { success: false, error: e.message };
         }
     });
@@ -1720,5 +1998,81 @@ module.exports = (ipcMain, win) => {
     });
 
     console.log('[Instances] Instance handlers registered.');
+    ipcMain.handle('theme:get-custom-presets', async () => {
+        try {
+            const userData = app.getPath('userData');
+            const presetsDir = path.join(userData, 'custom_themes');
+            
+            if (!await fs.pathExists(presetsDir)) return { success: true, presets: [] };
+            
+            const stats = await fs.stat(presetsDir);
+            if (!stats.isDirectory()) {
+                console.warn('[Theme] custom_themes is a file, not a directory. Deleting...');
+                await fs.remove(presetsDir);
+                return { success: true, presets: [] };
+            }
+
+            const files = await fs.readdir(presetsDir);
+            const presets = [];
+            for (const file of files) {
+                if (file.endsWith('.json')) {
+                    const content = await fs.readJson(path.join(presetsDir, file));
+                    presets.push({
+                        handle: path.basename(file, '.json'),
+                        ...content
+                    });
+                }
+            }
+            return { success: true, presets };
+        } catch (e) {
+            console.error('Failed to get custom presets:', e);
+            return { success: false, error: e.message };
+        }
+    });
+
+    ipcMain.handle('theme:save-custom-preset', async (_, preset) => {
+        try {
+            const userData = app.getPath('userData');
+            const presetsDir = path.join(userData, 'custom_themes');
+            
+            if (await fs.pathExists(presetsDir)) {
+                const stats = await fs.stat(presetsDir);
+                if (!stats.isDirectory()) {
+                    console.warn('[Theme] custom_themes is blocked by a file. Removing...');
+                    await fs.remove(presetsDir);
+                }
+            }
+
+            await fs.ensureDir(presetsDir);
+            const filePath = path.join(presetsDir, `${preset.handle}.json`);
+            const { handle, ...data } = preset;
+            await fs.writeJson(filePath, data, { spaces: 4 });
+            return { success: true };
+        } catch (e) {
+            console.error('Failed to save custom preset:', e);
+            return { success: false, error: e.message };
+        }
+    });
+
+    ipcMain.handle('theme:delete-custom-preset', async (_, handle) => {
+        try {
+            const userData = app.getPath('userData');
+            const presetsDir = path.join(userData, 'custom_themes');
+            const filePath = path.join(presetsDir, `${handle}.json`);
+            
+            if (await fs.pathExists(filePath)) {
+                await fs.remove(filePath);
+            }
+            return { success: true };
+        } catch (e) {
+            console.error('Failed to delete custom preset:', e);
+            return { success: false, error: e.message };
+        }
+    });
+
     return ipcMain;
+    } catch (err) {
+        console.error('CRITICAL ERROR DURING INSTANCE HANDLERS REGISTRATION:', err);
+        throw err;
+    }
 };

@@ -1,8 +1,15 @@
-const electronModule = require('electron');
-console.log('Electron module type:', typeof electronModule);
-console.log('Electron module keys:', Object.keys(electronModule));
-console.log('app:', electronModule.app);
 const { app, BrowserWindow, ipcMain } = require('electron');
+console.log('☢️ NUCLEAR STARTUP CHECK: main/main.js is running!');
+
+ipcMain.handle('ping', () => {
+    console.log('📥 [main/main.js] Ping received!');
+    return 'pong-from-main';
+});
+
+ipcMain.handle('instance:unified-import-v3', async () => {
+    console.log('🚀 [main/main.js] BYPASS import handler triggered!');
+    return { success: false, error: 'Bypass active in main/main.js.' };
+});
 const path = require('path');
 const fs = require('fs');
 
