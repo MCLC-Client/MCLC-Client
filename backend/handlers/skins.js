@@ -37,7 +37,7 @@ module.exports = (ipcMain, mainWindow) => {
     ipcMain.handle('skin:get-current', async (_, token) => {
         try {
             if (!token) return { success: false, error: 'No token provided' };
-            const { getCachedProfile } = require('../utils/profileCache');
+            const { getCachedProfile, clearCache } = require('../utils/profileCache');
             const data = await getCachedProfile(token);
 
             const skins = data.skins || [];
@@ -80,6 +80,10 @@ module.exports = (ipcMain, mainWindow) => {
                 },
                 timeout: 30000
             });
+
+
+            const { clearCache } = require('../utils/profileCache');
+            clearCache(token);
 
             return { success: true };
         } catch (e) {
@@ -128,8 +132,12 @@ module.exports = (ipcMain, mainWindow) => {
                 }
             });
 
+
             // Cleanup
             fs.remove(tempPath).catch(console.error);
+
+            const { clearCache } = require('../utils/profileCache');
+            clearCache(token);
 
             return { success: true };
         } catch (e) {

@@ -323,7 +323,7 @@ function Skins({ onLogout }) {
     const handleSelectDefaultSkin = async (name) => {
         const url = name === 'Steve'
             ? "https://textures.minecraft.net/texture/1a4af718455d4aab528e7a61f86fa25e6a369d1768dcb13f7df319a713eb810b"
-            : "http://textures.minecraft.net/texture/3b60a1f6d562f52aaebbf1434f1de147933a3affe0e764fa49ea057536623cd3";
+            : "https://textures.minecraft.net/texture/3b60a1f6d562f52aaebbf1434f1de147933a3affe0e764fa49ea057536623cd3";
         const model = name === 'Steve' ? 'classic' : 'slim';
 
         setPendingSkin({ type: 'url', url, model, name });

@@ -184,14 +184,17 @@ function getLiveStats() {
     const playingInstances = {};
 
     activeSessions.forEach((session) => {
-        activeUsers++;
-        if (session.isPlaying) {
-            playingUsers++;
-            if (session.instance) {
-                playingInstances[session.instance] = (playingInstances[session.instance] || 0) + 1;
+        // Only count as active users those who have registered (launcher client)
+        if (session.version && session.version !== 'unknown') {
+            activeUsers++;
+            if (session.isPlaying) {
+                playingUsers++;
+                if (session.instance) {
+                    playingInstances[session.instance] = (playingInstances[session.instance] || 0) + 1;
+                }
             }
         }
-        if (session.version) {
+        if (session.version && session.version !== 'unknown') {
             versions[session.version] = (versions[session.version] || 0) + 1;
         }
     });
