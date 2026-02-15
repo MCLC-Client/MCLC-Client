@@ -1,47 +1,50 @@
-To Do Liste:
+To-Do-Liste
 
-Schon Implementiert:
-- Skin/Cape Editor
-- Group Instance
-- News System
-- Instance System
-- Multi Version/Software Support
-- Custom Style/Custom Backgrounds
-- Auto Updater
-- Modrinth Support
-- Custom Launcher Arguments
-- Custom Java Installer
-- Discord RPC
-- MCLOGS Support
-- Copy Key Settings to other Instances
-- Multi Account Support
-- Modrinth Instances Support
-- Dev Version Support
-- Shader Tab Support/Shader Modrinth Support (Auto Installing of Iris/Sodium)
-- Fabric Api Sofort Instalieren bei Fabric Instance Creation!
-- Modpacks from Modrinth Support
-- Analytics for Player Software Version etc im Admin Panel
-- Auto-Java-Downloader
-- Shader-Vorschau
-- Adding Home Panel
-- Server System (Server Erstellen)
+Bereits implementiert
 
+* Skin- und Cape-Editor
+* Gruppeninstanzen
+* Nachrichtensystem
+* Instanzsystem
+* Unterstützung mehrerer Versionen und Softwarearten
+* Benutzerdefiniertes Design und eigene Hintergründe
+* Automatischer Aktualisierer
+* Modrinth-Unterstützung
+* Benutzerdefinierte Startparameter
+* Eigener Java-Installer
+* Discord-Statusanzeige (Rich Presence)
+* MCLOGS-Unterstützung
+* Tasteneinstellungen auf andere Instanzen übertragen
+* Mehrere Benutzerkonten verwalten
+* Unterstützung für Modrinth-Instanzen
+* Unterstützung für Entwicklerversionen
+* Shader-Bereich mit Modrinth-Anbindung (automatische Installation von Iris und Sodium)
+* Automatische Installation der Fabric-API bei Erstellung einer Fabric-Instanz
+* Unterstützung für Modpakete von Modrinth
+* Analysefunktionen für Software-Versionen und Nutzungsdaten im Administrationsbereich
+* Automatischer Java-Download
+* Shader-Vorschau
+* Startseiten-Bereich hinzugefügt
+* Serversystem (Server erstellen und verwalten)
 
-Noch offen:
-- Code Sharing Instances System
-- Focus Mode (Maybe)
-- Server-Side Mod-Prüfung
-- Mod-Kompatibilitäts-Matrix
-- Minimal-Mode (System Tray) (Über Settings dann)
-- Quick-Server-Join (Not Fully Implemented)
-- Client Mod for Quick-Server-Join
+Noch offen
 
-Additional Features (Maybe Machen):
-- Scripting-Support
-- Log-Analyse-Tool
-- Cloud-Sync für Welten/Configs (Google Drive/Dropbox/OneDrive)
-- Abhängigkeits-Check (Dependencies)
-- App for Panel on Mobile
+* System zum Teilen von Instanz-Konfigurationen
+* Fokusmodus
+* Serverseitige Mod-Prüfung
+* Mod-Kompatibilitätsübersicht
+* Minimalmodus (Systemablage, aktivierbar über die Einstellungen)
+* Schnellbeitritt zu Servern (noch nicht vollständig umgesetzt)
+* Client-Mod für Schnellbeitritt
 
-Optional (Vielleicht später mal): 
-- CLI-Support 
+Weitere mögliche Funktionen
+
+* Skript-Unterstützung
+* Werkzeug zur Protokollanalyse
+* Cloud-Synchronisierung für Welten und Konfigurationen (z. B. über Google Drive, Dropbox oder OneDrive)
+* Abhängigkeitsprüfung für Mods
+* Mobile Anwendung für das Administrationspanel
+
+Optional (spätere Umsetzung)
+
+* Kommandozeilen-Unterstützung
