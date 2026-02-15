@@ -7,13 +7,16 @@ import Search from './pages/Search';
 import Settings from './pages/Settings';
 import Styling from './pages/Styling';
 import Skins from './pages/Skins';
+import ServerSettings from './pages/ServerSettings';
+import ServerLibrary from './pages/ServerLibrary';
 import InstanceDetails from './pages/InstanceDetails';
 import Sidebar from './components/Sidebar';
+import ServerSidebar from './components/ServerSidebar';
 import RightPanel from './components/RightPanel';
 
 function App() {
-    const [currentView, setCurrentView] = useState('login'); // login, dashboard, server-dashboard, server-details, search, instance-details
-    const [currentMode, setCurrentMode] = useState('client'); // 'client' or 'server'
+    const [currentView, setCurrentView] = useState('login');
+    const [currentMode, setCurrentMode] = useState('client');
     const [userProfile, setUserProfile] = useState(null);
     const [theme, setTheme] = useState({
         primaryColor: '#1bd96a',
@@ -26,8 +29,8 @@ function App() {
     });
     const [selectedInstance, setSelectedInstance] = useState(null);
     const [selectedServer, setSelectedServer] = useState(null);
-    const [runningInstances, setRunningInstances] = useState({}); // { [name]: 'launching' | 'running' | 'installing' }
-    const [activeDownloads, setActiveDownloads] = useState({}); // { [name]: { progress, status, type } }
+    const [runningInstances, setRunningInstances] = useState({});
+    const [activeDownloads, setActiveDownloads] = useState({});
     const [isMaximized, setIsMaximized] = useState(false);
 
     const [showDownloads, setShowDownloads] = useState(false);
@@ -40,9 +43,7 @@ function App() {
     const logoRef = useRef(null);
 
     useEffect(() => {
-        // Check for existing login on startup
         const checkSession = async () => {
-            // 1. Validate session first
             if (window.electronAPI.validateSession) {
                 const res = await window.electronAPI.validateSession();
                 if (res.success) {
@@ -54,7 +55,6 @@ function App() {
                     }
                 }
             } else {
-                // Fallback for older versions or if validateSession is missing
                 const profile = await window.electronAPI.getProfile();
                 if (profile) {
                     setUserProfile(profile);
@@ -68,115 +68,18 @@ function App() {
             if (res.success && res.settings.theme) {
                 const t = res.settings.theme;
                 setTheme(t);
-
-                const root = document.documentElement;
-                root.style.setProperty('--primary-color', t.primaryColor);
-                root.style.setProperty('--background-color', t.backgroundColor);
-                root.style.setProperty('--surface-color', t.surfaceColor);
-                root.style.setProperty('--glass-blur', `${t.glassBlur}px`);
-                root.style.setProperty('--glass-opacity', t.glassOpacity);
-                root.style.setProperty('--border-radius', `${t.borderRadius || 12}px`);
-                root.style.setProperty('--panel-opacity', t.glassOpacity);
-
-                // Helper to lighten/darken colors for hover states
-                const adjustColor = (hex, percent) => {
-                    if (!hex || typeof hex !== 'string') return '#ffffff';
-                    const num = parseInt(hex.replace('#', ''), 16);
-                    const amt = Math.round(2.55 * percent);
-                    const R = (num >> 16) + amt;
-                    const G = (num >> 8 & 0x00FF) + amt;
-                    const B = (num & 0x0000FF) + amt;
-                    return '#' + (0x1000000 + (R < 255 ? R < 0 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 0 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 0 ? 0 : B : 255)).toString(16).slice(1);
-                };
-
-                root.style.setProperty('--primary-hover-color', adjustColor(t.primaryColor, 15));
-
-                // Convert surface hex to RGB for alpha support in glass-panel
-                const hexToRgb = (hex) => {
-                    if (!hex || typeof hex !== 'string') return '28, 28, 28';
-                    const r = parseInt(hex.slice(1, 3), 16);
-                    const g = parseInt(hex.slice(3, 5), 16);
-                    const b = parseInt(hex.slice(5, 7), 16);
-                    return `${r}, ${g}, ${b}`;
-                };
-                root.style.setProperty('--surface-color-rgb', hexToRgb(t.surfaceColor));
-                root.style.setProperty('--primary-color-rgb', hexToRgb(t.primaryColor));
-
-                // Also darken background for the background-dark var
-                const darken = (hex, percent) => {
-                    if (!hex || typeof hex !== 'string') return '#000000';
-                    const num = parseInt(hex.replace('#', ''), 16);
-                    const amt = Math.round(2.55 * percent);
-                    const R = (num >> 16) - amt;
-                    const G = (num >> 8 & 0x00FF) - amt;
-                    const B = (num & 0x0000FF) - amt;
-                    return '#' + (0x1000000 + (R < 255 ? R < 0 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 0 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 0 ? 0 : B : 255)).toString(16).slice(1);
-                };
-                root.style.setProperty('--background-dark-color', darken(t.backgroundColor, 20));
-
-                if (t.bgMedia && t.bgMedia.url) {
-                    root.style.setProperty('--bg-url', t.bgMedia.url);
-                    root.style.setProperty('--bg-type', t.bgMedia.type);
-                } else {
-                    root.style.setProperty('--bg-url', '');
-                    root.style.setProperty('--bg-type', 'none');
-                }
+                applyTheme(t);
             }
         };
 
         checkSession();
         loadTheme();
 
-        // Listen for theme updates from settings page
         const removeThemeListener = window.electronAPI.onThemeUpdated((newTheme) => {
             setTheme(newTheme);
-
-            // Re-apply CSS variables
-            const root = document.documentElement;
-            root.style.setProperty('--primary-color', newTheme.primaryColor);
-            root.style.setProperty('--background-color', newTheme.backgroundColor);
-            root.style.setProperty('--surface-color', newTheme.surfaceColor);
-            root.style.setProperty('--glass-blur', `${newTheme.glassBlur}px`);
-            root.style.setProperty('--glass-opacity', newTheme.glassOpacity);
-            root.style.setProperty('--border-radius', `${newTheme.borderRadius || 12}px`);
-            root.style.setProperty('--panel-opacity', newTheme.glassOpacity);
-
-            const adjustColor = (hex, percent) => {
-                if (!hex || typeof hex !== 'string') return '#ffffff';
-                const num = parseInt(hex.replace('#', ''), 16);
-                const amt = Math.round(2.55 * percent);
-                const R = (num >> 16) + amt;
-                const G = (num >> 8 & 0x00FF) + amt;
-                const B = (num & 0x0000FF) + amt;
-                return '#' + (0x1000000 + (R < 255 ? R < 0 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 0 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 0 ? 0 : B : 255)).toString(16).slice(1);
-            };
-
-            root.style.setProperty('--primary-hover-color', adjustColor(newTheme.primaryColor, 15));
-
-            // Update RGB and dark background logic
-            const hexToRgb = (hex) => {
-                if (!hex || typeof hex !== 'string') return '28, 28, 28';
-                const r = parseInt(hex.slice(1, 3), 16);
-                const g = parseInt(hex.slice(3, 5), 16);
-                const b = parseInt(hex.slice(5, 7), 16);
-                return `${r}, ${g}, ${b}`;
-            };
-            root.style.setProperty('--surface-color-rgb', hexToRgb(newTheme.surfaceColor));
-            root.style.setProperty('--primary-color-rgb', hexToRgb(newTheme.primaryColor));
-
-            const darken = (hex, percent) => {
-                if (!hex || typeof hex !== 'string') return '#000000';
-                const num = parseInt(hex.replace('#', ''), 16);
-                const amt = Math.round(2.55 * percent);
-                const R = (num >> 16) - amt;
-                const G = (num >> 8 & 0x00FF) - amt;
-                const B = (num & 0x0000FF) - amt;
-                return '#' + (0x1000000 + (R < 255 ? R < 0 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 0 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 0 ? 0 : B : 255)).toString(16).slice(1);
-            };
-            root.style.setProperty('--background-dark-color', darken(newTheme.backgroundColor, 20));
+            applyTheme(newTheme);
         });
 
-        // Listen for instance status updates
         const removeStatusListener = window.electronAPI.onInstanceStatus(({ instanceName, status }) => {
             setRunningInstances(prev => {
                 const next = { ...prev };
@@ -188,7 +91,6 @@ function App() {
                 return next;
             });
 
-            // Also clear from downloads if it's a final state OR running (launch complete)
             if (status === 'stopped' || status === 'error' || status === 'ready' || status === 'deleted' || status === 'running') {
                 setActiveDownloads(prev => {
                     const next = { ...prev };
@@ -198,7 +100,6 @@ function App() {
             }
         });
 
-        // Listen for install progress
         const removeInstallListener = window.electronAPI.onInstallProgress(({ instanceName, progress, status }) => {
             setActiveDownloads(prev => {
                 const next = { ...prev };
@@ -229,16 +130,9 @@ function App() {
 
             setActiveDownloads(prev => {
                 const percent = Math.round(e.percent || ((e.done / e.total) * 100) || 0);
-
-                // Determine if this is a "real" download event we want to show
-                // Skip if: 
-                // 1. It's just a check/metadata event
-                // 2. Progress is already 100%
-                // 3. It's a zero-byte transfer that isn't explicitly marked as a download
                 const isSkipEvent = e.type === 'check' || percent >= 100 || (e.total <= 0 && e.type !== 'download');
 
                 if (isSkipEvent) {
-                    // Only perform update if we actually have an entry to delete
                     if (prev[e.instanceName]) {
                         const next = { ...prev };
                         delete next[e.instanceName];
@@ -247,8 +141,6 @@ function App() {
                     return prev;
                 }
 
-                // If it's a launch event, we only show it if it's an actual data transfer type
-                // to avoid the 100ms flicker of "downloading assets" that are already cached.
                 const isSignificantLaunchEvent = e.type === 'download' || e.type === 'assets' || e.type === 'natives' || e.type === 'classes';
 
                 if (!isSignificantLaunchEvent) return prev;
@@ -263,6 +155,10 @@ function App() {
             });
         });
 
+        const removeWindowStateListener = window.electronAPI.onWindowStateChange((maximized) => {
+            setIsMaximized(maximized);
+        });
+
         document.addEventListener('mousedown', handleClickOutside);
 
         return () => {
@@ -270,18 +166,62 @@ function App() {
             if (removeLaunchProgressListener) removeLaunchProgressListener();
             if (removeStatusListener) removeStatusListener();
             if (removeThemeListener) removeThemeListener();
+            if (removeWindowStateListener) removeWindowStateListener();
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
 
-    useEffect(() => {
-        const removeWindowStateListener = window.electronAPI.onWindowStateChange((maximized) => {
-            setIsMaximized(maximized);
-        });
-        return () => {
-            if (removeWindowStateListener) removeWindowStateListener();
+    const applyTheme = (t) => {
+        const root = document.documentElement;
+        root.style.setProperty('--primary-color', t.primaryColor);
+        root.style.setProperty('--background-color', t.backgroundColor);
+        root.style.setProperty('--surface-color', t.surfaceColor);
+        root.style.setProperty('--glass-blur', `${t.glassBlur}px`);
+        root.style.setProperty('--glass-opacity', t.glassOpacity);
+        root.style.setProperty('--border-radius', `${t.borderRadius || 12}px`);
+        root.style.setProperty('--panel-opacity', t.glassOpacity);
+
+        const adjustColor = (hex, percent) => {
+            if (!hex || typeof hex !== 'string') return '#ffffff';
+            const num = parseInt(hex.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + (R < 255 ? R < 0 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 0 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 0 ? 0 : B : 255)).toString(16).slice(1);
         };
-    }, []);
+
+        root.style.setProperty('--primary-hover-color', adjustColor(t.primaryColor, 15));
+
+        const hexToRgb = (hex) => {
+            if (!hex || typeof hex !== 'string') return '28, 28, 28';
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `${r}, ${g}, ${b}`;
+        };
+        root.style.setProperty('--surface-color-rgb', hexToRgb(t.surfaceColor));
+        root.style.setProperty('--primary-color-rgb', hexToRgb(t.primaryColor));
+
+        const darken = (hex, percent) => {
+            if (!hex || typeof hex !== 'string') return '#000000';
+            const num = parseInt(hex.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) - amt;
+            const G = (num >> 8 & 0x00FF) - amt;
+            const B = (num & 0x0000FF) - amt;
+            return '#' + (0x1000000 + (R < 255 ? R < 0 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 0 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 0 ? 0 : B : 255)).toString(16).slice(1);
+        };
+        root.style.setProperty('--background-dark-color', darken(t.backgroundColor, 20));
+
+        if (t.bgMedia && t.bgMedia.url) {
+            root.style.setProperty('--bg-url', t.bgMedia.url);
+            root.style.setProperty('--bg-type', t.bgMedia.type);
+        } else {
+            root.style.setProperty('--bg-url', '');
+            root.style.setProperty('--bg-type', 'none');
+        }
+    };
 
     const handleLoginSuccess = (profile) => {
         setUserProfile(profile);
@@ -340,7 +280,6 @@ function App() {
             {/* Background Layer */}
             {userProfile && theme?.bgMedia?.url && theme.bgMedia.url.trim() !== '' && (
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                    {/* Background Media */}
                     {theme.bgMedia.type === 'video' ? (
                         <video
                             key={theme.bgMedia.url}
@@ -357,8 +296,6 @@ function App() {
                             alt=""
                         />
                     )}
-
-                    {/* Dark Overlay to ensure readability */}
                     <div
                         className="absolute inset-0 bg-black pointer-events-none"
                         style={{ opacity: 1 - (parseFloat(theme.glassOpacity) || 0.8) }}
@@ -366,13 +303,12 @@ function App() {
                 </div>
             )}
 
-            {/* Title Bar Drag Region */}
+            {/* Title Bar */}
             <div
                 className="h-16 w-full titlebar z-50 flex justify-between items-center pl-2 pr-6 bg-surface/30 border-b border-white/5 flex-none relative"
                 style={{ backdropFilter: `blur(${theme.glassBlur}px)` }}
             >
                 <div className="flex items-center gap-2 drag no-drag">
-                    {/* Logo with Dropdown */}
                     <div className="relative" ref={logoRef}>
                         <div
                             onClick={toggleModeMenu}
@@ -381,7 +317,6 @@ function App() {
                             M
                         </div>
 
-                        {/* Dropdown Menu */}
                         {showModeMenu && (
                             <div
                                 ref={modeMenuRef}
@@ -520,28 +455,48 @@ function App() {
 
             {userProfile ? (
                 <div className="flex flex-1 overflow-hidden">
-                    <Sidebar currentView={currentView} setView={setCurrentView} onLogout={handleLogout} currentMode={currentMode} />
+                    {/* Dynamische Sidebar basierend auf Mode */}
+                    {currentMode === 'client' ? (
+                        <Sidebar currentView={currentView} setView={setCurrentView} onLogout={handleLogout} />
+                    ) : (
+                        <ServerSidebar currentView={currentView} setView={setCurrentView} onLogout={handleLogout} />
+                    )}
 
                     <main className="flex-1 my-4 ml-4 mr-2 bg-surface/10 relative overflow-hidden flex flex-col rounded-2xl border border-white/5 shadow-2xl"
                         style={{ backdropFilter: `blur(${theme.glassBlur}px)` }}
                     >
                         <div className="flex-1 overflow-hidden bg-surface/20 rounded-2xl relative flex flex-col">
-                            {currentView === 'dashboard' && <Dashboard onInstanceClick={handleInstanceClick} runningInstances={runningInstances} />}
-                            {currentView === 'server-dashboard' && <ServerDashboard onServerClick={handleServerClick} runningInstances={runningInstances} />}
-                            {currentView === 'server-details' && selectedServer && (
-                                <ServerDetails
-                                    server={selectedServer}
-                                    onBack={handleBackToDashboard}
-                                    runningInstances={runningInstances}
-                                    onServerUpdate={handleServerUpdate}
-                                />
+                            {/* Client Views */}
+                            {currentMode === 'client' && (
+                                <>
+                                    {currentView === 'dashboard' && <Dashboard onInstanceClick={handleInstanceClick} runningInstances={runningInstances} />}
+                                    {currentView === 'search' && <Search />}
+                                    {currentView === 'skins' && <Skins onLogout={handleLogout} />}
+                                    {currentView === 'styling' && <Styling />}
+                                    {currentView === 'settings' && <Settings />}
+                                    {currentView === 'instance-details' && selectedInstance && (
+                                        <InstanceDetails instance={selectedInstance} onBack={handleBackToDashboard} runningInstances={runningInstances} onInstanceUpdate={handleInstanceUpdate} />
+                                    )}
+                                </>
                             )}
-                            {currentView === 'search' && <Search />}
-                            {currentView === 'skins' && <Skins onLogout={handleLogout} />}
-                            {currentView === 'styling' && <Styling />}
-                            {currentView === 'settings' && <Settings />}
-                            {currentView === 'instance-details' && selectedInstance && (
-                                <InstanceDetails instance={selectedInstance} onBack={handleBackToDashboard} runningInstances={runningInstances} onInstanceUpdate={handleInstanceUpdate} />
+
+                            {/* Server Views */}
+                            {currentMode === 'server' && (
+                                <>
+                                    {currentView === 'server-dashboard' && <ServerDashboard onServerClick={handleServerClick} runningInstances={runningInstances} />}
+                                    {currentView === 'server-details' && selectedServer && (
+                                        <ServerDetails
+                                            server={selectedServer}
+                                            onBack={handleBackToDashboard}
+                                            runningInstances={runningInstances}
+                                            onServerUpdate={handleServerUpdate}
+                                        />
+                                    )}
+                                    {currentView === 'search' && <Search />}
+                                    {currentView === 'styling' && <Styling />}
+                                    {currentView === 'server-library' && <ServerLibrary />}
+                                    {currentView === 'server-settings' && <ServerSettings />}
+                                </>
                             )}
                         </div>
                     </main>

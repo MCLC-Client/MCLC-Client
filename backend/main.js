@@ -1,45 +1,72 @@
-const electron = require('electron');
-console.log('Electron require keys:', Object.keys(electron));
-console.log('Process versions:', process.versions);
-const { app, BrowserWindow, ipcMain } = electron;
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs-extra');
+
+console.log('Electron versions:', process.versions);
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
     app.quit();
 }
 
+let mainWindow;
+
 function createWindow() {
-    const mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         width: 1280,
         height: 720,
         minWidth: 900,
         minHeight: 600,
         title: 'Minecraft Launcher',
-        frame: false, // Custom titlebar support
+        frame: false,
         backgroundColor: '#121212',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
-            sandbox: false // Required for some heavy node modules if needed, but try keep true if possible
+            sandbox: false
         },
     });
 
-    // Load the backend handlers
-    require('./handlers/auth')(ipcMain, mainWindow);
-    require('./handlers/instances')(ipcMain, mainWindow);
-    require('./handlers/launcher')(ipcMain, mainWindow);
-    require('./handlers/modrinth')(ipcMain);
-    require('./handlers/data')(ipcMain);
-    require('./handlers/settings')(ipcMain);
-    const discord = require('./handlers/discord');
+    console.log('[Main] Preload script configured.');
+    console.log('[Main] Registering handlers...');
+
+    // Load all handlers
+    try {
+        console.log('[Main] Registering auth handler...');
+        require('./handlers/auth')(ipcMain, mainWindow);
+
+        console.log('[Main] Registering instances handler...');
+        require('./handlers/instances')(ipcMain, mainWindow);
+
+        console.log('[Main] Registering launcher handler...');
+        require('./handlers/launcher')(ipcMain, mainWindow);
+
+        console.log('[Main] Registering modrinth handler...');
+        require('./handlers/modrinth')(ipcMain, mainWindow);
+
+        console.log('[Main] Registering data handler...');
+        require('./handlers/data')(ipcMain, mainWindow);
+
+        console.log('[Main] Registering settings handler...');
+        require('./handlers/settings')(ipcMain, mainWindow);
+
+        console.log('[Main] Registering server handler...');
+        require('./handlers/servers')(ipcMain, mainWindow);
+
+        console.log('[Main] All handlers registered successfully.');
+    } catch (error) {
+        console.error('[Main] Error registering handlers:', error);
+    }
 
     // Initialize Discord RPC
-    discord.initRPC();
+    try {
+        const discord = require('./handlers/discord');
+        discord.initRPC();
+    } catch (error) {
+        console.error('[Main] Discord RPC error:', error);
+    }
 
-    // In production, load the built index.html. In dev, load localhost.
     const isDev = process.env.NODE_ENV === 'development';
     if (isDev) {
         mainWindow.loadURL('http://localhost:3000');

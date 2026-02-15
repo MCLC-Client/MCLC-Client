@@ -1,0 +1,262 @@
+import React, { useState, useEffect } from 'react';
+import { useNotification } from '../context/NotificationContext';
+import LoadingOverlay from '../components/LoadingOverlay';
+
+function ServerLibrary() {
+    const { addNotification } = useNotification();
+    const [platforms, setPlatforms] = useState([]);
+    const [selectedPlatform, setSelectedPlatform] = useState(null);
+    const [versions, setVersions] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+    const [downloading, setDownloading] = useState(null);
+    const [installedSoftware, setInstalledSoftware] = useState({});
+
+    // Platform icons und Beschreibungen
+    const platformDetails = {
+        vanilla: { icon: '🌱', name: 'Vanilla', description: 'Official Minecraft server', color: 'from-green-500/20' },
+        paper: { icon: '📄', name: 'Paper', description: 'High-performance fork of Spigot', color: 'from-blue-500/20' },
+        purpur: { icon: '💜', name: 'Purpur', description: 'Fork of Paper with many features', color: 'from-purple-500/20' },
+        spigot: { icon: '⚙️', name: 'Spigot', description: 'Most popular server software', color: 'from-yellow-500/20' },
+        bukkit: { icon: '🔨', name: 'Bukkit', description: 'Original plugin API', color: 'from-orange-500/20' },
+        forge: { icon: '⚒️', name: 'Forge', description: 'Modded server for Forge mods', color: 'from-red-500/20' },
+        fabric: { icon: '🧵', name: 'Fabric', description: 'Lightweight modding platform', color: 'from-cyan-500/20' },
+        neoforge: { icon: '🆕', name: 'NeoForge', description: 'Modern fork of Forge', color: 'from-indigo-500/20' },
+        folia: { icon: '🍃', name: 'Folia', description: 'Regionized multithreaded server', color: 'from-emerald-500/20' }
+    };
+
+    useEffect(() => {
+        loadPlatforms();
+        loadInstalledSoftware();
+    }, []);
+
+    const loadPlatforms = async () => {
+        setIsLoading(true);
+        try {
+            // Use MCUtils API to get platforms
+            const response = await fetch('https://mcutils.com/api/server-jars');
+            const data = await response.json();
+
+            // Filter nur die Plattformen, die wir unterstützen wollen
+            const supportedPlatforms = ['vanilla', 'paper', 'purpur', 'spigot', 'bukkit', 'forge', 'fabric', 'neoforge', 'folia'];
+            const filteredPlatforms = data.filter(p => supportedPlatforms.includes(p.key));
+
+            setPlatforms(filteredPlatforms);
+        } catch (error) {
+            console.error('Failed to load platforms:', error);
+            addNotification('Failed to load server platforms', 'error');
+
+            // Fallback zu manuellen Plattformen wenn API fehlschlägt
+            setPlatforms([
+                { key: 'vanilla', name: 'Vanilla' },
+                { key: 'paper', name: 'Paper' },
+                { key: 'purpur', name: 'Purpur' },
+                { key: 'spigot', name: 'Spigot' },
+                { key: 'bukkit', name: 'Bukkit' },
+                { key: 'forge', name: 'Forge' },
+                { key: 'fabric', name: 'Fabric' },
+                { key: 'neoforge', name: 'NeoForge' },
+                { key: 'folia', name: 'Folia' }
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const loadVersions = async (platform) => {
+        setIsLoadingVersions(true);
+        setSelectedPlatform(platform);
+        try {
+            const response = await fetch(`https://mcutils.com/api/server-jars/${platform.key}`);
+            const data = await response.json();
+            setVersions(data);
+        } catch (error) {
+            console.error('Failed to load versions:', error);
+            addNotification(`Failed to load versions for ${platform.name}`, 'error');
+        } finally {
+            setIsLoadingVersions(false);
+        }
+    };
+
+    const loadInstalledSoftware = async () => {
+        try {
+            const servers = await window.electronAPI.getServers();
+            // Zähle wie oft jede Software installiert ist
+            const counts = {};
+            servers.forEach(server => {
+                counts[server.software] = (counts[server.software] || 0) + 1;
+            });
+            setInstalledSoftware(counts);
+        } catch (error) {
+            console.error('Failed to load installed software:', error);
+        }
+    };
+
+    const handleDownload = async (platform, version) => {
+        try {
+            setDownloading(`${platform.key}-${version.version}`);
+
+            // Get download URL from MCUtils
+            const response = await fetch(`https://mcutils.com/api/server-jars/${platform.key}/${version.version}`);
+            const data = await response.json();
+
+            // Download the server jar
+            const result = await window.electronAPI.downloadServerSoftware({
+                platform: platform.key,
+                version: version.version,
+                downloadUrl: data.downloadUrl,
+                name: platform.name
+            });
+
+            if (result.success) {
+                addNotification(`Successfully downloaded ${platform.name} ${version.version}`, 'success');
+                await loadInstalledSoftware();
+            } else {
+                addNotification(`Failed to download: ${result.error}`, 'error');
+            }
+        } catch (e) {
+            addNotification(`Download failed: ${e.message}`, 'error');
+        } finally {
+            setDownloading(null);
+        }
+    };
+
+    const handleSelectPlatform = (platform) => {
+        if (selectedPlatform?.key === platform.key) {
+            setSelectedPlatform(null);
+            setVersions([]);
+        } else {
+            loadVersions(platform);
+        }
+    };
+
+    const getInstallCount = (platformKey) => {
+        return installedSoftware[platformKey] || 0;
+    };
+
+    return (
+        <div className="p-8 h-full overflow-y-auto custom-scrollbar">
+            {isLoading && <LoadingOverlay message="Loading server platforms..." />}
+
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-white mb-1">Server Software</h1>
+                <p className="text-gray-400 text-sm">Download and manage server software from MCUtils</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+                {platforms.map((platform) => {
+                    const details = platformDetails[platform.key] || {
+                        icon: '📦',
+                        name: platform.name,
+                        description: 'Minecraft server software',
+                        color: 'from-gray-500/20'
+                    };
+                    const installCount = getInstallCount(platform.key);
+                    const isSelected = selectedPlatform?.key === platform.key;
+
+                    return (
+                        <div key={platform.key} className="space-y-2">
+                            {/* Platform Card */}
+                            <div
+                                onClick={() => handleSelectPlatform(platform)}
+                                className={`bg-surface/40 backdrop-blur-sm border ${isSelected ? 'border-primary/50' : 'border-white/5'} rounded-xl overflow-hidden hover:border-primary/50 transition-all cursor-pointer group`}
+                            >
+                                <div className="p-6">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-4 flex-1">
+                                            <div className={`w-16 h-16 bg-gradient-to-br ${details.color} to-transparent rounded-2xl flex items-center justify-center text-4xl border border-white/10 group-hover:scale-110 transition-transform`}>
+                                                {details.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <h3 className="font-bold text-white text-xl">{details.name}</h3>
+                                                    {installCount > 0 && (
+                                                        <span className="bg-primary/20 text-primary text-xs px-2 py-1 rounded-full border border-primary/30">
+                                                            {installCount} installed
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-gray-400 text-sm mb-2">{details.description}</p>
+                                                <div className="flex items-center gap-4 text-xs text-gray-500">
+                                                    <span className="flex items-center gap-1">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                        </svg>
+                                                        Click to {isSelected ? 'hide' : 'show'} versions
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className={`transform transition-transform ${isSelected ? 'rotate-180' : ''}`}>
+                                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Versions List */}
+                            {isSelected && (
+                                <div className="pl-24 pr-6 pb-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
+                                    {isLoadingVersions ? (
+                                        <div className="bg-surface/20 border border-white/5 rounded-xl p-8">
+                                            <div className="flex items-center justify-center gap-3 text-gray-400">
+                                                <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                                Loading versions...
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        versions.map((version) => {
+                                            const isDownloading = downloading === `${platform.key}-${version.version}`;
+
+                                            return (
+                                                <div
+                                                    key={version.version}
+                                                    className="bg-surface/20 border border-white/5 rounded-xl p-4 hover:border-primary/50 transition-all group"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-4">
+                                                            <span className="text-sm font-mono text-gray-300">{version.version}</span>
+                                                            {version.release && (
+                                                                <span className="text-xs text-gray-500">{version.release}</span>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleDownload(platform, version)}
+                                                            disabled={isDownloading}
+                                                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isDownloading
+                                                                    ? 'bg-primary/20 text-primary cursor-wait'
+                                                                    : 'bg-primary/20 text-primary hover:bg-primary/30'
+                                                                }`}
+                                                        >
+                                                            {isDownloading ? (
+                                                                <>
+                                                                    <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                                                    Downloading...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                                    </svg>
+                                                                    Download
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+export default ServerLibrary;

@@ -1638,7 +1638,7 @@ module.exports = (ipcMain, win) => {
         }
     });
 
-    // Import instance from .mcpack file
+    // Import instance from .mrpack file (Modrinth modpack format)
     ipcMain.handle('instance:import-mrpack', async (_) => {
         try {
             const { filePaths } = await dialog.showOpenDialog({
@@ -1772,6 +1772,7 @@ module.exports = (ipcMain, win) => {
         }
     });
 
+    // Import instance from custom .mcpack format
     ipcMain.handle('instance:import', async (_) => {
         try {
             // Show open dialog
@@ -1862,4 +1863,7 @@ module.exports = (ipcMain, win) => {
             return { success: false, error: e.message };
         }
     });
+
+    console.log('[Instances] Instance handlers registered.');
+    return ipcMain;
 };

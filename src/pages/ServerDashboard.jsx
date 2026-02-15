@@ -4,6 +4,7 @@ import Dropdown from '../components/Dropdown';
 import { useNotification } from '../context/NotificationContext';
 import LoadingOverlay from '../components/LoadingOverlay';
 import ConfirmationModal from '../components/ConfirmationModal';
+import ServerConsole from '../components/ServerConsole'; // Neue Import
 
 const DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='4' width='20' height='16' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='8' y1='9' x2='16' y2='9'%3E%3C/line%3E%3Cline x1='8' y1='13' x2='16' y2='13'%3E%3C/line%3E%3Cline x1='8' y1='17' x2='12' y2='17'%3E%3C/line%3E%3C/svg%3E";
 
@@ -19,13 +20,17 @@ const formatUptime = (seconds) => {
     return `${minutes}m`;
 };
 
-function ServerDashboard({ onInstanceClick, runningInstances = {} }) {
+function ServerDashboard({ onServerClick, runningInstances = {} }) {
     const { addNotification } = useNotification();
     const [servers, setServers] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [contextMenu, setContextMenu] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [serverToDelete, setServerToDelete] = useState(null);
+
+    // Console State
+    const [selectedServer, setSelectedServer] = useState(null);
+    const [showConsole, setShowConsole] = useState(false);
 
     // Create Server State
     const [newServerName, setNewServerName] = useState('');
@@ -38,19 +43,15 @@ function ServerDashboard({ onInstanceClick, runningInstances = {} }) {
 
     const [availableVersions, setAvailableVersions] = useState([]);
     const [loadingVersions, setLoadingVersions] = useState(false);
+    const [platforms, setPlatforms] = useState([]);
 
     const [isCreating, setIsCreating] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Multi-step creation
-    const [creationStep, setCreationStep] = useState(1);
-    const [softwareVersions, setSoftwareVersions] = useState([]);
-    const [selectedSoftwareVersion, setSelectedSoftwareVersion] = useState('');
-
     // File Input Ref
     const fileInputRef = useRef(null);
 
-    // Available server software
+    // Available server software (mit MCUtils Keys)
     const serverSoftware = [
         { value: 'vanilla', label: 'Vanilla' },
         { value: 'paper', label: 'Paper' },
@@ -59,7 +60,8 @@ function ServerDashboard({ onInstanceClick, runningInstances = {} }) {
         { value: 'bukkit', label: 'Bukkit' },
         { value: 'fabric', label: 'Fabric' },
         { value: 'forge', label: 'Forge' },
-        { value: 'neoforge', label: 'NeoForge' }
+        { value: 'neoforge', label: 'NeoForge' },
+        { value: 'folia', label: 'Folia' }
     ];
 
     // Memory options
@@ -77,153 +79,146 @@ function ServerDashboard({ onInstanceClick, runningInstances = {} }) {
 
     useEffect(() => {
         loadServers();
+        loadPlatforms();
 
         const removeListener = window.electronAPI.onServerStatus(({ serverName, status }) => {
             if (status === 'stopped' || status === 'ready' || status === 'error' || status === 'deleted') {
                 loadServers();
+            }
+
+            // Console aktualisieren wenn geöffnet
+            if (selectedServer?.name === serverName && status === 'stopped') {
+                addNotification(`Server ${serverName} stopped`, 'info');
             }
         });
 
         return () => {
             if (removeListener) removeListener();
         };
-    }, []);
+    }, [selectedServer]);
 
     useEffect(() => {
         if (showCreateModal) {
-            fetchVersions();
-            setNewServerName('');
-            setNewServerIcon(DEFAULT_ICON);
-            setSelectedSoftware('vanilla');
-            setServerPort('25565');
-            setMaxPlayers('20');
-            setServerMemory('1024');
-            setIsCreating(false);
-            setCreationStep(1);
-            setSoftwareVersions([]);
-            setSelectedSoftwareVersion('');
+            resetCreateForm();
         }
     }, [showCreateModal]);
-
-    const [showSnapshots, setShowSnapshots] = useState(false);
 
     useEffect(() => {
         if (!showCreateModal) return;
 
-        const updateVersions = async () => {
+        const loadVersionsForSoftware = async () => {
             setLoadingVersions(true);
             try {
-                if (selectedSoftware === 'vanilla') {
-                    const res = await window.electronAPI.getVanillaVersions();
-                    if (res.success) {
-                        const versions = res.versions.filter(v => showSnapshots ? true : v.type === 'release');
-                        setAvailableVersions(versions);
-                        if (versions.length > 0 && (!selectedVersion || !versions.find(v => v.id === selectedVersion))) {
-                            setSelectedVersion(versions[0].id);
-                        }
-                    }
-                } else {
-                    const res = await window.electronAPI.getServerVersions(selectedSoftware);
-                    if (res.success) {
-                        let versions = res.versions;
-                        if (!showSnapshots) {
-                            versions = versions.filter(v => /^\d+\.\d+(\.\d+)?$/.test(v));
-                        }
-                        const versionObjs = versions.map(v => ({ id: v, type: 'release' }));
-                        setAvailableVersions(versionObjs);
-                        if (versionObjs.length > 0 && (!selectedVersion || !versionObjs.find(v => v.id === selectedVersion))) {
-                            setSelectedVersion(versionObjs[0].id);
-                        }
-                    } else {
-                        addNotification(`Failed to get versions for ${selectedSoftware}: ${res.error}`, 'error');
-                        setAvailableVersions([]);
-                    }
+                const response = await fetch(`https://mcutils.com/api/server-jars/${selectedSoftware}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            } catch (e) {
-                console.error(e);
+
+                const data = await response.json();
+                setAvailableVersions(data);
+
+                if (data.length > 0) {
+                    setSelectedVersion(data[0].version);
+                } else {
+                    setSelectedVersion('');
+                }
+            } catch (error) {
+                console.error('Failed to load versions:', error);
+                addNotification(`Failed to load versions for ${selectedSoftware}`, 'error');
+                setAvailableVersions([]);
+                setSelectedVersion('');
             } finally {
                 setLoadingVersions(false);
             }
         };
 
-        updateVersions();
-    }, [showCreateModal, selectedSoftware, showSnapshots]);
+        loadVersionsForSoftware();
+    }, [showCreateModal, selectedSoftware]);
 
-    const loadServers = async () => {
-        const list = await window.electronAPI.getServers();
-        setServers(list || []);
+    const loadPlatforms = async () => {
+        try {
+            const response = await fetch('https://mcutils.com/api/server-jars');
+            if (response.ok) {
+                const data = await response.json();
+                setPlatforms(data);
+            }
+        } catch (error) {
+            console.error('Failed to load platforms:', error);
+        }
     };
 
-    const fetchVersions = async () => {
-        setLoadingVersions(true);
-        const res = await window.electronAPI.getVanillaVersions();
-        setLoadingVersions(false);
-        if (res.success) {
-            const versions = res.versions.filter(v => v.type === 'release');
-            setAvailableVersions(versions);
-            if (versions.length > 0) setSelectedVersion(versions[0].id);
+    const loadServers = async () => {
+        try {
+            const list = await window.electronAPI.getServers();
+            setServers(list || []);
+        } catch (error) {
+            console.error('Failed to load servers:', error);
+            addNotification('Failed to load servers', 'error');
         }
+    };
+
+    const resetCreateForm = () => {
+        setNewServerName('');
+        setNewServerIcon(DEFAULT_ICON);
+        setSelectedSoftware('vanilla');
+        setSelectedVersion('');
+        setServerPort('25565');
+        setMaxPlayers('20');
+        setServerMemory('1024');
+        setIsCreating(false);
     };
 
     const handleCreate = async (e) => {
         e.preventDefault();
+
         if (isCreating) return;
 
-        if (creationStep === 1 && selectedSoftware !== 'vanilla') {
-            if (!selectedVersion) {
-                addNotification('Please select a Minecraft version', 'error');
-                return;
-            }
-
-            setLoadingVersions(true);
-            try {
-                const res = await window.electronAPI.getSoftwareVersions(selectedSoftware, selectedVersion);
-                setLoadingVersions(false);
-
-                if (res.success && res.versions && res.versions.length > 0) {
-                    setSoftwareVersions(res.versions);
-                    setSelectedSoftwareVersion(res.versions[0]);
-                    setCreationStep(2);
-                    return;
-                } else {
-                    addNotification('No specific software versions found, using latest.', 'info');
-                }
-            } catch (err) {
-                setLoadingVersions(false);
-                addNotification('Failed to fetch software versions: ' + err.message, 'error');
-                return;
-            }
+        if (!selectedVersion) {
+            addNotification('Please select a Minecraft version', 'error');
+            return;
         }
 
-        performCreation();
-    };
-
-    const performCreation = async () => {
         setIsCreating(true);
         const nameToUse = newServerName.trim() || "New Server";
 
         try {
-            const result = await window.electronAPI.createServer(
-                nameToUse,
-                selectedVersion,
-                selectedSoftware,
-                selectedSoftwareVersion || null,
-                {
-                    port: parseInt(serverPort),
-                    maxPlayers: parseInt(maxPlayers),
-                    memory: parseInt(serverMemory),
-                    icon: newServerIcon
-                }
-            );
+            // First, get the download URL from MCUtils
+            const versionResponse = await fetch(`https://mcutils.com/api/server-jars/${selectedSoftware}/${selectedVersion}`);
 
-            if (result.success) {
+            if (!versionResponse.ok) {
+                throw new Error(`Failed to fetch version info: ${versionResponse.status}`);
+            }
+
+            const versionData = await versionResponse.json();
+
+            // Prepare server data as a single object
+            const serverData = {
+                name: nameToUse,
+                version: selectedVersion,
+                software: selectedSoftware,
+                port: parseInt(serverPort) || 25565,
+                maxPlayers: parseInt(maxPlayers) || 20,
+                memory: parseInt(serverMemory) || 1024,
+                icon: newServerIcon || DEFAULT_ICON,
+                downloadUrl: versionData.downloadUrl
+            };
+
+            console.log('Sending server data:', serverData); // For debugging
+
+            const result = await window.electronAPI.createServer(serverData);
+
+            if (result && result.success) {
                 setShowCreateModal(false);
                 await loadServers();
                 addNotification(`Started creating server: ${result.serverName || nameToUse}`, 'success');
             } else {
-                addNotification(`Failed to create server: ${result.error}`, 'error');
+                const errorMsg = result?.error || 'Unknown error occurred';
+                addNotification(`Failed to create server: ${errorMsg}`, 'error');
+                console.error('Create server failed:', result);
             }
         } catch (err) {
+            console.error('Error creating server:', err);
             addNotification(`Error creating server: ${err.message}`, 'error');
         } finally {
             setIsCreating(false);
@@ -265,56 +260,77 @@ function ServerDashboard({ onInstanceClick, runningInstances = {} }) {
         if (!server) return;
         setContextMenu(null);
 
-        switch (action) {
-            case 'start':
-                window.electronAPI.startServer(server.name);
-                addNotification(`Starting server: ${server.name}...`, 'info');
-                break;
-            case 'stop':
-                window.electronAPI.stopServer(server.name);
-                addNotification(`Stopping server: ${server.name}...`, 'info');
-                break;
-            case 'restart':
-                window.electronAPI.restartServer(server.name);
-                addNotification(`Restarting server: ${server.name}...`, 'info');
-                break;
-            case 'console':
-                // Hier rufen wir onInstanceClick mit dem Server-Objekt auf
-                // Die App.jsx wird dann currentView auf 'instance-details' setzen
-                onInstanceClick(server);
-                break;
-            case 'duplicate':
-                try {
-                    const result = await window.electronAPI.duplicateServer(server.name);
-                    if (result.success) {
+        try {
+            switch (action) {
+                case 'start':
+                    await window.electronAPI.startServer(server.name);
+                    addNotification(`Starting server: ${server.name}...`, 'info');
+                    break;
+                case 'stop':
+                    await window.electronAPI.stopServer(server.name);
+                    addNotification(`Stopping server: ${server.name}...`, 'info');
+                    break;
+                case 'restart':
+                    await window.electronAPI.restartServer(server.name);
+                    addNotification(`Restarting server: ${server.name}...`, 'info');
+                    break;
+                case 'console':
+                    handleServerClick(server);
+                    break;
+                case 'duplicate':
+                    const duplicateResult = await window.electronAPI.duplicateServer(server.name);
+                    if (duplicateResult.success) {
                         addNotification(`Duplicated server: ${server.name}`, 'success');
                         await loadServers();
                     } else {
-                        addNotification(`Duplicate failed: ${result.error}`, 'error');
+                        addNotification(`Duplicate failed: ${duplicateResult.error}`, 'error');
                     }
-                } catch (e) {
-                    addNotification(`Duplicate failed: ${e.message}`, 'error');
-                }
-                break;
-            case 'backup':
-                try {
-                    const result = await window.electronAPI.backupServer(server.name);
-                    if (result.success) {
-                        addNotification(`Backup created: ${result.path}`, 'success');
-                    } else if (result.error !== 'Cancelled') {
-                        addNotification(`Backup failed: ${result.error}`, 'error');
+                    break;
+                case 'backup':
+                    const backupResult = await window.electronAPI.backupServer(server.name);
+                    if (backupResult.success) {
+                        addNotification(`Backup created: ${backupResult.path}`, 'success');
+                    } else if (backupResult.error !== 'Cancelled') {
+                        addNotification(`Backup failed: ${backupResult.error}`, 'error');
                     }
-                } catch (e) {
-                    addNotification(`Backup failed: ${e.message}`, 'error');
-                }
-                break;
-            case 'folder':
-                window.electronAPI.openServerFolder(server.name);
-                break;
-            case 'delete':
-                setServerToDelete(server);
-                setShowDeleteModal(true);
-                break;
+                    break;
+                case 'folder':
+                    await window.electronAPI.openServerFolder(server.name);
+                    break;
+                case 'delete':
+                    setServerToDelete(server);
+                    setShowDeleteModal(true);
+                    break;
+                default:
+                    break;
+            }
+        } catch (error) {
+            console.error(`Error in context action ${action}:`, error);
+            addNotification(`Action failed: ${error.message}`, 'error');
+        }
+    };
+
+    // Server Action Handler für Console
+    const handleServerAction = async (action, server) => {
+        try {
+            switch (action) {
+                case 'start':
+                    await window.electronAPI.startServer(server.name);
+                    addNotification(`Starting ${server.name}...`, 'info');
+                    break;
+                case 'stop':
+                    await window.electronAPI.stopServer(server.name);
+                    addNotification(`Stopping ${server.name}...`, 'info');
+                    break;
+                case 'restart':
+                    await window.electronAPI.restartServer(server.name);
+                    addNotification(`Restarting ${server.name}...`, 'info');
+                    break;
+                default:
+                    break;
+            }
+        } catch (error) {
+            addNotification(`Action failed: ${error.message}`, 'error');
         }
     };
 
@@ -327,11 +343,26 @@ function ServerDashboard({ onInstanceClick, runningInstances = {} }) {
             if (status === 'running') {
                 await window.electronAPI.stopServer(serverToDelete.name);
                 addNotification(`Stopped ${serverToDelete.name}`, 'info');
+                // Small delay to ensure stop completes
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
-            await window.electronAPI.deleteServer(serverToDelete.name);
-            addNotification(`Deleted server: ${serverToDelete.name}`, 'info');
-            await loadServers();
+
+            const result = await window.electronAPI.deleteServer(serverToDelete.name);
+
+            if (result && result.success) {
+                addNotification(`Deleted server: ${serverToDelete.name}`, 'info');
+                await loadServers();
+
+                // Console schließen wenn der gelöschte Server gerade offen war
+                if (selectedServer?.name === serverToDelete.name) {
+                    setShowConsole(false);
+                    setSelectedServer(null);
+                }
+            } else {
+                addNotification(`Failed to delete: ${result?.error || 'Unknown error'}`, 'error');
+            }
         } catch (e) {
+            console.error('Delete error:', e);
             addNotification(`Failed to delete: ${e.message}`, 'error');
         } finally {
             setIsLoading(false);
@@ -346,14 +377,30 @@ function ServerDashboard({ onInstanceClick, runningInstances = {} }) {
         return () => window.removeEventListener('click', handleClick);
     }, []);
 
+    // Handle Escape Key für Console
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && showConsole) {
+                setShowConsole(false);
+                setSelectedServer(null);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showConsole]);
+
     const versionOptions = availableVersions.map(v => ({
-        value: v.id,
-        label: v.id
+        value: v.version,
+        label: v.version
     }));
 
-    // Wenn wir auf eine Server-Karte klicken, gehen wir zur Console-Ansicht
     const handleServerClick = (server) => {
-        onInstanceClick(server); // Das setzt currentView auf 'instance-details'
+        setSelectedServer(server);
+        setShowConsole(true);
+        // Original onServerClick beibehalten für Kompatibilität
+        if (onServerClick) {
+            onServerClick(server);
+        }
     };
 
     return (
@@ -552,154 +599,124 @@ function ServerDashboard({ onInstanceClick, runningInstances = {} }) {
                     <div className="bg-surface border border-white/10 rounded-2xl w-full max-w-2xl p-8 shadow-2xl transform transition-all scale-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
                         <h2 className="text-2xl font-bold mb-6 text-white text-center">Create New Server</h2>
                         <form onSubmit={handleCreate} className="space-y-6">
-                            {creationStep === 1 && (
-                                <>
-                                    {/* Icon Selection */}
-                                    <div className="flex flex-col items-center gap-4">
-                                        <div className="w-24 h-24 bg-background rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden relative group cursor-pointer hover:border-primary/50 transition-colors"
-                                            onClick={() => fileInputRef.current?.click()}>
-                                            <img src={newServerIcon} alt="Icon" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                            </div>
-                                            <input
-                                                type="file"
-                                                ref={fileInputRef}
-                                                onChange={handleFileSelect}
-                                                accept="image/*"
-                                                className="hidden"
-                                            />
-                                        </div>
-                                        <span className="text-xs text-gray-400 uppercase tracking-wide font-bold">Click to upload server icon</span>
+                            {/* Icon Selection */}
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="w-24 h-24 bg-background rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden relative group cursor-pointer hover:border-primary/50 transition-colors"
+                                    onClick={() => fileInputRef.current?.click()}>
+                                    <img src={newServerIcon} alt="Icon" className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                                     </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="col-span-2">
-                                            <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Server Name</label>
-                                            <input
-                                                type="text"
-                                                value={newServerName}
-                                                onChange={(e) => setNewServerName(e.target.value)}
-                                                className="w-full bg-background border border-white/10 rounded-xl p-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                                placeholder="My Server"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Server Port</label>
-                                            <input
-                                                type="number"
-                                                value={serverPort}
-                                                onChange={(e) => setServerPort(e.target.value)}
-                                                className="w-full bg-background border border-white/10 rounded-xl p-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                                min="1"
-                                                max="65535"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Max Players</label>
-                                            <input
-                                                type="number"
-                                                value={maxPlayers}
-                                                onChange={(e) => setMaxPlayers(e.target.value)}
-                                                className="w-full bg-background border border-white/10 rounded-xl p-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                                min="1"
-                                                max="100"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Memory (RAM)</label>
-                                            <Dropdown
-                                                options={memoryOptions}
-                                                value={serverMemory}
-                                                onChange={setServerMemory}
-                                                placeholder="Select Memory"
-                                            />
-                                        </div>
-
-                                        <div className="col-span-2">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className="block text-gray-400 text-sm font-bold uppercase tracking-wide">Minecraft Version</label>
-                                                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowSnapshots(!showSnapshots)}>
-                                                    <div className={`w-8 h-4 rounded-full relative transition-colors ${showSnapshots ? 'bg-primary' : 'bg-gray-600'}`}>
-                                                        <div className={`absolute top-0.5 bottom-0.5 w-3 h-3 bg-white rounded-full transition-all ${showSnapshots ? 'left-4.5' : 'left-0.5'}`} style={{ left: showSnapshots ? '18px' : '2px' }}></div>
-                                                    </div>
-                                                    <span className="text-[10px] text-gray-400 font-bold uppercase">Snapshots</span>
-                                                </div>
-                                            </div>
-                                            {loadingVersions ? (
-                                                <div className="p-3 text-gray-500 bg-background border border-white/10 rounded-xl">Loading versions...</div>
-                                            ) : (
-                                                <Dropdown
-                                                    options={versionOptions}
-                                                    value={selectedVersion}
-                                                    onChange={setSelectedVersion}
-                                                    placeholder="Select Version"
-                                                />
-                                            )}
-                                        </div>
-
-                                        <div className="col-span-2">
-                                            <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Server Software</label>
-                                            <Dropdown
-                                                options={serverSoftware}
-                                                value={selectedSoftware}
-                                                onChange={setSelectedSoftware}
-                                                placeholder="Select Software"
-                                            />
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            {creationStep === 2 && (
-                                <div>
-                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Select {serverSoftware.find(s => s.value === selectedSoftware)?.label} Version</label>
-                                    <Dropdown
-                                        options={softwareVersions.map(v => ({ value: v, label: v }))}
-                                        value={selectedSoftwareVersion}
-                                        onChange={setSelectedSoftwareVersion}
-                                        placeholder="Select Software Version"
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileSelect}
+                                        accept="image/*"
+                                        className="hidden"
                                     />
-                                    <p className="text-xs text-gray-500 mt-2">Minecraft {selectedVersion}</p>
                                 </div>
-                            )}
+                                <span className="text-xs text-gray-400 uppercase tracking-wide font-bold">Click to upload server icon</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Server Name</label>
+                                    <input
+                                        type="text"
+                                        value={newServerName}
+                                        onChange={(e) => setNewServerName(e.target.value)}
+                                        className="w-full bg-background border border-white/10 rounded-xl p-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                                        placeholder="My Server"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Server Port</label>
+                                    <input
+                                        type="number"
+                                        value={serverPort}
+                                        onChange={(e) => setServerPort(e.target.value)}
+                                        className="w-full bg-background border border-white/10 rounded-xl p-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                                        min="1"
+                                        max="65535"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Max Players</label>
+                                    <input
+                                        type="number"
+                                        value={maxPlayers}
+                                        onChange={(e) => setMaxPlayers(e.target.value)}
+                                        className="w-full bg-background border border-white/10 rounded-xl p-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                                        min="1"
+                                        max="100"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Memory (RAM)</label>
+                                    <Dropdown
+                                        options={memoryOptions}
+                                        value={serverMemory}
+                                        onChange={setServerMemory}
+                                        placeholder="Select Memory"
+                                    />
+                                </div>
+
+                                <div className="col-span-2">
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Server Software</label>
+                                    <Dropdown
+                                        options={serverSoftware}
+                                        value={selectedSoftware}
+                                        onChange={setSelectedSoftware}
+                                        placeholder="Select Software"
+                                    />
+                                </div>
+
+                                <div className="col-span-2">
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Minecraft Version</label>
+                                    {loadingVersions ? (
+                                        <div className="p-3 text-gray-500 bg-background border border-white/10 rounded-xl flex items-center gap-2">
+                                            <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                            Loading versions...
+                                        </div>
+                                    ) : (
+                                        <Dropdown
+                                            options={versionOptions}
+                                            value={selectedVersion}
+                                            onChange={setSelectedVersion}
+                                            placeholder="Select Version"
+                                        />
+                                    )}
+                                </div>
+                            </div>
 
                             <div className="flex justify-between gap-3 pt-4 border-t border-white/5">
-                                {creationStep === 1 && (
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            disabled={isCreating}
-                                            onClick={async () => {
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={isCreating}
+                                        onClick={async () => {
+                                            try {
                                                 const result = await window.electronAPI.importServer();
-                                                if (result.success) {
+                                                if (result && result.success) {
                                                     addNotification(`Imported server: ${result.serverName}`, 'success');
                                                     setShowCreateModal(false);
                                                     loadServers();
-                                                } else if (result.error !== 'Cancelled') {
+                                                } else if (result && result.error !== 'Cancelled') {
                                                     addNotification(`Import failed: ${result.error}`, 'error');
                                                 }
-                                            }}
-                                            className="px-4 py-2 rounded-xl text-xs text-gray-400 font-bold hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                            Import Server
-                                        </button>
-                                    </div>
-                                )}
-
-                                {creationStep === 2 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setCreationStep(1)}
-                                        className="px-6 py-2 rounded-xl text-gray-400 font-bold hover:text-white hover:bg-white/5 transition-colors"
+                                            } catch (error) {
+                                                addNotification(`Import failed: ${error.message}`, 'error');
+                                            }
+                                        }}
+                                        className="px-4 py-2 rounded-xl text-xs text-gray-400 font-bold hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5"
                                     >
-                                        Back
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                        Import Server
                                     </button>
-                                )}
+                                </div>
 
                                 <div className="flex gap-3 ml-auto">
                                     <button
@@ -712,13 +729,11 @@ function ServerDashboard({ onInstanceClick, runningInstances = {} }) {
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={isCreating || (creationStep === 1 && loadingVersions)}
+                                        disabled={isCreating || loadingVersions || !selectedVersion}
                                         className="bg-primary hover:bg-primary-hover text-black font-bold px-8 py-2 rounded-xl shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     >
                                         {isCreating && <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>}
-                                        {isCreating ? 'Creating...' : (
-                                            creationStep === 1 && selectedSoftware !== 'vanilla' ? 'Next' : 'Create Server'
-                                        )}
+                                        {isCreating ? 'Creating...' : 'Create Server'}
                                     </button>
                                 </div>
                             </div>
@@ -739,6 +754,18 @@ function ServerDashboard({ onInstanceClick, runningInstances = {} }) {
                         setShowDeleteModal(false);
                         setServerToDelete(null);
                     }}
+                />
+            )}
+
+            {/* Console Modal */}
+            {showConsole && selectedServer && (
+                <ServerConsole
+                    server={selectedServer}
+                    onClose={() => {
+                        setShowConsole(false);
+                        setSelectedServer(null);
+                    }}
+                    onServerAction={handleServerAction}
                 />
             )}
         </div>

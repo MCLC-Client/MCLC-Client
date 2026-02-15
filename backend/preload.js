@@ -39,7 +39,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Launcher
     launchGame: (instanceName) => ipcRenderer.invoke('launcher:launch', instanceName),
     getLiveLogs: (instanceName) => ipcRenderer.invoke('launcher:get-live-logs', instanceName),
-    getLiveLogs: (instanceName) => ipcRenderer.invoke('launcher:get-live-logs', instanceName),
     killGame: (instanceName) => ipcRenderer.invoke('launcher:kill', instanceName),
     abortLaunch: (instanceName) => ipcRenderer.invoke('launcher:abort-launch', instanceName),
 
@@ -60,8 +59,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     installMod: (data) => ipcRenderer.invoke('modrinth:install', data),
     installLocalMod: (instanceName, filePath) => ipcRenderer.invoke('instance:install-local-mod', instanceName, filePath),
     getModVersions: (projectId, loaders, gameVersions) => ipcRenderer.invoke('modrinth:get-versions', projectId, loaders, gameVersions),
-    checkUpdates: (instanceName, contentList) => ipcRenderer.invoke('instance:check-updates', instanceName, contentList),
-    updateFile: (data) => ipcRenderer.invoke('modrinth:update-file', data),
 
     // Data (Versions/Loaders)
     getVanillaVersions: () => ipcRenderer.invoke('data:get-vanilla-versions'),
@@ -70,7 +67,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getLoaders: (mcVersion, loaderType) => ipcRenderer.invoke('data:get-loaders', mcVersion, loaderType),
     getNews: () => ipcRenderer.invoke('data:get-news'),
     installJava: (version) => ipcRenderer.invoke('java:install', version),
-    openExternal: (url) => require('electron').shell.openExternal(url),
+    openExternal: (url) => ipcRenderer.invoke('open-external', url),
 
     // Skins
     getCurrentSkin: (token) => ipcRenderer.invoke('skin:get-current', token),
@@ -124,15 +121,38 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('window-state', subscription);
     },
 
-    // Server Management
+    // ==================== SERVER MANAGEMENT ====================
+    // Grundlegende Server-Operationen
     getServers: () => ipcRenderer.invoke('server:get-all'),
     createServer: (data) => ipcRenderer.invoke('server:create', data),
     deleteServer: (name) => ipcRenderer.invoke('server:delete', name),
+    duplicateServer: (name) => ipcRenderer.invoke('server:duplicate', name),
+    importServer: () => ipcRenderer.invoke('server:import'),
+
+    // Server Control
     startServer: (name) => ipcRenderer.invoke('server:start', name),
     stopServer: (name) => ipcRenderer.invoke('server:stop', name),
     restartServer: (name) => ipcRenderer.invoke('server:restart', name),
-    getServerConsole: (name) => ipcRenderer.invoke('server:get-console', name),
+    getServerStatus: (name) => ipcRenderer.invoke('server:get-status', name),
+
+    // Server Console
+    getServerLogs: (name) => ipcRenderer.invoke('server:get-console', name),
     sendServerCommand: (serverName, command) => ipcRenderer.invoke('server:send-command', serverName, command),
+    getServerStats: (name) => ipcRenderer.invoke('server:get-stats', name),
+    saveServerLogs: (serverName, logs) => ipcRenderer.invoke('server:save-logs', serverName, logs),
+
+    // Server Files & Folders
+    openServerFolder: (name) => ipcRenderer.invoke('server:open-folder', name),
+
+    // Server Backups
+    backupServer: (name) => ipcRenderer.invoke('server:backup', name),
+
+    // Server Software Management
+    downloadServerSoftware: (data) => ipcRenderer.invoke('server:download-software', data),
+
+    // Server EULA Management
+    checkServerEula: (serverName) => ipcRenderer.invoke('server:check-eula', serverName),
+    acceptServerEula: (serverName) => ipcRenderer.invoke('server:accept-eula', serverName),
 
     // Server Events
     onServerStatus: (callback) => {
@@ -140,7 +160,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('server:status', subscription);
         return () => ipcRenderer.removeListener('server:status', subscription);
     },
-    onServerConsoleOutput: (callback) => {
+    onServerLog: (callback) => {
         const subscription = (_event, value) => callback(value);
         ipcRenderer.on('server:console', subscription);
         return () => ipcRenderer.removeListener('server:console', subscription);
@@ -149,5 +169,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const subscription = (_event, value) => callback(value);
         ipcRenderer.on('server:stats', subscription);
         return () => ipcRenderer.removeListener('server:stats', subscription);
+    },
+    onServerBackupProgress: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('server:backup-progress', subscription);
+        return () => ipcRenderer.removeListener('server:backup-progress', subscription);
+    },
+    onServerDownloadProgress: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('server:download-progress', subscription);
+        return () => ipcRenderer.removeListener('server:download-progress', subscription);
+    },
+    onServerEulaRequired: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('server:eula-required', subscription);
+        return () => ipcRenderer.removeListener('server:eula-required', subscription);
     }
 });
