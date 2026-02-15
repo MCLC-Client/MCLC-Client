@@ -42,7 +42,49 @@ function createWindow() {
 
         // Launcher Handler
         console.log('[Main] Registering launcher handler...');
-        require('./handlers/launcher')(ipcMain, mainWindow);
+        const launcherApi = require('./handlers/launcher')(ipcMain, mainWindow);
+
+        // CLI Argument Handling
+        const handleCliArgs = (argv) => {
+            console.log('[Main] Processing CLI args:', argv);
+
+            // Expected format: mclc.exe run "Instance Name"
+            // In dev: electron . run "Instance Name"
+
+            const runIndex = argv.indexOf('run');
+            if (runIndex !== -1 && argv.length > runIndex + 1) {
+                const instanceName = argv[runIndex + 1];
+                console.log(`[Main] CLI Launch request detected for: ${instanceName}`);
+
+                // Allow some time for window to load before launching
+                setTimeout(() => {
+                    console.log(`[Main] Triggering CLI launch for ${instanceName}`);
+                    launcherApi.launchInstance(instanceName).catch(err => {
+                        console.error('[Main] CLI launch failed:', err);
+                    });
+                }, 3000); // 3 seconds delay to ensure UI is ready to receive events
+            }
+        };
+
+        // Handle args from current process
+        handleCliArgs(process.argv);
+
+        // Handle args if second instance tries to launch (Single Instance Lock)
+        const gotTheLock = app.requestSingleInstanceLock();
+        if (!gotTheLock) {
+            app.quit();
+        } else {
+            app.on('second-instance', (event, commandLine, workingDirectory) => {
+                // Someone tried to run a second instance, we should focus our window.
+                if (mainWindow) {
+                    if (mainWindow.isMinimized()) mainWindow.restore();
+                    mainWindow.focus();
+                }
+                // Handle the CLI args from the second instance
+                handleCliArgs(commandLine);
+            });
+        }
+
 
         // Modrinth Handler
         console.log('[Main] Registering modrinth handler...');
@@ -65,9 +107,9 @@ function createWindow() {
         try {
             const modpackHandler = require('./handlers/modpackCode');
             modpackHandler(ipcMain, mainWindow);
-            console.log('[Main] ✅ Modpack code handler registered successfully.');
+            console.log('[Main] Modpack code handler registered successfully.');
         } catch (error) {
-            console.error('[Main] ❌ Error registering modpack code handler:', error);
+            console.error('[Main] Error registering modpack code handler:', error);
         }
         // ======================================
 
@@ -91,11 +133,11 @@ function createWindow() {
 
     // Prüfe ALLE registrierten Handler
     const allHandlers = ipcMain._events ? Object.keys(ipcMain._events) : [];
-    console.log('[Main] 📋 ALLE registrierten IPC Handler:', allHandlers);
+    console.log('[Main] ALLE registrierten IPC Handler:', allHandlers);
 
     // Speziell nach modpack Handlern suchen
     const modpackHandlers = allHandlers.filter(key => key.includes('modpack'));
-    console.log('[Main] 🎯 Modpack Handler gefunden:', modpackHandlers);
+    console.log('[Main] Modpack Handler gefunden:', modpackHandlers);
 
     // Window controls
     ipcMain.on('window-minimize', () => mainWindow.minimize());
