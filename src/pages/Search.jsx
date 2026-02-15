@@ -30,6 +30,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
     const [selectedInstance, setSelectedInstance] = useState('');
     const [installing, setInstalling] = useState(false);
     const [installedIds, setInstalledIds] = useState(new Set());
+    const [instanceInstalledIds, setInstanceInstalledIds] = useState(new Set());
 
 
 
@@ -134,6 +135,42 @@ function Search({ initialCategory, onCategoryConsumed }) {
             addNotification('Search error: ' + err.message, 'error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Check if anything is already installed for the selected instance
+    useEffect(() => {
+        if (showInstallModal && selectedInstance) {
+            checkInstanceInstalled();
+        } else {
+            setInstanceInstalledIds(new Set());
+        }
+    }, [selectedInstance, showInstallModal, projectType]);
+
+    const checkInstanceInstalled = async () => {
+        try {
+            let res;
+            if (projectType === 'mod') {
+                res = await window.electronAPI.getMods(selectedInstance);
+                if (res.success) {
+                    const ids = new Set(res.mods.filter(m => m.projectId).map(m => m.projectId));
+                    setInstanceInstalledIds(ids);
+                }
+            } else if (projectType === 'resourcepack') {
+                res = await window.electronAPI.getResourcePacks(selectedInstance);
+                if (res.success) {
+                    const ids = new Set(res.packs.filter(p => p.projectId).map(p => p.projectId));
+                    setInstanceInstalledIds(ids);
+                }
+            } else if (projectType === 'shader') {
+                res = await window.electronAPI.getShaders(selectedInstance);
+                if (res.success) {
+                    const ids = new Set(res.shaders.filter(s => s.projectId).map(s => s.projectId));
+                    setInstanceInstalledIds(ids);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to check installed content", e);
         }
     };
 
@@ -244,13 +281,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
 
                 // Feedback: Show "Installed" briefly
                 setInstalledIds(prev => new Set(prev).add(selectedMod.project_id));
-                setTimeout(() => {
-                    setInstalledIds(prev => {
-                        const next = new Set(prev);
-                        next.delete(selectedMod.project_id);
-                        return next;
-                    });
-                }, 3000);
+                setInstanceInstalledIds(prev => new Set(prev).add(selectedMod.project_id));
 
                 addNotification(`Successfully installed ${selectedMod.title}!`, 'success');
                 Analytics.trackDownload(selectedMod.project_type, selectedMod.title, selectedMod.project_id);
@@ -377,7 +408,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
                                     onClick={() => openInstall(mod)}
                                     disabled={installing}
                                     className={`w-full font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 ${installedIds.has(mod.project_id)
-                                        ? 'bg-primary text-black'
+                                        ? 'bg-[#10b981] text-white shadow-[#10b981]/20 shadow-lg'
                                         : 'bg-white/5 hover:bg-primary hover:text-black text-white group-hover:bg-white/10'
                                         }`}
                                 >
@@ -455,11 +486,11 @@ function Search({ initialCategory, onCategoryConsumed }) {
                                 </button>
                                 <button
                                     onClick={handleInstall}
-                                    disabled={installing}
-                                    className="bg-primary text-black font-bold px-6 py-2 rounded-xl hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center gap-2"
+                                    disabled={installing || !selectedInstance}
+                                    className={`bg-primary text-black font-bold px-6 py-2 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 ${instanceInstalledIds.has(selectedMod?.project_id) ? 'bg-[#10b981] text-white hover:bg-[#059669]' : 'hover:bg-primary-hover'}`}
                                 >
                                     {installing && <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>}
-                                    {installing ? 'Installing...' : 'Install'}
+                                    {installing ? 'Installing...' : (instanceInstalledIds.has(selectedMod?.project_id) ? 'Already Installed' : 'Install')}
                                 </button>
                             </div>
                         </div>
@@ -541,12 +572,15 @@ function Search({ initialCategory, onCategoryConsumed }) {
                                         openInstall(previewProject);
                                     }}
                                     disabled={installedIds.has(previewProject.id)}
-                                    className="bg-primary text-black font-bold px-8 py-3 rounded-xl hover:bg-primary-hover hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+                                    className={`font-bold px-8 py-3 rounded-xl hover:scale-105 transition-all shadow-lg flex items-center gap-2 ${installedIds.has(previewProject.id)
+                                        ? 'bg-[#10b981] text-white shadow-[#10b981]/20'
+                                        : 'bg-primary text-black shadow-primary/20 hover:bg-primary-hover'
+                                        }`}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                                     </svg>
-                                    Install
+                                    {installedIds.has(previewProject.id) ? 'Installed' : 'Install'}
                                 </button>
                             </div>
                         </div>
@@ -555,62 +589,64 @@ function Search({ initialCategory, onCategoryConsumed }) {
             }
 
             {/* Gallery Lightbox Slider */}
-            {lightboxIndex !== -1 && previewProject && previewProject.gallery && (
-                <div
-                    className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center animate-fade-in backdrop-blur-xl select-none"
-                    onClick={() => setLightboxIndex(-1)}
-                >
-                    {/* Close Button */}
-                    <button
-                        className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-50"
+            {
+                lightboxIndex !== -1 && previewProject && previewProject.gallery && (
+                    <div
+                        className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center animate-fade-in backdrop-blur-xl select-none"
                         onClick={() => setLightboxIndex(-1)}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+                        {/* Close Button */}
+                        <button
+                            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-50"
+                            onClick={() => setLightboxIndex(-1)}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
 
-                    {/* Navigation Buttons */}
-                    <button
-                        className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-white/10 rounded-full text-white transition-colors z-50 backdrop-blur-sm group"
-                        onClick={handlePrevImage}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </button>
-                    <button
-                        className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-white/10 rounded-full text-white transition-colors z-50 backdrop-blur-sm group"
-                        onClick={handleNextImage}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
+                        {/* Navigation Buttons */}
+                        <button
+                            className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-white/10 rounded-full text-white transition-colors z-50 backdrop-blur-sm group"
+                            onClick={handlePrevImage}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <button
+                            className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-white/10 rounded-full text-white transition-colors z-50 backdrop-blur-sm group"
+                            onClick={handleNextImage}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
 
-                    {/* Image Counter */}
-                    <div className="absolute top-6 left-6 text-white font-bold bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
-                        {lightboxIndex + 1} / {previewProject.gallery.length}
+                        {/* Image Counter */}
+                        <div className="absolute top-6 left-6 text-white font-bold bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
+                            {lightboxIndex + 1} / {previewProject.gallery.length}
+                        </div>
+
+                        {/* Main Image */}
+                        <div
+                            className="w-full h-full flex items-center justify-center p-4 md:p-20"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <img
+                                src={previewProject.gallery[lightboxIndex].url}
+                                alt={previewProject.gallery[lightboxIndex].title || "Gallery Image"}
+                                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-scale-in"
+                            />
+                            {previewProject.gallery[lightboxIndex].title && (
+                                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-6 py-3 rounded-full text-white font-medium">
+                                    {previewProject.gallery[lightboxIndex].title}
+                                </div>
+                            )}
+                        </div>
                     </div>
-
-                    {/* Main Image */}
-                    <div
-                        className="w-full h-full flex items-center justify-center p-4 md:p-20"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <img
-                            src={previewProject.gallery[lightboxIndex].url}
-                            alt={previewProject.gallery[lightboxIndex].title || "Gallery Image"}
-                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-scale-in"
-                        />
-                        {previewProject.gallery[lightboxIndex].title && (
-                            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-6 py-3 rounded-full text-white font-medium">
-                                {previewProject.gallery[lightboxIndex].title}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+                )
+            }
         </div >
     );
 }

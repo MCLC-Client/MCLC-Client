@@ -123,7 +123,7 @@ const CapePreview = ({ src, className }) => {
     return <canvas ref={canvasRef} className={`w-full h-full object-contain image-pixelated ${className}`} />;
 };
 
-function Skins({ onLogout }) {
+function Skins({ onLogout, onProfileUpdate }) {
     const { addNotification } = useNotification();
     const canvasRef = useRef(null);
     const skinViewerRef = useRef(null);
@@ -250,6 +250,7 @@ function Skins({ onLogout }) {
 
             const profile = await window.electronAPI.getProfile();
             setUserProfile(profile);
+            if (onProfileUpdate) onProfileUpdate(profile);
 
             if (profile && profile.access_token && window.electronAPI.getCurrentSkin) {
                 try {

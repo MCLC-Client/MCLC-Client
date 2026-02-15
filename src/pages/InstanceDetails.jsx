@@ -148,6 +148,19 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
         }
     }, [activeTab, contentView, instance, selectedLog]);
 
+    // Track which project IDs are already installed to show "Installed" in search
+    useEffect(() => {
+        const installedIds = {};
+        mods.forEach(m => { if (m.projectId) installedIds[m.projectId] = 'success'; });
+        resourcePacks.forEach(p => { if (p.projectId) installedIds[p.projectId] = 'success'; });
+        shaders.forEach(s => { if (s.projectId) installedIds[s.projectId] = 'success'; });
+
+        setInstallationStatus(prev => ({
+            ...prev,
+            ...installedIds
+        }));
+    }, [mods, resourcePacks, shaders]);
+
     // Trigger search when sort or offset changes
     useEffect(() => {
         if (activeTab === 'content' && contentView === 'search') {
@@ -1161,7 +1174,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleInstall(result); }}
                                                     disabled={installationStatus[result.project_id] === 'installing' || installationStatus[result.project_id] === 'success'}
-                                                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border border-white/5 flex items-center gap-2 ${installationStatus[result.project_id] === 'success' ? 'bg-green-500/20 text-green-500' :
+                                                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border border-white/5 flex items-center gap-2 ${installationStatus[result.project_id] === 'success' ? 'bg-[#10b981] text-white shadow-[#10b981]/20' :
                                                         installationStatus[result.project_id] === 'failed' ? 'bg-red-500/20 text-red-500' :
                                                             installationStatus[result.project_id] === 'installing' ? 'bg-white/10 text-gray-400 cursor-wait' :
                                                                 'bg-white/5 hover:bg-primary hover:text-black text-white'
@@ -1453,12 +1466,15 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     handleInstall(previewProject);
                                 }}
                                 disabled={installationStatus[previewProject.project_id] === 'installing' || installationStatus[previewProject.project_id] === 'success'}
-                                className="bg-primary text-black font-bold px-8 py-3 rounded-xl hover:bg-primary-hover hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+                                className={`font-bold px-8 py-3 rounded-xl hover:scale-105 transition-all shadow-lg flex items-center gap-2 ${installationStatus[previewProject.project_id] === 'success'
+                                    ? 'bg-[#10b981] text-white shadow-[#10b981]/20'
+                                    : 'bg-primary text-black shadow-primary/20 hover:bg-primary-hover'
+                                    }`}
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                                 </svg>
-                                Install
+                                {installationStatus[previewProject.project_id] === 'success' ? 'Installed' : 'Install'}
                             </button>
                         </div>
                     </div>

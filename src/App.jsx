@@ -503,7 +503,7 @@ function App() {
                                     {currentView === 'dashboard' && <Home onInstanceClick={handleInstanceClick} runningInstances={runningInstances} onNavigateSearch={(category) => { setSearchCategory(category); setCurrentView('search'); }} />}
                                     {currentView === 'library' && <Dashboard onInstanceClick={handleInstanceClick} runningInstances={runningInstances} triggerCreate={triggerCreateInstance} onCreateHandled={() => setTriggerCreateInstance(false)} />}
                                     {currentView === 'search' && <Search initialCategory={searchCategory} onCategoryConsumed={() => setSearchCategory(null)} />}
-                                    {currentView === 'skins' && <Skins onLogout={handleLogout} />}
+                                    {currentView === 'skins' && <Skins onLogout={handleLogout} onProfileUpdate={setUserProfile} />}
                                     {currentView === 'styling' && <Styling />}
                                     {currentView === 'settings' && <Settings />}
                                     {currentView === 'instance-details' && selectedInstance && (

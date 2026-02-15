@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PlayerHead from './PlayerHead';
 
 // Format UUID with dashes for crafatar API
 const formatUUID = (uuid) => {
@@ -11,6 +12,26 @@ function RightPanel({ userProfile, onProfileUpdate }) {
     const [showSwitcher, setShowSwitcher] = useState(false);
     const [accounts, setAccounts] = useState([]);
     const [newsItems, setNewsItems] = useState([]);
+    const [liveSkin, setLiveSkin] = useState(null);
+
+    useEffect(() => {
+        if (userProfile?.access_token) {
+            loadLiveSkin();
+        } else {
+            setLiveSkin(null);
+        }
+    }, [userProfile]);
+
+    const loadLiveSkin = async () => {
+        try {
+            const res = await window.electronAPI.getCurrentSkin(userProfile.access_token);
+            if (res.success && res.url) {
+                setLiveSkin(res.url);
+            }
+        } catch (e) {
+            console.error("Failed to load live skin", e);
+        }
+    };
 
     useEffect(() => {
         if (showSwitcher) {
@@ -98,10 +119,11 @@ function RightPanel({ userProfile, onProfileUpdate }) {
                         onClick={() => setShowSwitcher(!showSwitcher)}
                         className="flex items-center gap-3 p-3 bg-surface rounded-xl border border-white/5 cursor-pointer hover:bg-white/5 transition-colors group"
                     >
-                        <img
-                            src={userProfile?.name ? `https://mc-heads.net/avatar/${userProfile.name}/40` : `https://mc-heads.net/avatar/Steve/40`}
-                            alt="Skin"
-                            className="w-10 h-10 rounded-lg bg-surface shadow-inner"
+                        <PlayerHead
+                            src={liveSkin}
+                            uuid={userProfile?.uuid}
+                            name={userProfile?.name}
+                            size={40}
                         />
                         <div className="overflow-hidden flex-1">
                             <div className="font-bold truncate text-white text-sm">{userProfile?.name}</div>
@@ -125,7 +147,7 @@ function RightPanel({ userProfile, onProfileUpdate }) {
                                         className="flex items-center gap-3 p-3 hover:bg-white/5 cursor-pointer group group"
                                     >
                                         <img
-                                            src={`https://mc-heads.net/avatar/${acc.name}/32`}
+                                            src={`https://mc-heads.net/avatar/${acc.uuid || acc.name}/32`}
                                             alt={acc.name}
                                             className="w-8 h-8 rounded-md"
                                         />
