@@ -15,9 +15,9 @@ module.exports = (ipcMain) => {
         copySettingsEnabled: false,
         copySettingsSourceInstance: '',
         theme: {
-            primaryColor: '#1bd96a',
-            backgroundColor: '#111111',
-            surfaceColor: '#1c1c1cff',
+            primaryColor: '#22e07a',
+            backgroundColor: '#0d1117',
+            surfaceColor: '#161b22',
             glassBlur: 10,
             glassOpacity: 0.8,
             borderRadius: 12,

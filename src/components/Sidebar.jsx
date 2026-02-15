@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ExtensionSlot from './Extensions/ExtensionSlot';
 
 function Sidebar({ currentView, setView, onLogout, onInstanceClick, onCreateInstance }) {
     const [recentInstances, setRecentInstances] = useState([]);
@@ -8,6 +9,7 @@ function Sidebar({ currentView, setView, onLogout, onInstanceClick, onCreateInst
         { id: 'library', label: 'Library', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
         { id: 'search', label: 'Search', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
         { id: 'skins', label: 'Skins', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+        { id: 'extensions', label: 'Extensions (Disabled)', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', disabled: true },
         { id: 'styling', label: 'Styling', icon: 'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01' },
     ];
 
@@ -36,11 +38,11 @@ function Sidebar({ currentView, setView, onLogout, onInstanceClick, onCreateInst
             {menuItems.map((item) => (
                 <React.Fragment key={item.id}>
                     <button
-                        onClick={() => setView(item.id)}
+                        onClick={() => !item.disabled && setView(item.id)}
                         className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all group relative ${currentView === item.id
                             ? 'bg-primary/20 text-primary border border-primary/30'
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
-                            }`}
+                            } ${item.disabled ? 'opacity-40 grayscale cursor-not-allowed pointer-events-none' : ''}`}
                     >
                         {typeof item.icon === 'string' ? (
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,6 +149,8 @@ function Sidebar({ currentView, setView, onLogout, onInstanceClick, onCreateInst
                     <div className="absolute top-1/2 -left-1 transform -translate-y-1/2 border-4 border-transparent border-r-[#0d0d0d]"></div>
                 </div>
             </button>
+            {/* Bottom Slot */}
+            <ExtensionSlot name="sidebar.bottom" className="w-full flex flex-col items-center gap-2 mt-2" />
         </div>
     );
 }

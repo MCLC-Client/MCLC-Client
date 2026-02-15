@@ -66,6 +66,15 @@ function createWindow() {
         console.log('[Main] Modpack code handler registered successfully.');
     } catch (e) {
         console.error('[Main] Failed to register modpack code handler:', e);
+        console.error('[Main] Failed to register modpack code handler:', e);
+    }
+
+    console.log('[Main] Registering extensions handler...');
+    try {
+        require('../backend/handlers/extensions')(ipcMain, mainWindow);
+        console.log('[Main] Extensions handler registered successfully.');   
+    } catch (e) {
+        console.error('[Main] Failed to register extensions handler:', e);
     }
 
     require('../backend/handlers/java')(ipcMain);

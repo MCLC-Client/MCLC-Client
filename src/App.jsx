@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ExtensionProvider } from './context/ExtensionContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
@@ -11,6 +12,7 @@ import Skins from './pages/Skins';
 import ServerSettings from './pages/ServerSettings';
 import ServerLibrary from './pages/ServerLibrary';
 import InstanceDetails from './pages/InstanceDetails';
+import Extensions from './pages/Extensions';
 import Sidebar from './components/Sidebar';
 import ServerSidebar from './components/ServerSidebar';
 import RightPanel from './components/RightPanel';
@@ -302,6 +304,7 @@ function App() {
     const isAnyActive = activeDownloadCount > 0;
 
     return (
+        <ExtensionProvider>
         <div className="flex flex-col h-screen w-screen overflow-hidden bg-background text-white font-sans selection:bg-primary selection:text-black relative">
 
             { }
@@ -509,6 +512,7 @@ function App() {
                                     {currentView === 'instance-details' && selectedInstance && (
                                         <InstanceDetails instance={selectedInstance} onBack={handleBackToDashboard} runningInstances={runningInstances} onInstanceUpdate={handleInstanceUpdate} />
                                     )}
+                                    {currentView === 'extensions' && <Extensions />}
                                 </>
                             )}
 
@@ -548,6 +552,7 @@ function App() {
                 </main>
             )}
         </div>
+        </ExtensionProvider>
     );
 }
 

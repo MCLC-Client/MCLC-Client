@@ -189,7 +189,15 @@ const electronAPI = {
         const subscription = (_event, value) => callback(value);
         ipcRenderer.on('server:plugin-progress', subscription);
         return () => ipcRenderer.removeListener('server:plugin-progress', subscription);
-    }
+        ipcRenderer.on('server:plugin-progress', subscription);
+        return () => ipcRenderer.removeListener('server:plugin-progress', subscription);
+    },
+
+    // Extensions
+    getExtensions: () => ipcRenderer.invoke('extensions:list'),
+    installExtension: (sourcePath) => ipcRenderer.invoke('extensions:install', sourcePath),
+    removeExtension: (id) => ipcRenderer.invoke('extensions:remove', id),
+    fetchMarketplace: () => ipcRenderer.invoke('extensions:fetch-marketplace')
 };
 try {
     contextBridge.exposeInMainWorld('electronAPI', electronAPI);

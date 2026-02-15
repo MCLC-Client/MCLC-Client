@@ -1173,8 +1173,7 @@ module.exports = (ipcMain, win) => {
             properties: options.properties || ['openFile'],
             filters: options.filters || defaultFilters
         });
-        if (canceled) return null;
-        return filePaths[0];
+        return { canceled, filePaths };
     });
 
     ipcMain.handle('instance:open-folder', async (_, instanceName) => {
