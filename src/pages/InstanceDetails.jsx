@@ -636,77 +636,33 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
 
     // Handle code import completion
     const handleCodeImportComplete = async (modpackData) => {
-        addNotification(`Creating instance from code...`, 'info');
+        addNotification(`Starting background import for "${modpackData.name}"...`, 'info');
 
-        // First create the instance
-        const createRes = await window.electronAPI.createInstance({
-            name: modpackData.name,
-            version: modpackData.instanceVersion,
-            loader: modpackData.instanceLoader,
-            icon: null
-        });
+        try {
+            // First create the instance
+            const createRes = await window.electronAPI.createInstance(
+                modpackData.name,
+                modpackData.instanceVersion || modpackData.version,
+                modpackData.instanceLoader || modpackData.loader,
+                null // Default icon
+            );
 
-        if (createRes.success) {
-            const instanceName = createRes.instanceName;
-            let installedCount = 0;
-            let totalItems = modpackData.mods.length + modpackData.resourcePacks.length + modpackData.shaders.length;
+            if (createRes.success) {
+                const instanceName = createRes.instanceName;
 
-            // Download all mods
-            for (const mod of modpackData.mods) {
-                const downloadUrl = `https://api.modrinth.com/v2/version/${mod.versionId}/download`;
-                const installRes = await window.electronAPI.installMod({
-                    instanceName,
-                    projectId: mod.projectId,
-                    versionId: mod.versionId,
-                    filename: mod.fileName,
-                    url: downloadUrl,
-                    projectType: 'mod'
-                });
-                if (installRes.success) installedCount++;
-                addNotification(`Progress: ${installedCount}/${totalItems} items installed`, 'info', 3000);
+                // Trigger background installation of mods, packs, shaders, and keybinds
+                window.electronAPI.installSharedContent(instanceName, modpackData);
+
+                addNotification(`Instance "${instanceName}" created. Mods are being downloaded in the background.`, 'success');
+            } else {
+                addNotification(`Failed to create instance: ${createRes.error}`, 'error');
             }
-
-            // Download all resource packs
-            for (const pack of modpackData.resourcePacks) {
-                const downloadUrl = `https://api.modrinth.com/v2/version/${pack.versionId}/download`;
-                const installRes = await window.electronAPI.installMod({
-                    instanceName,
-                    projectId: pack.projectId,
-                    versionId: pack.versionId,
-                    filename: pack.fileName,
-                    url: downloadUrl,
-                    projectType: 'resourcepack'
-                });
-                if (installRes.success) installedCount++;
-                addNotification(`Progress: ${installedCount}/${totalItems} items installed`, 'info', 3000);
-            }
-
-            // Download all shaders
-            for (const shader of modpackData.shaders) {
-                const downloadUrl = `https://api.modrinth.com/v2/version/${shader.versionId}/download`;
-                const installRes = await window.electronAPI.installMod({
-                    instanceName,
-                    projectId: shader.projectId,
-                    versionId: shader.versionId,
-                    filename: shader.fileName,
-                    url: downloadUrl,
-                    projectType: 'shader'
-                });
-                if (installRes.success) installedCount++;
-                addNotification(`Progress: ${installedCount}/${totalItems} items installed`, 'info', 3000);
-            }
-
-            addNotification(`Modpack "${modpackData.name}" imported successfully with ${installedCount} items!`, 'success');
-
-            // Refresh instances list if callback exists
-            if (onInstanceUpdate) {
-                const instances = await window.electronAPI.getInstances();
-                onInstanceUpdate(instances.find(i => i.name === instanceName));
-            }
-        } else {
-            addNotification(`Failed to create instance: ${createRes.error}`, 'error');
+        } catch (error) {
+            console.error('Code import error:', error);
+            addNotification(`Error during import: ${error.message}`, 'error');
         }
     };
+
 
     // Log Filtering Logic
     const getFilteredLog = () => {
@@ -858,10 +814,28 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     Export as .mcpack
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        setCodeModalMode('export');
-                                        setShowCodeModal(true);
-                                        setShowMenu(false);
+                                    onClick={async () => {
+                                        addNotification('Preparing export...', 'info');
+                                        // Force load all content for export to ensure we have everything
+                                        try {
+                                            const [modsRes, packsRes, shadersRes] = await Promise.all([
+                                                window.electronAPI.getMods(instance.name),
+                                                window.electronAPI.getResourcePacks(instance.name),
+                                                window.electronAPI.getShaders(instance.name)
+                                            ]);
+
+                                            if (modsRes.success) setMods(modsRes.mods);
+                                            if (packsRes.success) setResourcePacks(packsRes.packs);
+                                            if (shadersRes.success) setShaders(shadersRes.shaders);
+
+                                            setCodeModalMode('export');
+                                            setShowCodeModal(true);
+                                        } catch (e) {
+                                            console.error('Failed to prepare export:', e);
+                                            addNotification('Failed to load content for export', 'error');
+                                        } finally {
+                                            setShowMenu(false);
+                                        }
                                     }}
                                     className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors"
                                 >
@@ -872,16 +846,13 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                 </button>
                                 <button
                                     onClick={() => {
-                                        setCodeModalMode('import');
-                                        setShowCodeModal(true);
+                                        window.electronAPI.reinstallInstance(instance.name);
                                         setShowMenu(false);
                                     }}
-                                    className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors"
+                                    className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-yellow-500"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                    </svg>
-                                    Import from Code
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                    Reinstall Instance
                                 </button>
                             </div>
                         )}
@@ -974,7 +945,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                         </button>
                                     )}
                                     <button
-                                        onClick={handleCheckUpdates}
+                                        onClick={() => handleCheckUpdates()}
                                         disabled={checkingUpdates}
                                         className={`px-4 py-1.5 rounded-lg text-sm font-bold border transition-all flex items-center gap-2 ${checkingUpdates ? 'bg-white/5 border-white/5 text-gray-500 cursor-not-allowed' : 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-white/20'}`}
                                     >
@@ -1421,257 +1392,269 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
             </div >
 
             {/* Modals */}
-            {showSettings && (
-                <InstanceSettingsModal
-                    instance={instance}
-                    onClose={() => setShowSettings(false)}
-                    onSave={handleSettingsSave}
-                    onDelete={onBack}
+            {
+                showSettings && (
+                    <InstanceSettingsModal
+                        instance={instance}
+                        onClose={() => setShowSettings(false)}
+                        onSave={handleSettingsSave}
+                        onDelete={onBack}
+                    />
+                )
+            }
+
+            {/* Code Export/Import Modal */}
+            {showCodeModal && (
+                <ModpackCodeModal
+                    isOpen={showCodeModal}
+                    onClose={() => setShowCodeModal(false)}
+                    mode={codeModalMode}
+                    instanceData={instance}
+                    mods={mods}
+                    resourcePacks={resourcePacks}
+                    shaders={shaders}
+                    onImportComplete={handleCodeImportComplete}
                 />
             )}
 
-            {/* Code Export/Import Modal */}
-            <ModpackCodeModal
-                isOpen={showCodeModal}
-                onClose={() => setShowCodeModal(false)}
-                mode={codeModalMode}
-                instanceData={instance}
-                mods={mods}
-                resourcePacks={resourcePacks}
-                shaders={shaders}
-                onImportComplete={handleCodeImportComplete}
-            />
-
             {/* Modrinth Project Versions Modal */}
-            {selectedProject && (
-                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8 backdrop-blur-sm" onClick={() => setSelectedProject(null)}>
-                    <div className="bg-background-dark w-full max-w-3xl max-h-[80vh] rounded-xl border border-white/10 flex flex-col overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                        {/* Header */}
-                        <div className="p-6 border-b border-white/5 flex items-center gap-4">
-                            <img src={selectedProject.icon_url || 'https://cdn.modrinth.com/placeholder.svg'} alt="" className="w-16 h-16 rounded-xl bg-surface" />
-                            <div className="flex-1">
-                                <h2 className="text-2xl font-bold">{selectedProject.title}</h2>
-                                <p className="text-gray-400 text-sm">{selectedProject.description}</p>
-                            </div>
-                            <button onClick={() => setSelectedProject(null)} className="text-gray-400 hover:text-white p-2 hover:bg-white/5 rounded-lg transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                        </div>
-
-                        {/* Versions List */}
-                        <div className="flex-1 overflow-y-auto p-4">
-                            {loadingVersions ? (
-                                <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
-                            ) : projectVersions.length === 0 ? (
-                                <div className="text-center text-gray-500 py-20">No versions found</div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {projectVersions.map(version => {
-                                        const isCompatible = version.game_versions?.includes(instance.version) && version.loaders?.some(l => l.toLowerCase() === instance.loader?.toLowerCase());
-                                        return (
-                                            <div key={version.id} className={`p-4 rounded-xl border flex items-center gap-4 ${isCompatible ? 'bg-surface border-primary/30' : 'bg-surface/50 border-white/5'}`}>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <span className="font-bold text-white">{version.version_number}</span>
-                                                        <span className={`text-xs px-2 py-0.5 rounded ${version.version_type === 'release' ? 'bg-green-500/20 text-green-400' : version.version_type === 'beta' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
-                                                            {version.version_type}
-                                                        </span>
-                                                        {isCompatible && <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">Compatible</span>}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-2">
-                                                        <span>MC: {version.game_versions?.slice(0, 5).join(', ')}{version.game_versions?.length > 5 ? '...' : ''}</span>
-                                                        <span>|</span>
-                                                        <span>{version.loaders?.join(', ')}</span>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleInstallVersion(version)}
-                                                    className="bg-white/5 hover:bg-primary hover:text-black text-white px-4 py-2 rounded-lg font-bold text-sm transition-all border border-white/5 flex items-center gap-2 shrink-0"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                                    Install
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
+            {
+                selectedProject && (
+                    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8 backdrop-blur-sm" onClick={() => setSelectedProject(null)}>
+                        <div className="bg-background-dark w-full max-w-3xl max-h-[80vh] rounded-xl border border-white/10 flex flex-col overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                            {/* Header */}
+                            <div className="p-6 border-b border-white/5 flex items-center gap-4">
+                                <img src={selectedProject.icon_url || 'https://cdn.modrinth.com/placeholder.svg'} alt="" className="w-16 h-16 rounded-xl bg-surface" />
+                                <div className="flex-1">
+                                    <h2 className="text-2xl font-bold">{selectedProject.title}</h2>
+                                    <p className="text-gray-400 text-sm">{selectedProject.description}</p>
                                 </div>
-                            )}
+                                <button onClick={() => setSelectedProject(null)} className="text-gray-400 hover:text-white p-2 hover:bg-white/5 rounded-lg transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+
+                            {/* Versions List */}
+                            <div className="flex-1 overflow-y-auto p-4">
+                                {loadingVersions ? (
+                                    <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
+                                ) : projectVersions.length === 0 ? (
+                                    <div className="text-center text-gray-500 py-20">No versions found</div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {projectVersions.map(version => {
+                                            const isCompatible = version.game_versions?.includes(instance.version) && version.loaders?.some(l => l.toLowerCase() === instance.loader?.toLowerCase());
+                                            return (
+                                                <div key={version.id} className={`p-4 rounded-xl border flex items-center gap-4 ${isCompatible ? 'bg-surface border-primary/30' : 'bg-surface/50 border-white/5'}`}>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="font-bold text-white">{version.version_number}</span>
+                                                            <span className={`text-xs px-2 py-0.5 rounded ${version.version_type === 'release' ? 'bg-green-500/20 text-green-400' : version.version_type === 'beta' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+                                                                {version.version_type}
+                                                            </span>
+                                                            {isCompatible && <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">Compatible</span>}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-2">
+                                                            <span>MC: {version.game_versions?.slice(0, 5).join(', ')}{version.game_versions?.length > 5 ? '...' : ''}</span>
+                                                            <span>|</span>
+                                                            <span>{version.loaders?.join(', ')}</span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleInstallVersion(version)}
+                                                        className="bg-white/5 hover:bg-primary hover:text-black text-white px-4 py-2 rounded-lg font-bold text-sm transition-all border border-white/5 flex items-center gap-2 shrink-0"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                                        Install
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Preview Modal */}
-            {showPreviewModal && previewProject && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-fade-in" onClick={(e) => e.stopPropagation()}>
-                    <div className="bg-surface w-full max-w-5xl h-[85vh] rounded-2xl border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-scale-in">
-                        {/* Header */}
-                        <div className="p-6 border-b border-white/5 flex justify-between items-start bg-background-dark/50">
-                            <div className="flex gap-4">
-                                <img
-                                    src={previewProject.icon_url || 'https://cdn.modrinth.com/placeholder.svg'}
-                                    className="w-16 h-16 rounded-xl shadow-lg"
-                                    alt=""
-                                />
-                                <div>
-                                    <h2 className="text-2xl font-bold text-white mb-1">{previewProject.title}</h2>
-                                    <p className="text-gray-400 text-sm max-w-xl line-clamp-2">{previewProject.description}</p>
+            {
+                showPreviewModal && previewProject && (
+                    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[200] flex items-center justify-center p-4 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-surface w-full max-w-5xl h-[85vh] rounded-2xl border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-scale-in">
+                            {/* Header */}
+                            <div className="p-6 border-b border-white/5 flex justify-between items-start bg-background-dark/50">
+                                <div className="flex gap-4">
+                                    <img
+                                        src={previewProject.icon_url || 'https://cdn.modrinth.com/placeholder.svg'}
+                                        className="w-16 h-16 rounded-xl shadow-lg"
+                                        alt=""
+                                    />
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white mb-1">{previewProject.title}</h2>
+                                        <p className="text-gray-400 text-sm max-w-xl line-clamp-2">{previewProject.description}</p>
+                                    </div>
                                 </div>
+                                <button
+                                    onClick={() => setShowPreviewModal(false)}
+                                    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setShowPreviewModal(false)}
-                                className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+
+                            {/* Gallery Content */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-background/50">
+                                {previewProject.gallery && previewProject.gallery.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {previewProject.gallery.map((img, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="relative group rounded-xl overflow-hidden border border-white/5 bg-background-dark aspect-video cursor-zoom-in"
+                                                onClick={() => setLightboxIndex(idx)}
+                                            >
+                                                <img
+                                                    src={img.url}
+                                                    alt={img.title || 'Gallery Image'}
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                />
+                                                {img.title && (
+                                                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/70 backdrop-blur-sm text-xs text-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {img.title}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-4">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <p>No gallery images available for this project.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer Actions */}
+                            <div className="p-6 border-t border-white/5 bg-surface flex justify-end gap-4">
+                                <button
+                                    onClick={() => setShowPreviewModal(false)}
+                                    className="px-6 py-3 rounded-xl hover:bg-white/5 text-white font-bold transition-colors"
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowPreviewModal(false);
+                                        handleInstall(previewProject);
+                                    }}
+                                    disabled={installationStatus[previewProject.project_id] === 'installing' || installationStatus[previewProject.project_id] === 'success'}
+                                    className={`font-bold px-8 py-3 rounded-xl hover:scale-105 transition-all shadow-lg flex items-center gap-2 ${installationStatus[previewProject.project_id] === 'success'
+                                        ? 'bg-[#10b981] text-white shadow-[#10b981]/20'
+                                        : 'bg-primary text-black shadow-primary/20 hover:bg-primary-hover'
+                                        }`}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                                    </svg>
+                                    {installationStatus[previewProject.project_id] === 'success' ? 'Installed' : 'Install'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Gallery Lightbox Slider */}
+            {
+                lightboxIndex !== -1 && previewProject && previewProject.gallery && (
+                    <div
+                        className="fixed inset-0 bg-black/95 z-[210] flex items-center justify-center animate-fade-in backdrop-blur-xl select-none"
+                        onClick={() => setLightboxIndex(-1)}
+                    >
+                        {/* Close Button */}
+                        <button
+                            className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-50"
+                            onClick={() => setLightboxIndex(-1)}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+
+                        {/* Navigation Buttons */}
+                        <button
+                            className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-white/10 rounded-full text-white transition-colors z-50 backdrop-blur-sm group"
+                            onClick={handlePrevImage}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <button
+                            className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-white/10 rounded-full text-white transition-colors z-50 backdrop-blur-sm group"
+                            onClick={handleNextImage}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+
+                        {/* Image Counter */}
+                        <div className="absolute top-6 left-6 text-white font-bold bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
+                            {lightboxIndex + 1} / {previewProject.gallery.length}
                         </div>
 
-                        {/* Gallery Content */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-background/50">
-                            {previewProject.gallery && previewProject.gallery.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {previewProject.gallery.map((img, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="relative group rounded-xl overflow-hidden border border-white/5 bg-background-dark aspect-video cursor-zoom-in"
-                                            onClick={() => setLightboxIndex(idx)}
-                                        >
-                                            <img
-                                                src={img.url}
-                                                alt={img.title || 'Gallery Image'}
-                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                            />
-                                            {img.title && (
-                                                <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/70 backdrop-blur-sm text-xs text-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {img.title}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-4">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    <p>No gallery images available for this project.</p>
+                        {/* Main Image */}
+                        <div
+                            className="w-full h-full flex items-center justify-center p-4 md:p-20"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <img
+                                src={previewProject.gallery[lightboxIndex].url}
+                                alt={previewProject.gallery[lightboxIndex].title || "Gallery Image"}
+                                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-scale-in"
+                            />
+                            {previewProject.gallery[lightboxIndex].title && (
+                                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-6 py-3 rounded-full text-white font-medium">
+                                    {previewProject.gallery[lightboxIndex].title}
                                 </div>
                             )}
                         </div>
-
-                        {/* Footer Actions */}
-                        <div className="p-6 border-t border-white/5 bg-surface flex justify-end gap-4">
-                            <button
-                                onClick={() => setShowPreviewModal(false)}
-                                className="px-6 py-3 rounded-xl hover:bg-white/5 text-white font-bold transition-colors"
-                            >
-                                Close
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowPreviewModal(false);
-                                    handleInstall(previewProject);
-                                }}
-                                disabled={installationStatus[previewProject.project_id] === 'installing' || installationStatus[previewProject.project_id] === 'success'}
-                                className={`font-bold px-8 py-3 rounded-xl hover:scale-105 transition-all shadow-lg flex items-center gap-2 ${installationStatus[previewProject.project_id] === 'success'
-                                    ? 'bg-[#10b981] text-white shadow-[#10b981]/20'
-                                    : 'bg-primary text-black shadow-primary/20 hover:bg-primary-hover'
-                                    }`}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
-                                </svg>
-                                {installationStatus[previewProject.project_id] === 'success' ? 'Installed' : 'Install'}
-                            </button>
-                        </div>
                     </div>
-                </div>
-            )}
-
-            {/* Gallery Lightbox Slider */}
-            {lightboxIndex !== -1 && previewProject && previewProject.gallery && (
-                <div
-                    className="fixed inset-0 bg-black/95 z-[210] flex items-center justify-center animate-fade-in backdrop-blur-xl select-none"
-                    onClick={() => setLightboxIndex(-1)}
-                >
-                    {/* Close Button */}
-                    <button
-                        className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-50"
-                        onClick={() => setLightboxIndex(-1)}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-
-                    {/* Navigation Buttons */}
-                    <button
-                        className="absolute left-6 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-white/10 rounded-full text-white transition-colors z-50 backdrop-blur-sm group"
-                        onClick={handlePrevImage}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </button>
-                    <button
-                        className="absolute right-6 top-1/2 -translate-y-1/2 p-4 bg-black/50 hover:bg-white/10 rounded-full text-white transition-colors z-50 backdrop-blur-sm group"
-                        onClick={handleNextImage}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
-
-                    {/* Image Counter */}
-                    <div className="absolute top-6 left-6 text-white font-bold bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
-                        {lightboxIndex + 1} / {previewProject.gallery.length}
-                    </div>
-
-                    {/* Main Image */}
-                    <div
-                        className="w-full h-full flex items-center justify-center p-4 md:p-20"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <img
-                            src={previewProject.gallery[lightboxIndex].url}
-                            alt={previewProject.gallery[lightboxIndex].title || "Gallery Image"}
-                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-scale-in"
-                        />
-                        {previewProject.gallery[lightboxIndex].title && (
-                            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-6 py-3 rounded-full text-white font-medium">
-                                {previewProject.gallery[lightboxIndex].title}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Delete Confirmation Modal */}
-            {modToDelete && (
-                <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-surface-dark border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-                        <h3 className="text-xl font-bold mb-2">Delete Mod?</h3>
-                        <p className="text-gray-400 text-sm mb-6">Are you sure you want to delete <span className="text-white font-mono">{modToDelete.name}</span>? This action cannot be undone.</p>
-                        <div className="flex gap-3 justify-end">
-                            <button
-                                onClick={() => setModToDelete(null)}
-                                className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 font-bold transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmDeleteMod}
-                                className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-400 text-white font-bold transition-colors shadow-lg shadow-red-500/20"
-                            >
-                                Delete Mod
-                            </button>
+            {
+                modToDelete && (
+                    <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+                            <h3 className="text-xl font-bold mb-2">Delete Mod?</h3>
+                            <p className="text-gray-400 text-sm mb-6">Are you sure you want to delete <span className="text-white font-mono">{modToDelete.name}</span>? This action cannot be undone.</p>
+                            <div className="flex gap-3 justify-end">
+                                <button
+                                    onClick={() => setModToDelete(null)}
+                                    className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 font-bold transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDeleteMod}
+                                    className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-400 text-white font-bold transition-colors shadow-lg shadow-red-500/20"
+                                >
+                                    Delete Mod
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
 

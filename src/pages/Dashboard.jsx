@@ -5,6 +5,7 @@ import { useNotification } from '../context/NotificationContext';
 import LoadingOverlay from '../components/LoadingOverlay';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { Analytics } from '../services/Analytics';
+import ModpackCodeModal from '../components/ModpackCodeModal';
 
 const DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'%3E%3C/path%3E%3Cpolyline points='3.27 6.96 12 12.01 20.73 6.96'%3E%3C/polyline%3E%3Cline x1='12' y1='22.08' x2='12' y2='12'%3E%3C/line%3E%3C/svg%3E";
 
@@ -52,15 +53,87 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
     const [availableLoaders, setAvailableLoaders] = useState({ Vanilla: true, Fabric: true, Forge: true, NeoForge: true, Quilt: true });
     const [checkingLoaders, setCheckingLoaders] = useState(false);
     const [pendingLaunches, setPendingLaunches] = useState({}); // { [name]: boolean }
+    const [installProgress, setInstallProgress] = useState({}); // { [name]: { progress, status } }
     const [searchQuery, setSearchQuery] = useState('');
     const [sortMethod, setSortMethod] = useState('playtime'); // name, version, playtime
     const [groupMethod, setGroupMethod] = useState('version'); // none, version, loader
 
+    const [showCreateMenu, setShowCreateMenu] = useState(false);
+    const [showModalImportMenu, setShowModalImportMenu] = useState(false);
+    const [showCodeModal, setShowCodeModal] = useState(false);
+    const createMenuRef = useRef(null);
+    const internalImportMenuRef = useRef(null);
+
     // File Input Ref
     const fileInputRef = useRef(null);
 
+    // Handle clicks outside the dropdowns
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (createMenuRef.current && !createMenuRef.current.contains(event.target)) {
+                setShowCreateMenu(false);
+            }
+            if (internalImportMenuRef.current && !internalImportMenuRef.current.contains(event.target)) {
+                setShowModalImportMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleCodeImportComplete = async (modpackData) => {
+        addNotification(`Starting background import for "${modpackData.name}"...`, 'info');
+
+        try {
+            // First create the instance
+            const createRes = await window.electronAPI.createInstance(
+                modpackData.name,
+                modpackData.instanceVersion || modpackData.version,
+                modpackData.instanceLoader || modpackData.loader,
+                null // Default icon
+            );
+
+            if (createRes.success) {
+                const instanceName = createRes.instanceName;
+
+                // Initialize install progress immediately
+                setInstallProgress(prev => ({
+                    ...prev,
+                    [instanceName]: { progress: 0, status: 'Starting import...' }
+                }));
+
+                // Trigger background installation of mods, packs, shaders, and keybinds
+                window.electronAPI.installSharedContent(instanceName, modpackData);
+
+                addNotification(`Instance "${instanceName}" created. Download starting in the background.`, 'success');
+                loadInstances(); // Refresh the list
+            } else {
+                addNotification(`Failed to create instance: ${createRes.error}`, 'error');
+            }
+        } catch (error) {
+            console.error('Code import error:', error);
+            addNotification(`Error during import: ${error.message}`, 'error');
+        }
+    };
+
     useEffect(() => {
         loadInstances();
+
+        // Installation Progress Listener
+        const removeInstallListener = window.electronAPI.onInstallProgress((data) => {
+            setInstallProgress(prev => {
+                if (data.progress >= 100) {
+                    const next = { ...prev };
+                    delete next[data.instanceName];
+                    return next;
+                }
+                return { ...prev, [data.instanceName]: data };
+            });
+            // Also refresh list if complete
+            if (data.progress >= 100) {
+                loadInstances();
+            }
+        });
 
         // Also refresh when instance status changes (e.g., install completes)
         const removeListener = window.electronAPI.onInstanceStatus(({ instanceName, status }) => {
@@ -71,6 +144,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
 
         return () => {
             if (removeListener) removeListener();
+            if (removeInstallListener) removeInstallListener();
         };
     }, []);
 
@@ -432,13 +506,76 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                         <div className="w-48">
                             <Dropdown options={groupOptions} value={groupMethod} onChange={setGroupMethod} />
                         </div>
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="bg-primary hover:bg-primary-hover text-black font-bold px-6 py-2.5 rounded-xl shadow-primary-glow transition-all transform hover:scale-105 flex items-center gap-2 text-sm"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
-                            New Instance
-                        </button>
+
+                        {/* New Instance Dropdown */}
+                        <div className="relative" ref={createMenuRef}>
+                            <button
+                                onClick={() => setShowCreateMenu(!showCreateMenu)}
+                                className="bg-primary hover:bg-primary-hover text-black font-bold px-6 py-2.5 rounded-xl shadow-primary-glow transition-all transform hover:scale-105 flex items-center gap-2 text-sm"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
+                                New Instance
+                                <svg className={`w-4 h-4 transition-transform ${showCreateMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                            </button>
+
+                            {showCreateMenu && (
+                                <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden py-2 animate-in fade-in slide-in-from-top-2 duration-100">
+                                    <button
+                                        onClick={() => {
+                                            setShowCreateModal(true);
+                                            setShowCreateMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-sm"
+                                    >
+                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                        Manual Creation
+                                    </button>
+                                    <div className="h-px bg-white/5 my-1"></div>
+                                    <button
+                                        onClick={async () => {
+                                            setShowCreateMenu(false);
+                                            const result = await window.electronAPI.importMrPack();
+                                            if (result.success) {
+                                                addNotification(`Importing Modpack: ${result.instanceName}...`, 'info');
+                                                loadInstances();
+                                            } else if (result.error !== 'Cancelled') {
+                                                addNotification(`Import failed: ${result.error}`, 'error');
+                                            }
+                                        }}
+                                        className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-sm"
+                                    >
+                                        <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12.551 2c-1.397.01-2.731.332-3.926.892L3.196 5.37a2.035 2.035 0 0 0-.916 2.766l2.42 4.192c-.221.734-.37 1.48-.445 2.238l-4.148 1.408A2.035 2.035 0 0 0 0 17.893V22.8c.002.54.218 1.056.6 1.436.381.38.897.597 1.437.599h19.926c1.124 0 2.037-.912 2.037-2.037v-4.907c0-.986-.703-1.83-1.637-2.001l-4.148-1.408c-.075-.757-.224-1.504-.445-2.238l2.42-4.192a2.035 2.035 0 0 0-.916-2.766l-5.429-2.478c-1.192-.558-2.525-.88-3.923-.89zm-.06.772c1.284.009 2.502.296 3.593.805l5.428 2.478a1.264 1.264 0 0 1 .57 1.719l-2.422 4.193a12.82 12.82 0 0 1 .496 2.493l4.148 1.406a1.264 1.264 0 0 1 .818 1.157V22.8c-.001.333-.135.654-.37.89-.236.236-.557.37-.891.371H14.162c.328-.507.502-1.096.502-1.706V16.35c0-1.706-1.383-3.089-3.089-3.089-1.706 0-3.089 1.383-3.089 3.089V22.355c0 .61.174 1.199.502 1.706H2.126c-.334-.001-.655-.135-.891-.371a1.26 1.26 0 0 1-.371-.89v-4.907c0-.332.134-.653.37-.889l4.148-1.406a12.82 12.82 0 0 1 .496-2.493L3.456 6.055a1.264 1.264 0 0 1 .57-1.719l5.428-2.478c1.091-.509 2.31-.796 3.593-.805zM11.575 14.033c.966 0 1.748.783 1.748 1.748V22.355c0 .965-.782 1.748-1.748 1.748-.965 0-1.748-.783-1.748-1.748V15.781c0-.965.783-1.748 1.748-1.748z" /></svg>
+                                        Import .mrpack (Modrinth)
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            setShowCreateMenu(false);
+                                            const result = await window.electronAPI.importInstance();
+                                            if (result.success) {
+                                                addNotification(`Imported instance: ${result.instanceName}`, 'success');
+                                                loadInstances();
+                                            } else if (result.error !== 'Cancelled') {
+                                                addNotification(`Import failed: ${result.error}`, 'error');
+                                            }
+                                        }}
+                                        className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-sm"
+                                    >
+                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                        Import .mcpack (Client)
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowCreateMenu(false);
+                                            setShowCodeModal(true);
+                                        }}
+                                        className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-sm"
+                                    >
+                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                                        Import from Code
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -456,8 +593,11 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                     // Use runningInstances from props first, fallback to persisted status
                                     const liveStatus = runningInstances[instance.name];
                                     const persistedStatus = instance.status;
+                                    const installState = installProgress[instance.name];
+
                                     // liveStatus takes priority, but if not present, check if instance is still installing
-                                    const status = liveStatus || (persistedStatus === 'installing' ? 'installing' : null);
+                                    // installState ensures we catch the transient installing state even if not persisted yet
+                                    const status = liveStatus || (installState || persistedStatus === 'installing' ? 'installing' : null);
                                     const isRunning = status === 'running';
                                     const isLaunching = status === 'launching';
                                     const isInstalling = status === 'installing';
@@ -501,7 +641,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                                     {status && status !== 'ready' && status !== 'stopped' && (
                                                         <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-primary animate-pulse">
                                                             <div className="w-2 h-2 rounded-full bg-primary"></div>
-                                                            {isInstalling ? 'Installing...' : isLaunching ? 'Launching...' : 'Running'}
+                                                            {isInstalling ? (installState ? `Installing (${installState.progress}%)` : 'Installing...') : isLaunching ? 'Launching...' : 'Running'}
                                                         </div>
                                                     )}
                                                 </div>
@@ -539,7 +679,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                                         }
                                                     }}
                                                     className={`w-10 h-10 rounded-full flex items-center justify-center transform transition-all duration-300 shadow-lg z-20 ${isRunning ? 'bg-red-500 hover:bg-red-400 text-white opacity-100' : (isInstalling || isLaunching || pendingLaunches[instance.name]) ? 'bg-gray-700 text-gray-400 cursor-wait opacity-100' : 'bg-primary text-black opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 hover:bg-primary-hover hover:scale-110'}`}
-                                                    title={isRunning ? "Stop" : isInstalling ? "Installing..." : isLaunching ? "Launching..." : pendingLaunches[instance.name] ? "Starting..." : "Launch Game"}
+                                                    title={isRunning ? "Stop" : isInstalling ? (installState ? installState.status : "Installing...") : isLaunching ? "Launching..." : pendingLaunches[instance.name] ? "Starting..." : "Launch Game"}
                                                     disabled={isInstalling || isLaunching || pendingLaunches[instance.name]}
                                                 >
                                                     {isRunning ? (
@@ -688,45 +828,71 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                 </div>
                             )}
 
-                            <div className="flex justify-between gap-3 pt-4 border-t border-white/5">
+                            <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                                 {creationStep === 1 ? (
-                                    <div className="flex gap-2">
+                                    <div className="relative" ref={internalImportMenuRef}>
                                         <button
                                             type="button"
-                                            disabled={isCreating}
-                                            onClick={async () => {
-                                                const result = await window.electronAPI.importInstance();
-                                                if (result.success) {
-                                                    addNotification(`Imported instance: ${result.instanceName}`, 'success');
-                                                    setShowCreateModal(false);
-                                                    loadInstances();
-                                                } else if (result.error !== 'Cancelled') {
-                                                    addNotification(`Import failed: ${result.error}`, 'error');
-                                                }
-                                            }}
-                                            className="px-4 py-2 rounded-xl text-xs text-gray-400 font-bold hover:text-white hover:bg-white/5 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border border-white/5"
+                                            onClick={() => setShowModalImportMenu(!showModalImportMenu)}
+                                            className="px-4 py-2 rounded-xl text-xs text-primary font-bold hover:bg-primary/10 transition-colors flex items-center gap-2 border border-primary/20"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                            Import .mcpack
+                                            Import Options
+                                            <svg className={`w-3 h-3 transition-transform ${showModalImportMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                         </button>
-                                        <button
-                                            type="button"
-                                            disabled={isCreating}
-                                            onClick={async () => {
-                                                const result = await window.electronAPI.importMrPack();
-                                                if (result.success) {
-                                                    addNotification(`Importing Modpack: ${result.instanceName}...`, 'info');
-                                                    setShowCreateModal(false);
-                                                    loadInstances();
-                                                } else if (result.error !== 'Cancelled') {
-                                                    addNotification(`Import failed: ${result.error}`, 'error');
-                                                }
-                                            }}
-                                            className="px-4 py-2 rounded-xl text-xs text-primary font-bold hover:bg-primary/10 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border border-primary/20"
-                                        >
-                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12.551 2c-1.397.01-2.731.332-3.926.892L3.196 5.37a2.035 2.035 0 0 0-.916 2.766l2.42 4.192c-.221.734-.37 1.48-.445 2.238l-4.148 1.408A2.035 2.035 0 0 0 0 17.893V22.8c.002.54.218 1.056.6 1.436.381.38.897.597 1.437.599h19.926c1.124 0 2.037-.912 2.037-2.037v-4.907c0-.986-.703-1.83-1.637-2.001l-4.148-1.408c-.075-.757-.224-1.504-.445-2.238l2.42-4.192a2.035 2.035 0 0 0-.916-2.766l-5.429-2.478c-1.192-.558-2.525-.88-3.923-.89zm-.06.772c1.284.009 2.502.296 3.593.805l5.428 2.478a1.264 1.264 0 0 1 .57 1.719l-2.422 4.193a12.82 12.82 0 0 1 .496 2.493l4.148 1.406a1.264 1.264 0 0 1 .818 1.157V22.8c-.001.333-.135.654-.37.89-.236.236-.557.37-.891.371H14.162c.328-.507.502-1.096.502-1.706V16.35c0-1.706-1.383-3.089-3.089-3.089-1.706 0-3.089 1.383-3.089 3.089V22.355c0 .61.174 1.199.502 1.706H2.126c-.334-.001-.655-.135-.891-.371a1.26 1.26 0 0 1-.371-.89v-4.907c0-.332.134-.653.37-.889l4.148-1.406a12.82 12.82 0 0 1 .496-2.493L3.456 6.055a1.264 1.264 0 0 1 .57-1.719l5.428-2.478c1.091-.509 2.31-.796 3.593-.805zM11.575 14.033c.966 0 1.748.783 1.748 1.748V22.355c0 .965-.782 1.748-1.748 1.748-.965 0-1.748-.783-1.748-1.748V15.781c0-.965.783-1.748 1.748-1.748z" /></svg>
-                                            Modrinth .mrpack
-                                        </button>
+
+                                        {showModalImportMenu && (
+                                            <div className="absolute left-0 bottom-full mb-2 w-56 bg-[#0a0a0a] border border-white/10 rounded-xl shadow-2xl z-[60] overflow-hidden py-2 animate-in fade-in slide-in-from-bottom-2 duration-100">
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        setShowModalImportMenu(false);
+                                                        const result = await window.electronAPI.importMrPack();
+                                                        if (result.success) {
+                                                            addNotification(`Importing Modpack: ${result.instanceName}...`, 'info');
+                                                            setShowCreateModal(false);
+                                                            loadInstances();
+                                                        } else if (result.error !== 'Cancelled') {
+                                                            addNotification(`Import failed: ${result.error}`, 'error');
+                                                        }
+                                                    }}
+                                                    className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-xs text-gray-200"
+                                                >
+                                                    <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12.551 2c-1.397.01-2.731.332-3.926.892L3.196 5.37a2.035 2.035 0 0 0-.916 2.766l2.42 4.192c-.221.734-.37 1.48-.445 2.238l-4.148 1.408A2.035 2.035 0 0 0 0 17.893V22.8c.002.54.218 1.056.6 1.436.381.38.897.597 1.437.599h19.926c1.124 0 2.037-.912 2.037-2.037v-4.907c0-.986-.703-1.83-1.637-2.001l-4.148-1.408c-.075-.757-.224-1.504-.445-2.238l2.42-4.192a2.035 2.035 0 0 0-.916-2.766l-5.429-2.478c-1.192-.558-2.525-.88-3.923-.89zm-.06.772c1.284.009 2.502.296 3.593.805l5.428 2.478a1.264 1.264 0 0 1 .57 1.719l-2.422 4.193a12.82 12.82 0 0 1 .496 2.493l4.148 1.406a1.264 1.264 0 0 1 .818 1.157V22.8c-.001.333-.135.654-.37.89-.236.236-.557.37-.891.371H14.162c.328-.507.502-1.096.502-1.706V16.35c0-1.706-1.383-3.089-3.089-3.089-1.706 0-3.089 1.383-3.089 3.089V22.355c0 .61.174 1.199.502 1.706H2.126c-.334-.001-.655-.135-.891-.371a1.26 1.26 0 0 1-.371-.89v-4.907c0-.332.134-.653.37-.889l4.148-1.406a12.82 12.82 0 0 1 .496-2.493L3.456 6.055a1.264 1.264 0 0 1 .57-1.719l5.428-2.478c1.091-.509 2.31-.796 3.593-.805zM11.575 14.033c.966 0 1.748.783 1.748 1.748V22.355c0 .965-.782 1.748-1.748 1.748-.965 0-1.748-.783-1.748-1.748V15.781c0-.965.783-1.748 1.748-1.748z" /></svg>
+                                                    Modrinth .mrpack
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        setShowModalImportMenu(false);
+                                                        const result = await window.electronAPI.importInstance();
+                                                        if (result.success) {
+                                                            addNotification(`Imported instance: ${result.instanceName}`, 'success');
+                                                            setShowCreateModal(false);
+                                                            loadInstances();
+                                                        } else if (result.error !== 'Cancelled') {
+                                                            addNotification(`Import failed: ${result.error}`, 'error');
+                                                        }
+                                                    }}
+                                                    className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-xs text-gray-200"
+                                                >
+                                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                                    Client .mcpack
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setShowModalImportMenu(false);
+                                                        setShowCreateModal(false);
+                                                        setShowCodeModal(true);
+                                                    }}
+                                                    className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-xs text-gray-200"
+                                                >
+                                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                                                    Import from Code
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <button
@@ -762,6 +928,17 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* Import from Code Modal */}
+            {showCodeModal && (
+                <ModpackCodeModal
+                    isOpen={showCodeModal}
+                    mode="import"
+                    instance={null} // Not needed for import
+                    onClose={() => setShowCodeModal(false)}
+                    onImportComplete={handleCodeImportComplete}
+                />
             )}
 
             {showDeleteModal && (

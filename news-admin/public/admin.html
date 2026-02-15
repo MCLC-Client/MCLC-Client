@@ -90,11 +90,12 @@
             <div id="tab-dashboard" class="nav-tab active" onclick="switchView('dashboard')">Dashboard</div>
             <div id="tab-list" class="nav-tab" onclick="switchView('list')">News List</div>
             <div id="tab-add" class="nav-tab" onclick="switchView('add')">Add News</div>
+            <div id="tab-codes" class="nav-tab" onclick="switchView('codes')">Codes</div>
         </div>
 
         <!-- Dashboard Section -->
         <div id="section-dashboard" class="view-section active">
-            <!-- Live Stats -->
+            <!-- (Existing Dashboard Content) -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <span id="stat-active-users" class="stat-val" style="color:var(--primary)">0</span>
@@ -102,6 +103,7 @@
                         style="color:var(--text-muted); font-size:0.8rem; letter-spacing:1px; text-transform:uppercase;">Active
                         Launchers</span>
                 </div>
+                <!-- ... existing stats ... -->
                 <div class="stat-card">
                     <span id="stat-playing-users" class="stat-val" style="color:var(--secondary)">0</span>
                     <span
@@ -243,6 +245,36 @@
             </div>
         </div>
 
+        <!-- CODES MANAGEMENT (New Section) -->
+        <div id="section-codes" class="view-section">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="color:var(--text-main); margin:0;">Active Modpack Codes</h3>
+                    <button onclick="loadCodes()" class="tab-btn">Refresh</button>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse; color:var(--text-muted); font-size:0.9rem;">
+                        <thead>
+                            <tr style="border-bottom:1px solid var(--border-light); text-align:left;">
+                                <th style="padding:10px;">Code</th>
+                                <th style="padding:10px;">Name</th>
+                                <th style="padding:10px;">Version</th>
+                                <th style="padding:10px;">Uses</th>
+                                <th style="padding:10px;">Created</th>
+                                <th style="padding:10px;">Expires</th>
+                                <th style="padding:10px; text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="codes-table-body">
+                            <tr>
+                                <td colspan="7" style="text-align:center; padding:20px;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -250,7 +282,7 @@
         const password = localStorage.getItem('admin_password');
         if (!password) window.location.href = 'index.html';
 
-        console.log('[MCLC Admin] v1.2 Initializing...');
+        console.log('[MCLC Admin] v1.3 Initializing...');
         console.log('[MCLC Admin] Running from:', window.location.href);
 
         function logout() {
@@ -266,6 +298,8 @@
             const tab = document.getElementById('tab-' + v);
             if (section) section.classList.add('active');
             if (tab) tab.classList.add('active');
+
+            if (v === 'codes') loadCodes();
         }
 
         // --- News Logic ---
@@ -304,15 +338,21 @@
 
         async function saveNewsData() {
             try {
+                console.log('[News] Saving', news.length, 'items...');
                 const res = await fetch('/api/news', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ news, password })
                 });
-                if (!res.ok) throw new Error('Failed to save news');
+                const data = await res.json();
+                if (!res.ok) {
+                    console.error('[News] Save failed:', res.status, data);
+                    throw new Error(data.error || 'Failed to save news (HTTP ' + res.status + ')');
+                }
+                console.log('[News] Save successful:', data);
             } catch (err) {
                 console.error('[News] Save error:', err);
-                alert('Failed to save. Check password or connection.');
+                alert('Failed to save: ' + err.message);
             }
         }
 
@@ -323,11 +363,81 @@
             renderNews();
         };
 
+        // --- CODES LOGIC ---
+        async function loadCodes() {
+            const tbody = document.getElementById('codes-table-body');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">Loading codes...</td></tr>';
+
+            try {
+                const res = await fetch('/api/codes/list');
+                const data = await res.json();
+
+                if (data.success) {
+                    renderCodes(data.codes);
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">Error: ${data.error}</td></tr>`;
+                }
+            } catch (e) {
+                console.error('[Codes] Load error:', e);
+                tbody.innerHTML = '<tr><td colspan="7" style="color:red; text-align:center;">Failed to connect to server.</td></tr>';
+            }
+        }
+
+        function renderCodes(codes) {
+            const tbody = document.getElementById('codes-table-body');
+            tbody.innerHTML = '';
+
+            if (codes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">No active codes found.</td></tr>';
+                return;
+            }
+
+            codes.forEach(c => {
+                const tr = document.createElement('tr');
+                const createdDate = c.created ? new Date(c.created).toLocaleString() : '—';
+                const expiresDate = c.expires ? new Date(c.expires).toLocaleString() : '—';
+
+                tr.innerHTML = `
+                    <td style="padding:10px; font-family:monospace; color:var(--primary); font-weight:bold;">${c.code}</td>
+                    <td style="padding:10px;">${c.name || '—'}</td>
+                    <td style="padding:10px;">${c.version || '?'} (${c.loader || '?'})</td>
+                    <td style="padding:10px;">${c.uses || 0}</td>
+                    <td style="padding:10px;">${createdDate}</td>
+                    <td style="padding:10px;">${expiresDate}</td>
+                    <td style="padding:10px; text-align:right;">
+                        <button class="btn-delete" onclick="deleteCode('${c.code}')" style="background:var(--danger); color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.deleteCode = async (code) => {
+            if (!confirm(`Are you sure you want to delete code ${code}? This cannot be undone.`)) return;
+
+            try {
+                const res = await fetch(`/api/codes/${code}`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    loadCodes(); // Refresh
+                } else {
+                    alert('Failed to delete code: ' + (data.error || 'Unknown error'));
+                }
+            } catch (e) {
+                console.error('[Codes] Delete error:', e);
+                alert('Error connecting to server.');
+            }
+        };
+
         // --- DASHBOARD ANALYTICS ---
         const socket = io({
             transports: ['polling', 'websocket'] // Ensure polling is tried first here too
         });
         let charts = {};
+        // ... (rest of existing dashboard logic) ...
         let currentDownloadCategory = 'mod';
         let currentSoftwareCategory = 'client';
         let currentGameVersionCategory = 'client';
@@ -607,6 +717,101 @@
         }, 3000);
 
         // --- Start Everything ---
+        // --- Form Submission ---
+        document.getElementById('addForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerText;
+            submitBtn.innerText = 'Publishing...';
+            submitBtn.disabled = true;
+
+            try {
+                const title = document.getElementById('title').value;
+                const description = document.getElementById('description').value;
+                const link = document.getElementById('link').value;
+                let imageUrl = document.getElementById('image').value;
+
+                // Handle File Upload
+                const fileInput = document.getElementById('fileInput');
+                if (fileInput.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('image', fileInput.files[0]);
+
+                    try {
+                        const uploadRes = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const uploadData = await uploadRes.json();
+                        if (uploadData.success) {
+                            imageUrl = uploadData.url;
+                        } else {
+                            throw new Error('Image upload failed: ' + uploadData.error);
+                        }
+                    } catch (uploadErr) {
+                        console.error('Upload error:', uploadErr);
+                        alert('Failed to upload image. Using placeholder.');
+                        imageUrl = '';
+                    }
+                }
+
+                const newPost = {
+                    title,
+                    description,
+                    image: imageUrl,
+                    link,
+                    date: new Date().toLocaleDateString()
+                };
+
+                // Add to top
+                news.unshift(newPost);
+
+                await saveNewsData();
+                renderNews();
+
+                // Reset form
+                e.target.reset();
+                document.getElementById('preview').style.display = 'none';
+
+                // Switch to list
+                switchView('list');
+
+
+            } catch (err) {
+                console.error(err);
+                alert('Error publishing news: ' + err.message);
+            } finally {
+                submitBtn.innerText = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Image Preview Handler
+        document.getElementById('fileInput').addEventListener('change', function (e) {
+            const preview = document.getElementById('preview');
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // URL Preview Handler
+        document.getElementById('image').addEventListener('input', function (e) {
+            const preview = document.getElementById('preview');
+            if (e.target.value) {
+                preview.src = e.target.value;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', () => {
             initCharts();
             loadNews();

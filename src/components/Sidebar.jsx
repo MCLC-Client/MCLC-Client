@@ -113,8 +113,6 @@ function Sidebar({ currentView, setView, onLogout, onInstanceClick, onCreateInst
 
             <div className="flex-1"></div>
 
-            <div className="w-8 h-[1px] bg-white/10 my-2"></div>
-
             {/* Settings */}
             <button
                 onClick={() => setView('settings')}
@@ -132,6 +130,8 @@ function Sidebar({ currentView, setView, onLogout, onInstanceClick, onCreateInst
                     <div className="absolute top-1/2 -left-1 transform -translate-y-1/2 border-4 border-transparent border-r-[#0d0d0d]"></div>
                 </div>
             </button>
+
+            <div className="w-8 h-[1px] bg-white/10 my-2"></div>
 
             {/* Logout */}
             <button

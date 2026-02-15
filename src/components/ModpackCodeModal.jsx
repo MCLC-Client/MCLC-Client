@@ -37,6 +37,7 @@ function ModpackCodeModal({
         try {
             const exportData = {
                 name: modpackName || `${instanceData?.name || 'Modpack'} Export`,
+                instanceName: instanceData?.name,
                 mods: selectedTypes.mods ? mods : [],
                 resourcePacks: selectedTypes.resourcePacks ? resourcePacks : [],
                 shaders: selectedTypes.shaders ? shaders : [],
@@ -210,7 +211,7 @@ function ModpackCodeModal({
 
                                     <button
                                         onClick={handleExport}
-                                        disabled={loading || (!mods.length && !resourcePacks.length && !shaders.length)}
+                                        disabled={loading || (!mods.length && !resourcePacks.length && !shaders.length) || (modpackName && !/^[a-zA-Z0-9-_\s]+$/.test(modpackName))}
                                         className="w-full py-3 bg-primary hover:bg-primary-hover text-black font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
                                         {loading ? (
@@ -227,6 +228,11 @@ function ModpackCodeModal({
                                             </>
                                         )}
                                     </button>
+                                    {modpackName && !/^[a-zA-Z0-9-_\s]+$/.test(modpackName) && (
+                                        <p className="text-red-400 text-xs mt-2 text-center">
+                                            Name contains invalid characters. Only letters, numbers, spaces, hyphens, and underscores are allowed.
+                                        </p>
+                                    )}
                                 </>
                             )}
                         </>
@@ -240,7 +246,7 @@ function ModpackCodeModal({
                                 <input
                                     type="text"
                                     value={code}
-                                    onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}
+                                    onChange={(e) => setCode(e.target.value.slice(0, 8))}
                                     placeholder="e.g. aB3xY7zP"
                                     maxLength="8"
                                     className="w-full bg-background-dark border border-white/10 rounded-lg p-3 text-white font-mono text-center text-2xl tracking-widest focus:border-primary outline-none"

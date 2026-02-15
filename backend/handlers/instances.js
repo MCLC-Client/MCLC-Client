@@ -394,25 +394,38 @@ module.exports = (ipcMain, win) => {
                     } else if (dirent.isFile()) {
                         try {
                             const hash = await calculateSha1(filePath);
-                            const res = await axios.get(`https://api.modrinth.com/v2/version_file/${hash}`, {
-                                headers: { 'User-Agent': 'Client/MCLC/1.0 (fernsehheft@pluginhub.de)' },
-                                timeout: 3000
-                            });
-                            const versionData = res.data;
-                            const versionId = versionData.id;
-                            const projectId = versionData.project_id;
 
-                            const projectRes = await axios.get(`https://api.modrinth.com/v2/project/${projectId}`, {
-                                headers: { 'User-Agent': 'Client/MCLC/1.0 (fernsehheft@pluginhub.de)' },
-                                timeout: 3000
-                            });
-                            const projectData = projectRes.data;
+                            // Check if we have this hash in cache (legacy SHA1 keys)
+                            if (modCache[hash]) {
+                                console.log(`[Instances:RP] Found legacy SHA1 cache for ${fileName}`);
+                                title = modCache[hash].title;
+                                icon = modCache[hash].icon;
+                                version = modCache[hash].version;
+                                const projectId = modCache[hash].projectId;
+                                const versionId = modCache[hash].versionId;
 
-                            title = projectData.title;
-                            icon = projectData.icon_url;
-                            version = versionData.version_number;
+                                modCache[cacheKey] = { title, icon, version, projectId, versionId, hash };
+                            } else {
+                                const res = await axios.get(`https://api.modrinth.com/v2/version_file/${hash}`, {
+                                    headers: { 'User-Agent': 'Client/MCLC/1.0 (fernsehheft@pluginhub.de)' },
+                                    timeout: 3000
+                                });
+                                const versionData = res.data;
+                                const versionId = versionData.id;
+                                const projectId = versionData.project_id;
 
-                            modCache[cacheKey] = { title, icon, version, projectId, versionId, hash };
+                                const projectRes = await axios.get(`https://api.modrinth.com/v2/project/${projectId}`, {
+                                    headers: { 'User-Agent': 'Client/MCLC/1.0 (fernsehheft@pluginhub.de)' },
+                                    timeout: 3000
+                                });
+                                const projectData = projectRes.data;
+
+                                title = projectData.title;
+                                icon = projectData.icon_url;
+                                version = versionData.version_number;
+
+                                modCache[cacheKey] = { title, icon, version, projectId, versionId, hash };
+                            }
                         } catch (e) { /* silent metadata fail */ }
                     }
 
@@ -478,25 +491,38 @@ module.exports = (ipcMain, win) => {
                     } else if (dirent.isFile()) {
                         try {
                             const hash = await calculateSha1(filePath);
-                            const res = await axios.get(`https://api.modrinth.com/v2/version_file/${hash}`, {
-                                headers: { 'User-Agent': 'Client/MCLC/1.0 (fernsehheft@pluginhub.de)' },
-                                timeout: 3000
-                            });
-                            const versionData = res.data;
-                            const versionId = versionData.id;
-                            const projectId = versionData.project_id;
 
-                            const projectRes = await axios.get(`https://api.modrinth.com/v2/project/${projectId}`, {
-                                headers: { 'User-Agent': 'Client/MCLC/1.0 (fernsehheft@pluginhub.de)' },
-                                timeout: 3000
-                            });
-                            const projectData = projectRes.data;
+                            // Check if we have this hash in cache (legacy SHA1 keys)
+                            if (modCache[hash]) {
+                                console.log(`[Instances:Shaders] Found legacy SHA1 cache for ${fileName}`);
+                                title = modCache[hash].title;
+                                icon = modCache[hash].icon;
+                                version = modCache[hash].version;
+                                const projectId = modCache[hash].projectId;
+                                const versionId = modCache[hash].versionId;
 
-                            title = projectData.title;
-                            icon = projectData.icon_url;
-                            version = versionData.version_number;
+                                modCache[cacheKey] = { title, icon, version, projectId, versionId, hash };
+                            } else {
+                                const res = await axios.get(`https://api.modrinth.com/v2/version_file/${hash}`, {
+                                    headers: { 'User-Agent': 'Client/MCLC/1.0 (fernsehheft@pluginhub.de)' },
+                                    timeout: 3000
+                                });
+                                const versionData = res.data;
+                                const versionId = versionData.id;
+                                const projectId = versionData.project_id;
 
-                            modCache[cacheKey] = { title, icon, version, projectId, versionId, hash };
+                                const projectRes = await axios.get(`https://api.modrinth.com/v2/project/${projectId}`, {
+                                    headers: { 'User-Agent': 'Client/MCLC/1.0 (fernsehheft@pluginhub.de)' },
+                                    timeout: 3000
+                                });
+                                const projectData = projectRes.data;
+
+                                title = projectData.title;
+                                icon = projectData.icon_url;
+                                version = versionData.version_number;
+
+                                modCache[cacheKey] = { title, icon, version, projectId, versionId, hash };
+                            }
                         } catch (e) { /* silent metadata fail */ }
                     }
 
@@ -1406,6 +1432,8 @@ module.exports = (ipcMain, win) => {
                 } catch (e) { console.error('Failed to save mod cache', e); }
             };
 
+            const cacheUpdates = {};
+
             const files = await fs.readdir(modsDir);
             const jars = files.filter(f => f.endsWith('.jar') || f.endsWith('.jar.disabled') || f.endsWith('.litemod'));
 
@@ -1429,28 +1457,46 @@ module.exports = (ipcMain, win) => {
                         // Lookup Modrinth metadata
                         try {
                             const hash = await calculateSha1(filePath);
-                            const res = await axios.get(`https://api.modrinth.com/v2/version_file/${hash}`, {
-                                headers: { 'User-Agent': 'Client/MCLC/1.0 (fernsehheft@pluginhub.de)' },
-                                timeout: 3000
-                            });
-                            const versionData = res.data;
 
-                            if (versionData && versionData.project_id) {
-                                // Get project for icon
-                                const projectRes = await axios.get(`https://api.modrinth.com/v2/project/${versionData.project_id}`, {
+                            // Check if we have this hash in cache (from Modpack Code Import legacy SHA1 keys)
+                            if (modCache[hash]) {
+                                console.log(`[Instances] Found legacy SHA1 cache for ${fileName}`);
+                                title = modCache[hash].title;
+                                icon = modCache[hash].icon;
+                                version = modCache[hash].version;
+                                const projectId = modCache[hash].projectId;
+                                const versionId = modCache[hash].versionId;
+
+                                // Self-healing: Update to new key format
+                                const entry = { title, icon, version, projectId, versionId, hash };
+                                modCache[cacheKey] = entry;
+                                cacheUpdates[cacheKey] = entry;
+                            } else {
+                                const res = await axios.get(`https://api.modrinth.com/v2/version_file/${hash}`, {
                                     headers: { 'User-Agent': 'Client/MCLC/1.0 (fernsehheft@pluginhub.de)' },
                                     timeout: 3000
                                 });
-                                const projectData = projectRes.data;
+                                const versionData = res.data;
 
-                                title = projectData.title;
-                                icon = projectData.icon_url;
-                                version = versionData.version_number;
-                                const projectId = projectData.id;
-                                const versionId = versionData.id;
+                                if (versionData && versionData.project_id) {
+                                    // Get project for icon
+                                    const projectRes = await axios.get(`https://api.modrinth.com/v2/project/${versionData.project_id}`, {
+                                        headers: { 'User-Agent': 'Client/MCLC/1.0 (fernsehheft@pluginhub.de)' },
+                                        timeout: 3000
+                                    });
+                                    const projectData = projectRes.data;
 
-                                // Update cache object (we'll save it after the loop)
-                                modCache[cacheKey] = { title, icon, version, hash, projectId, versionId };
+                                    title = projectData.title;
+                                    icon = projectData.icon_url;
+                                    version = versionData.version_number;
+                                    const projectId = projectData.id;
+                                    const versionId = versionData.id;
+
+                                    // Update cache
+                                    const entry = { title, icon, version, hash, projectId, versionId };
+                                    modCache[cacheKey] = entry;
+                                    cacheUpdates[cacheKey] = entry;
+                                }
                             }
                         } catch (apiErr) {
                             // Silently fail API lookups
@@ -1474,8 +1520,14 @@ module.exports = (ipcMain, win) => {
                 }
             }))).filter(m => m !== null);
 
-            // Save cache once after processing everything
-            await fs.writeJson(modCachePath, modCache).catch(() => { });
+            // Save cache updates safely
+            if (Object.keys(cacheUpdates).length > 0) {
+                try {
+                    const currentDisk = await fs.readJson(modCachePath).catch(() => ({}));
+                    const merged = { ...currentDisk, ...cacheUpdates };
+                    await fs.writeJson(modCachePath, merged);
+                } catch (e) { console.error('Failed to save mod cache updates', e); }
+            }
 
             return { success: true, mods: modObjects };
         } catch (e) {

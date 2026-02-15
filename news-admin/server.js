@@ -286,6 +286,12 @@ console.log(`[Static] Serving admin from: ${path.resolve(adminPublicPath)}`);
 app.use(express.static(websitePath));
 app.use(express.static(adminPublicPath));
 
+// Serve codes directory as static JSON files at /codes/(code).json
+const codesDir = path.join(__dirname, 'codes');
+if (!fs.existsSync(codesDir)) fs.mkdirSync(codesDir, { recursive: true });
+app.use('/codes', express.static(codesDir));
+console.log(`[Static] Serving codes from: ${path.resolve(codesDir)}`);
+
 // Initialize news.json if not exists
 if (!fs.existsSync(NEWS_FILE)) {
     fs.writeFileSync(NEWS_FILE, JSON.stringify([], null, 2));
@@ -337,13 +343,34 @@ app.get('/api/news', (req, res) => {
 
 app.post('/api/news', (req, res) => {
     const { news, password } = req.body;
+    console.log(`[News] POST /api/news received. Items: ${news ? news.length : 'null'}, Password provided: ${!!password}`);
+
     if (password !== ADMIN_PASSWORD) {
+        console.warn(`[News] Unauthorized! Password mismatch.`);
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    saveNews(news);
-    res.json({ success: true });
+    try {
+        saveNews(news);
+        console.log(`[News] Saved ${news.length} items to ${NEWS_FILE}`);
+        // Verify the save
+        const verify = getNews();
+        console.log(`[News] Verify: file now contains ${verify.length} items`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(`[News] Write error:`, err);
+        res.status(500).json({ success: false, error: 'Failed to write news: ' + err.message });
+    }
 });
+
+// --- MODPACK CODES SYSTEM ---
+// Integrated directly into this server
+try {
+    const initCodesSystem = require('./codes_system');
+    initCodesSystem(app);
+} catch (err) {
+    console.error('Failed to initialize codes system:', err);
+}
 
 // Analytics API (Optional, for polling if socket fails)
 app.get('/api/analytics', (req, res) => {

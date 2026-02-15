@@ -66,6 +66,16 @@ function createWindow() {
     } catch (e) {
         console.error('[Main] Failed to register skins handler:', e);
     }
+
+    // Modpack Code Handler
+    console.log('[Main] Registering modpack code handler...');
+    try {
+        require('../backend/handlers/modpackCode')(ipcMain, mainWindow);
+        console.log('[Main] Modpack code handler registered successfully.');
+    } catch (e) {
+        console.error('[Main] Failed to register modpack code handler:', e);
+    }
+
     require('../backend/handlers/java')(ipcMain);
     const discord = require('../backend/handlers/discord');
 
