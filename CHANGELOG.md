@@ -70,7 +70,7 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 ---
 
-## [1.3.3 and earlier] - 2026-02-15
+## [1.3.3 and earlier] - 2026-02-14
 
 ### Added
 - Skin and Cape editor (Skin- und Cape-Editor)

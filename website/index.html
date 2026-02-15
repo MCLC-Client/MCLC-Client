@@ -66,7 +66,7 @@
           target="_blank">GitHub</a>
       </div>
 
-      <a href="https://mclc.pluginhub.de/download/MCLC-Setup.exe"
+      <a id="downloadNavBtn" href="#"
         class="bg-primary hover:bg-primary-dark text-black px-8 py-3 rounded-xl font-bold transition-all shadow-primary-glow transform hover:scale-105 active:scale-95">
         Download
       </a>
@@ -89,7 +89,7 @@
           <span class="animate-ping absolute inline-flex h-full w-2 rounded-full bg-primary opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
         </span>
-        Now v1.3.3 is live
+        Now <span id="versionDisplay">v1.3.3</span> is live
       </div>
 
       <h1
@@ -110,7 +110,7 @@
       </p>
 
       <div class="flex flex-col sm:flex-row items-center justify-center gap-6 reveal animate-delay-400">
-        <a href="https://mclc.pluginhub.de/download/MCLC-Setup.exe"
+        <a id="downloadMainBtn" href="#"
           class="w-full sm:w-auto bg-primary hover:bg-primary-dark text-black px-12 py-5 rounded-2xl font-black text-lg transition-all shadow-primary-glow flex items-center justify-center gap-3">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
@@ -229,6 +229,67 @@
     </div>
   </footer>
 
+  <script>    async function fetchLatestRelease() {
+      try {
+        const response = await fetch('https://api.github.com/repos/Fernsehheft/MCLC-Client/releases/latest');
+        if (!response.ok) {
+          throw new Error('Failed to fetch release data');
+        }
+        const release = await response.json();
+        const version = release.tag_name.startsWith('v') ? release.tag_name : `v${release.tag_name}`;
+        const windowsAsset = release.assets.find(asset =>
+          asset.name.toLowerCase() === 'mclc-setup.exe' ||
+          asset.name.toLowerCase().includes('setup') && asset.name.toLowerCase().endsWith('.exe') ||
+          asset.name.toLowerCase().includes('windows') && asset.name.toLowerCase().endsWith('.exe') ||
+          asset.name.toLowerCase().endsWith('.exe')
+        );
+        let downloadUrl = windowsAsset ? windowsAsset.browser_download_url : null;
+        if (!downloadUrl) {
+          const exeAsset = release.assets.find(asset => asset.name.toLowerCase().endsWith('.exe'));
+          downloadUrl = exeAsset ? exeAsset.browser_download_url : null;
+        }
+        if (!downloadUrl) {
+
+          downloadUrl = `https://github.com/Fernsehheft/MCLC-Client/releases/download/${release.tag_name}/MCLC-Setup.exe`;
+          console.warn('No asset found, using constructed URL:', downloadUrl);
+        }
+
+        return { version, downloadUrl };
+      } catch (error) {
+        console.error('Error fetching release:', error);
+
+        return {
+          version: 'v1.3.3',
+          downloadUrl: 'https://github.com/Fernsehheft/MCLC-Client/releases/latest/download/MCLC-Setup.exe'
+        };
+      }
+    }
+    async function updateReleaseInfo() {
+      const releaseInfo = await fetchLatestRelease();
+      const versionElement = document.getElementById('versionDisplay');
+      if (versionElement) {
+        versionElement.textContent = releaseInfo.version;
+      }
+      const downloadNavBtn = document.getElementById('downloadNavBtn');
+      const downloadMainBtn = document.getElementById('downloadMainBtn');
+
+      if (downloadNavBtn) {
+        downloadNavBtn.href = releaseInfo.downloadUrl;
+
+        downloadNavBtn.setAttribute('download', '');
+      }
+
+      if (downloadMainBtn) {
+        downloadMainBtn.href = releaseInfo.downloadUrl;
+
+        downloadMainBtn.setAttribute('download', '');
+      }
+      document.querySelectorAll('a[href*="MCLC-Setup.exe"]').forEach(link => {
+        link.href = releaseInfo.downloadUrl;
+        link.setAttribute('download', '');
+      });
+    }
+    document.addEventListener('DOMContentLoaded', updateReleaseInfo);</script>
   <script src="main.js"></script>
 </body>
 
