@@ -10,7 +10,7 @@
     "build": "vite build",
     "start": "electron .",
     "dist": "npm run build && electron-builder",
-    "dist-all": "npm run build && electron-builder --win --linux"
+    "dist-all": "npm run build && electron-builder --wl"
   },
   "build": {
     "appId": "com.launcher.mclc",
