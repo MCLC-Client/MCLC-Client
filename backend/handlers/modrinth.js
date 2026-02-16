@@ -17,8 +17,6 @@ const installModInternal = async (win, { instanceName, projectId, versionId, fil
         await fs.ensureDir(contentDir);
 
         const dest = path.join(contentDir, filename);
-
-        // Check if file already exists
         if (await fs.pathExists(dest)) {
             if (win) {
                 win.webContents.send('install:progress', {
@@ -147,7 +145,7 @@ const installModInternal = async (win, { instanceName, projectId, versionId, fil
 };
 
 const resolveDependenciesInternal = async (versionId, loaders = [], gameVersions = []) => {
-    const resolved = new Map(); // projectId -> version info
+    const resolved = new Map();
     const queue = [versionId];
     const visited = new Set();
 
@@ -155,14 +153,10 @@ const resolveDependenciesInternal = async (versionId, loaders = [], gameVersions
         while (queue.length > 0) {
             const currentId = queue.shift();
             if (visited.has(currentId)) continue;
-
-            // Fetch current version details
             const vRes = await axios.get(`${MODRINTH_API}/version/${currentId}`);
             const version = vRes.data;
-
-            // Mark current as resolved if not already
             if (!resolved.has(version.project_id)) {
-                // Fetch project info for title/icon/type
+
                 const pRes = await axios.get(`${MODRINTH_API}/project/${version.project_id}`);
                 resolved.set(version.project_id, {
                     projectId: version.project_id,
@@ -175,19 +169,15 @@ const resolveDependenciesInternal = async (versionId, loaders = [], gameVersions
                     isPrimary: resolved.size === 0
                 });
             }
-
-            // Process dependencies
             if (version.dependencies) {
                 for (const dep of version.dependencies) {
                     if (dep.dependency_type !== 'required') continue;
-
-                    // Case 1: Specific version is provided
                     if (dep.version_id) {
                         if (!visited.has(dep.version_id)) {
                             queue.push(dep.version_id);
                         }
                     }
-                    // Case 2: Only project ID is provided, need to find compatible version
+
                     else if (dep.project_id) {
                         if (!resolved.has(dep.project_id)) {
                             const params = {
@@ -242,9 +232,6 @@ module.exports = (ipcMain, win) => {
     });
 
     ipcMain.handle('modrinth:install', async (_, data) => {
-        // Data contains: { instanceName, projectId, versionId, filename, url, projectType }
-
-        // 1. If it's a mod, try to resolve dependencies first
         if (data.projectType === 'mod') {
             try {
                 const instanceJsonPath = path.join(instancesDir, data.instanceName, 'instance.json');
@@ -252,16 +239,12 @@ module.exports = (ipcMain, win) => {
                     const instance = await fs.readJson(instanceJsonPath);
                     const loader = instance.loader ? instance.loader.toLowerCase() : 'vanilla';
                     const version = instance.version;
-
-                    // Only resolve deps if we have a valid loader
                     if (loader !== 'vanilla') {
                         const resolveRes = await resolveDependenciesInternal(data.versionId, [loader], [version]);
 
                         if (resolveRes.success && resolveRes.dependencies.length > 0) {
                             let successCount = 0;
                             let failCount = 0;
-
-                            // 2. Install everything (including the original mod)
                             for (const dep of resolveRes.dependencies) {
                                 const installRes = await installModInternal(win, {
                                     instanceName: data.instanceName,
@@ -277,9 +260,6 @@ module.exports = (ipcMain, win) => {
                             }
 
                             if (failCount === 0) return { success: true };
-                            // If some failed but at least primary installed, it's partial success? 
-                            // For now return success if primary installed or handling error.
-                            // But original caller expects simple success.
                             return { success: true };
                         }
                     }
@@ -288,8 +268,6 @@ module.exports = (ipcMain, win) => {
                 console.error("[Modrinth:Install] Dependency resolution failed, falling back to single install:", err);
             }
         }
-
-        // Fallback: Just install the single file if not a mod or if resolution failed
         return await installModInternal(win, data);
     });
 
