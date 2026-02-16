@@ -369,7 +369,7 @@
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">Loading codes...</td></tr>';
 
             try {
-                const res = await fetch('/api/codes/list');
+                const res = await fetch(`/api/codes/list?password=${encodeURIComponent(password)}`);
                 const data = await res.json();
 
                 if (data.success) {
@@ -416,7 +416,7 @@
             if (!confirm(`Are you sure you want to delete code ${code}? This cannot be undone.`)) return;
 
             try {
-                const res = await fetch(`/api/codes/${code}`, {
+                const res = await fetch(`/api/codes/${code}?password=${encodeURIComponent(password)}`, {
                     method: 'DELETE'
                 });
                 const data = await res.json();
@@ -437,7 +437,6 @@
             transports: ['polling', 'websocket'] // Ensure polling is tried first here too
         });
         let charts = {};
-        // ... (rest of existing dashboard logic) ...
         let currentDownloadCategory = 'mod';
         let currentSoftwareCategory = 'client';
         let currentGameVersionCategory = 'client';

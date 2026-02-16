@@ -24,7 +24,31 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    padding-bottom: 50px;
+    padding-top: 80px;
+    /* Offset for fixed navbar */
+}
+
+/* Global Navbar Standards */
+nav {
+    height: 80px;
+    display: flex;
+    align-items: center;
+}
+
+.nav-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#auth-section {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 .container {
@@ -49,25 +73,25 @@ h1 {
     -webkit-background-clip: text;
     background-clip: text;
 
-    color: white; /* WICHTIG */
+    color: white;
+    /* WICHTIG */
     /* ENTFERNEN: -webkit-text-fill-color: transparent; */
 
     filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
 }
 
 
+/* Standardized buttons to prevent glitches */
 .btn-logout {
-    position: absolute;
-    top: 20px;
-    right: 20px;
     background: none;
     border: 1px solid var(--border-light);
     color: var(--text-muted);
-    padding: 5px 15px;
+    padding: 6px 16px;
     border-radius: 20px;
     cursor: pointer;
     font-size: 0.75rem;
     transition: 0.3s;
+    white-space: nowrap;
 }
 
 .btn-logout:hover {

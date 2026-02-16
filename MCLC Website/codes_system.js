@@ -59,7 +59,7 @@ function generateCode() {
 }
 
 // Export the setup function to attach routes to the app
-module.exports = function (app) {
+module.exports = function (app, ADMIN_PASSWORD) {
     console.log('[CodesSystem] Initializing routes...');
 
     // Save Modpack (accessible at both /api/codes/save and /api/modpack/save for compatibility)
@@ -98,6 +98,11 @@ module.exports = function (app) {
     // List all Codes (Admin)
     app.get('/api/codes/list', (req, res) => {
         try {
+            const clientPass = req.query.password;
+            if (clientPass !== ADMIN_PASSWORD) {
+                console.warn(`[CodesSystem] Unauthorized list attempt. Client passed: ${clientPass ? '***' : 'missing'}`);
+                return res.status(401).json({ success: false, error: 'Unauthorized' });
+            }
             if (!fs.existsSync(CODES_DIR)) {
                 return res.json({ success: true, codes: [] });
             }
@@ -158,6 +163,11 @@ module.exports = function (app) {
     // Delete Code (Admin)
     app.delete('/api/codes/:code', (req, res) => {
         try {
+            const clientPass = req.query.password;
+            if (clientPass !== ADMIN_PASSWORD) {
+                console.warn(`[CodesSystem] Unauthorized delete attempt for ${req.params.code}.`);
+                return res.status(401).json({ success: false, error: 'Unauthorized' });
+            }
             const { code } = req.params;
             const filePath = path.join(CODES_DIR, `${code}.json`);
 

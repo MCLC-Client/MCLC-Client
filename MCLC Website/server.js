@@ -12,8 +12,10 @@ const pool = require('./database');
 const http = require('http');
 const { Server } = require("socket.io");
 require('./passport-setup'); // Import passport configuration
+const codesSystem = require('./codes_system');
 
 const app = express();
+app.set('trust proxy', 1); // Trust the Plesk proxy
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
@@ -37,9 +39,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
     secret: process.env.SESSION_SECRET || 'mclc-secret-key-change-me',
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    proxy: true, // Trust the proxy for secure cookies
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: true, // Use secure cookies (requires HTTPS)
+        sameSite: 'lax', // Allow cookies to be sent after Google redirect
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
@@ -491,10 +495,8 @@ app.use(express.static(adminPublicPath));
 // Serve uploads
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-// Serve codes directory
-const codesDir = path.join(__dirname, 'codes');
-if (!fs.existsSync(codesDir)) fs.mkdirSync(codesDir, { recursive: true });
-app.use('/codes', express.static(codesDir));
+// Initialize Codes System
+codesSystem(app, ADMIN_PASSWORD);
 
 // Initialize news.json if not exists
 if (!fs.existsSync(NEWS_FILE)) {
@@ -505,9 +507,6 @@ if (!fs.existsSync(NEWS_FILE)) {
 const getNews = () => JSON.parse(fs.readFileSync(NEWS_FILE, 'utf8'));
 const saveNews = (data) => fs.writeFileSync(NEWS_FILE, JSON.stringify(data, null, 2));
 
-// (Moved to top for hoisting safety)
-// const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
-
 // Analytics API
 app.get('/api/analytics', (req, res) => {
     if (req.query.password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Unauthorized' });
@@ -517,6 +516,15 @@ app.get('/api/analytics', (req, res) => {
     });
 });
 
-server.listen(PORT, () => {
+const { createTables } = require('./db_init');
+
+server.listen(PORT, async () => {
     console.log(`News Admin Server (with Socket.IO, Auth, Extensions) running on port ${PORT}`);
+
+    // Automatically initialize database tables
+    try {
+        await createTables();
+    } catch (err) {
+        console.error('[Database] Critical error during auto-init:', err.message);
+    }
 });

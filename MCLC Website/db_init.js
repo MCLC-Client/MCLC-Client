@@ -1,4 +1,6 @@
 const pool = require('./database');
+const fs = require('fs');
+const path = require('path');
 
 const createTables = async () => {
     try {
@@ -35,11 +37,18 @@ const createTables = async () => {
         console.log('[Database] Extensions table checked/created.');
 
         connection.release();
-        process.exit(0);
+        return true;
     } catch (err) {
         console.error('[Database] Error initializing tables:', err);
-        process.exit(1);
+        return false;
     }
 };
 
-createTables();
+module.exports = { createTables };
+
+// Allow running as a standalone script
+if (require.main === module) {
+    createTables().then(success => {
+        process.exit(success ? 0 : 1);
+    });
+}
