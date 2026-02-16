@@ -220,6 +220,12 @@ const electronAPI = {
     getExtensions: () => ipcRenderer.invoke('extensions:list'),
     installExtension: (sourcePath) => ipcRenderer.invoke('extensions:install', sourcePath),
     removeExtension: (id) => ipcRenderer.invoke('extensions:remove', id),
+    toggleExtension: (id, enabled) => ipcRenderer.invoke('extensions:toggle', id, enabled),
+    onExtensionFile: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('extension:open-file', subscription);
+        return () => ipcRenderer.removeListener('extension:open-file', subscription);
+    },
     fetchMarketplace: () => ipcRenderer.invoke('extensions:fetch-marketplace')
 };
 try {

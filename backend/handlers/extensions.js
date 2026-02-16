@@ -7,15 +7,34 @@ const { transform } = require('sucrase');
 
 module.exports = (ipcMain, mainWindow) => {
     const extensionsDir = path.join(app.getPath('userData'), 'extensions');
+    const configPath = path.join(app.getPath('userData'), 'extensions.json');
 
     // Ensure extensions directory exists
     fs.ensureDirSync(extensionsDir);
+
+    // Helper: Load Config
+    const loadConfig = async () => {
+        try {
+            if (await fs.pathExists(configPath)) {
+                return await fs.readJson(configPath);
+            }
+        } catch (e) { console.error("Failed to load extensions config", e); }
+        return { enabled: {} }; // { "extension-id": true/false }
+    };
+
+    // Helper: Save Config
+    const saveConfig = async (config) => {
+        try {
+            await fs.writeJson(configPath, config, { spaces: 2 });
+        } catch (e) { console.error("Failed to save extensions config", e); }
+    };
 
     // List installed extensions
     ipcMain.handle('extensions:list', async () => {
         try {
             const dirs = await fs.readdir(extensionsDir);
             const extensions = [];
+            const config = await loadConfig();
 
             for (const dir of dirs) {
                 const manifestPath = path.join(extensionsDir, dir, 'manifest.json');
@@ -27,9 +46,20 @@ module.exports = (ipcMain, mainWindow) => {
                             manifest.main = manifest.entry;
                         }
 
+                        // Determine enabled state (default to true if not set)
+                        const isEnabled = config.enabled[dir] !== false;
+                        
+                        // Resolve Icon Path
+                        let iconPath = null;
+                        if (manifest.icon) {
+                             iconPath = path.join(extensionsDir, dir, manifest.icon).replace(/\\/g, '/');
+                        }
+
                         extensions.push({
                             id: dir,
                             ...manifest,
+                            enabled: isEnabled,
+                            iconPath: iconPath,
                             localPath: path.join(extensionsDir, dir).replace(/\\/g, '/')
                         });
                     } catch (e) {
@@ -40,6 +70,18 @@ module.exports = (ipcMain, mainWindow) => {
             return { success: true, extensions };
         } catch (error) {
             console.error('Failed to list extensions:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    // Toggle Extension
+    ipcMain.handle('extensions:toggle', async (_, id, enabled) => {
+        try {
+            const config = await loadConfig();
+            config.enabled[id] = enabled;
+            await saveConfig(config);
+            return { success: true };
+        } catch (error) {
             return { success: false, error: error.message };
         }
     });
@@ -57,17 +99,22 @@ module.exports = (ipcMain, mainWindow) => {
 
             const zip = await JSZip.loadAsync(buffer);
             
-            // Read manifest first to get ID/Name
+            // 1. VALIDATION: Check for manifest.json
             const manifestFile = zip.file('manifest.json');
             if (!manifestFile) {
                 return { success: false, error: 'Invalid extension: missing manifest.json' };
+            }
+
+            // 2. VALIDATION: Check for main.js (Strict Requirement)
+            // We check if 'main.js' exists in the root of the zip
+            if (!zip.file('main.js')) {
+                 return { success: false, error: 'Invalid extension: missing main.js in root' };
             }
 
             const manifestContent = await manifestFile.async('text');
             const manifest = JSON.parse(manifestContent);
             
             if (!manifest.id) {
-                 // Fallback if ID is missing, though it should be required
                  // Generate a safe ID from name
                  manifest.id = manifest.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
             }
@@ -110,6 +157,11 @@ module.exports = (ipcMain, mainWindow) => {
                 }
             }
 
+            // Enable by default on install
+            const config = await loadConfig();
+            config.enabled[manifest.id] = true;
+            await saveConfig(config);
+
             return { success: true, id: manifest.id };
         } catch (error) {
             console.error('Failed to install extension:', error);
@@ -123,6 +175,12 @@ module.exports = (ipcMain, mainWindow) => {
             const targetPath = path.join(extensionsDir, extensionId);
             if (await fs.pathExists(targetPath)) {
                 await fs.remove(targetPath);
+                
+                // Cleanup config
+                const config = await loadConfig();
+                delete config.enabled[extensionId];
+                await saveConfig(config);
+
                 return { success: true };
             }
             return { success: false, error: 'Extension not found' };
@@ -132,44 +190,8 @@ module.exports = (ipcMain, mainWindow) => {
         }
     });
 
-    // Fetch Marketplace Data
+    // Fetch Marketplace Data - REMOVED or Deprecated
     ipcMain.handle('extensions:fetch-marketplace', async () => {
-        try {
-            // Using placeholder URL as requested.
-            // In a real scenario, this would be a real endpoint.
-            // For now, let's try to fetch it, but if it fails (404), return the mock data 
-            // so the user still sees something working.
-            const MARKETPLACE_URL = 'https://mclc.pluginhub.de/extensions.json';
-            
-            try {
-                const response = await axios.get(MARKETPLACE_URL, { timeout: 5000 });
-                return { success: true, extensions: response.data };
-            } catch (netError) {
-                console.warn('Failed to fetch marketplace, falling back to mock data:', netError.message);
-                return { 
-                    success: true, 
-                    extensions: [
-                        {
-                            id: 'example-extension',
-                            name: 'Example Extension',
-                            description: 'A starter extension that shows a simple greeting.',
-                            version: '1.0.0',
-                            author: 'MCLC Team',
-                            url: 'https://github.com/Fernsehheft/MCLC-Extensions/raw/main/example-extension.mcextension'
-                        },
-                        {
-                            id: 'system-monitor',
-                            name: 'System Monitor',
-                            description: 'Displays CPU and RAM usage in the sidebar.',
-                            version: '0.1.0',
-                            author: 'Community',
-                            url: '' 
-                        }
-                    ]
-                };
-            }
-        } catch (error) {
-            return { success: false, error: error.message };
-        }
+        return { success: true, extensions: [] }; // Return empty, distinct from "Installed"
     });
 };
