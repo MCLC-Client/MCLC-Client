@@ -52,6 +52,39 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 ---
 
+## [1.7.1] - 2026-02-16
+
+### Added
+
+- **Styling Page Redesign**: Complete visual overhaul with premium bento grid layout
+  - Live mini-preview component showing real-time theme changes
+  - Visual theme cards with color thumbnails instead of text lists
+  - Custom `ColorPicker` component with glow effects
+  - Enhanced `SliderControl` component with gradient tracks and value badges
+  - Improved organization with distinct sections for Colors, Effects, and Atmosphere
+  - Glassmorphism effects and smooth transitions matching launcher aesthetic
+- **UI Components**:
+  - `ThemeCard.jsx` - Visual theme preview cards with hover animations
+  - `MiniPreview.jsx` - Live miniature launcher preview
+  - `ColorPicker.jsx` - Enhanced color input with glow effect
+  - `SliderControl.jsx` - Gradient slider with real-time value display
+- **CSS Enhancements**:
+  - Custom slider thumb styling with glow effects
+  - Color picker styling for better visual consistency
+  - Custom scrollbar styling for theme lists
+
+### Fixed
+
+- The runtime wasn't working and displaying "object Object" when closing the window when selecting runtime ("javaw.exe")
+
+### Fixed
+
+- Background overlay intensity now correctly applies to the actual app (was only updating preview)
+- Settings button in sidebar now uses glow effect instead of white outline
+- Dropdown arrow in Settings page properly positioned with adequate spacing
+
+---
+
 ## [1.4.0] - 2026-02-15
 
 ### Added

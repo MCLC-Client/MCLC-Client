@@ -389,8 +389,8 @@ function App() {
                             />
                         )}
                         <div
-                            className="absolute inset-0 bg-black pointer-events-none"
-                            style={{ opacity: 1 - (parseFloat(theme.glassOpacity) || 0.8) }}
+                            className="absolute inset-0 bg-background pointer-events-none"
+                            style={{ opacity: theme.bgOverlay || 0.4 }}
                         />
                     </div>
                 )}

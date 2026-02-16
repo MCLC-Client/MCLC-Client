@@ -231,7 +231,7 @@ function Settings() {
                         <select
                             value={settings.startPage || 'dashboard'}
                             onChange={(e) => handleChange('startPage', e.target.value)}
-                            className="bg-background border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-primary outline-none text-gray-300 cursor-pointer min-w-[160px]"
+                            className="bg-background border border-white/10 rounded-xl px-4 pr-10 py-2.5 text-sm focus:border-primary outline-none text-gray-300 cursor-pointer min-w-[180px]"
                         >
                             <option value="dashboard">Dashboard</option>
                             <option value="library">Library</option>

@@ -133,11 +133,11 @@ function Sidebar({ currentView, setView, onLogout, onInstanceClick, onCreateInst
 
             <div className="flex-1"></div>
 
-            { }
+            {/* Settings Button */}
             <button
                 onClick={() => setView('settings')}
                 className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all group relative ${currentView === 'settings'
-                    ? 'bg-primary/20 text-primary border border-primary/30'
+                    ? 'bg-primary text-black shadow-[0_0_20px_rgba(var(--primary-color-rgb),0.3)]'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                     }`}
             >

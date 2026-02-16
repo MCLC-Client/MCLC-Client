@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNotification } from "../context/NotificationContext";
+import ColorPicker from "../components/ColorPicker";
+import SliderControl from "../components/SliderControl";
+import ThemeCard from "../components/ThemeCard";
+import MiniPreview from "../components/MiniPreview";
 
 const PRESETS = [
   {
@@ -93,9 +97,6 @@ function Styling() {
   });
 
   const [customPresets, setCustomPresets] = useState([]);
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const [newPreset, setNewPreset] = useState({ name: "", handle: "" });
-  const [settings, setSettings] = useState({ showDisabledFeatures: false });
 
   useEffect(() => {
     loadTheme();
@@ -107,29 +108,7 @@ function Styling() {
     if (res.success) setCustomPresets(res.presets);
   };
 
-  const handleSavePreset = async () => {
-    if (!newPreset.name || !newPreset.handle) return;
-    const presetData = {
-      handle: newPreset.handle,
-      name: newPreset.name,
-      primary: theme.primaryColor,
-      bg: theme.backgroundColor,
-      surface: theme.surfaceColor,
-      sidebarGlow: theme.sidebarGlow,
-      panelOpacity: theme.panelOpacity,
-      bgOverlay: theme.bgOverlay,
-    };
-    const res = await window.electronAPI.saveCustomPreset(presetData);
-    if (res.success) {
-      addNotification(`Preset "${newPreset.name}" saved!`, "success");
-      setShowSaveModal(false);
-      setNewPreset({ name: "", handle: "" });
-      loadCustomPresets();
-    }
-  };
-
-  const handleDeletePreset = async (e, handle) => {
-    e.stopPropagation();
+  const handleDeletePreset = async (handle) => {
     const res = await window.electronAPI.deleteCustomPreset(handle);
     if (res.success) {
       addNotification("Preset deleted", "success");
@@ -138,7 +117,6 @@ function Styling() {
   };
 
   const handleExportTheme = async () => {
-    // Export current styling as a preset
     const presetData = {
       handle: theme.name ? theme.name.toLowerCase().replace(/[^a-z0-9_-]/g, '') : 'custom_theme',
       name: theme.name || "Custom Theme",
@@ -150,7 +128,6 @@ function Styling() {
       bgOverlay: theme.bgOverlay,
     };
 
-    // If we're exporting a specific custom preset, use that
     const res = await window.electronAPI.exportCustomPreset(presetData);
     if (res.success) {
       addNotification(`Theme exported to ${res.path}`, "success");
@@ -190,7 +167,6 @@ function Styling() {
         setTheme((prev) => ({ ...prev, ...res.settings.theme }));
         applyTheme(res.settings.theme);
       }
-      setSettings(res.settings);
     }
   };
 
@@ -206,6 +182,7 @@ function Styling() {
     root.style.setProperty("--sidebar-glow-intensity", t.sidebarGlow || 0.3);
     root.style.setProperty("--panel-opacity", t.panelOpacity || 0.85);
     root.style.setProperty("--bg-overlay-opacity", t.bgOverlay || 0.4);
+    
     const adjustColor = (hex, pct) => {
       const n = parseInt(hex.replace("#", ""), 16);
       const a = Math.round(2.55 * pct);
@@ -233,12 +210,14 @@ function Styling() {
       "--background-dark-color",
       adjustColor(t.backgroundColor, -20),
     );
+    
     const hexToRgb = (hex) => {
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
       const b = parseInt(hex.slice(5, 7), 16);
       return `${r}, ${g}, ${b}`;
     };
+    
     root.style.setProperty("--surface-color-rgb", hexToRgb(t.surfaceColor));
     root.style.setProperty("--primary-color-rgb", hexToRgb(t.primaryColor));
     root.style.setProperty(
@@ -264,10 +243,7 @@ function Styling() {
   const handleSelectBackground = async () => {
     const res = await window.electronAPI.selectBackgroundMedia();
     if (res.success && res.url) {
-      console.log("Selected background:", res.url);
       handleUpdate("bgMedia", { url: res.url, type: res.type });
-    } else if (res.error) {
-      console.error("Failed to select background:", res.error);
     }
   };
 
@@ -283,63 +259,48 @@ function Styling() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-12">
-      <header className="mb-8">
-        <h1 className="text-4xl font-black text-white tracking-tight">
+    <div className="p-10 text-white h-full overflow-y-auto custom-scrollbar">
+      {/* Hero Section */}
+      <header className="mb-10">
+        <h1 className="text-4xl font-black text-white tracking-tight mb-2">
           Launcher Customization
         </h1>
-        <p className="text-gray-400 mt-2">
+        <p className="text-gray-400">
           Design your workspace exactly how you want it.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        { }
-        <div className="xl:col-span-1 space-y-8">
-          <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5">
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl">
+        
+        {/* Left Column - Colors & Themes */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Accent & Base Colors */}
+          <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
             <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6">
               Accent & Base
             </h2>
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-gray-300">
-                  Accent Color
-                </label>
-                <input
-                  type="color"
-                  value={theme.primaryColor}
-                  onChange={(e) => handleUpdate("primaryColor", e.target.value)}
-                  className="w-10 h-10 rounded-lg bg-transparent border-none cursor-pointer"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-gray-300">
-                  Background
-                </label>
-                <input
-                  type="color"
-                  value={theme.backgroundColor}
-                  onChange={(e) =>
-                    handleUpdate("backgroundColor", e.target.value)
-                  }
-                  className="w-10 h-10 rounded-lg bg-transparent border-none cursor-pointer"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-gray-300">
-                  Panels
-                </label>
-                <input
-                  type="color"
-                  value={theme.surfaceColor}
-                  onChange={(e) => handleUpdate("surfaceColor", e.target.value)}
-                  className="w-10 h-10 rounded-lg bg-transparent border-none cursor-pointer"
-                />
-              </div>
+            <div className="space-y-5">
+              <ColorPicker
+                label="Accent Color"
+                value={theme.primaryColor}
+                onChange={(val) => handleUpdate("primaryColor", val)}
+              />
+              <ColorPicker
+                label="Background"
+                value={theme.backgroundColor}
+                onChange={(val) => handleUpdate("backgroundColor", val)}
+              />
+              <ColorPicker
+                label="Panels"
+                value={theme.surfaceColor}
+                onChange={(val) => handleUpdate("surfaceColor", val)}
+              />
             </div>
           </section>
 
-          <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5">
+          {/* Quick Themes */}
+          <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em]">
                 Quick Themes
@@ -348,62 +309,42 @@ function Styling() {
                 onClick={handleImportTheme}
                 className="text-[10px] font-bold text-primary uppercase tracking-widest hover:text-white transition-colors flex items-center gap-1"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
                 Import
               </button>
             </div>
 
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+              {/* Custom Presets */}
               {customPresets.length > 0 && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <span className="text-[10px] font-bold text-gray-600 uppercase">Custom</span>
                   <div className="grid grid-cols-1 gap-2">
                     {customPresets.map((p) => (
-                      <button
+                      <ThemeCard
                         key={p.handle}
-                        onClick={() => applyPreset(p)}
-                        className="flex items-center justify-between p-3 rounded-xl bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-3 h-3 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]"
-                            style={{ backgroundColor: p.primary }}
-                          />
-                          <span className="text-xs font-bold text-primary group-hover:text-white">
-                            {p.name}
-                          </span>
-                        </div>
-                        <div
-                          onClick={(e) => handleDeletePreset(e, p.handle)}
-                          className="p-1 hover:bg-red-500/20 rounded-md text-gray-500 hover:text-red-500 transition-colors"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      </button>
+                        theme={p}
+                        onApply={() => applyPreset(p)}
+                        onDelete={() => handleDeletePreset(p.handle)}
+                        isCustom={true}
+                      />
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="space-y-2">
+              {/* Built-in Presets */}
+              <div className="space-y-3">
                 <span className="text-[10px] font-bold text-gray-600 uppercase">Presets</span>
                 <div className="grid grid-cols-1 gap-2">
                   {PRESETS.map((p) => (
-                    <button
+                    <ThemeCard
                       key={p.name}
-                      onClick={() => applyPreset(p)}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group"
-                    >
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: p.primary }}
-                      />
-                      <span className="text-xs font-bold text-gray-400 group-hover:text-white">
-                        {p.name}
-                      </span>
-                    </button>
+                      theme={p}
+                      onApply={() => applyPreset(p)}
+                    />
                   ))}
                 </div>
               </div>
@@ -411,132 +352,78 @@ function Styling() {
           </section>
         </div>
 
-        { }
-        <div className="xl:col-span-2 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 flex flex-col justify-between">
-              <div>
-                <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6">
-                  Interactive Effects
-                </h2>
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <label className="text-sm font-bold text-gray-300">
-                        Corner Roundness
-                      </label>
-                      <span className="text-[10px] font-mono text-primary">
-                        {theme.borderRadius || 12}px
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="32"
-                      step="2"
-                      value={theme.borderRadius || 12}
-                      onChange={(e) =>
-                        handleUpdate("borderRadius", parseInt(e.target.value))
-                      }
-                      className="w-full h-1 bg-white/5 rounded-full appearance-none cursor-pointer accent-primary"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <label className="text-sm font-bold text-gray-300">
-                        Glass Blur
-                      </label>
-                      <span className="text-[10px] font-mono text-primary">
-                        {theme.glassBlur}px
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="40"
-                      step="1"
-                      value={theme.glassBlur}
-                      onChange={(e) =>
-                        handleUpdate("glassBlur", parseInt(e.target.value))
-                      }
-                      className="w-full h-1 bg-white/5 rounded-full appearance-none cursor-pointer accent-primary"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <label className="text-sm font-bold text-gray-300">
-                        Sidebar Glow
-                      </label>
-                      <span className="text-[10px] font-mono text-primary">
-                        {Math.round((theme.sidebarGlow || 0.3) * 100)}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={theme.sidebarGlow || 0.3}
-                      onChange={(e) =>
-                        handleUpdate("sidebarGlow", parseFloat(e.target.value))
-                      }
-                      className="w-full h-1 bg-white/5 rounded-full appearance-none cursor-pointer accent-primary"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <label className="text-sm font-bold text-gray-300">
-                        Panel Opacity
-                      </label>
-                      <span className="text-[10px] font-mono text-primary">
-                        {Math.round((theme.panelOpacity || 0.85) * 100)}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.1"
-                      max="1"
-                      step="0.05"
-                      value={theme.panelOpacity || 0.85}
-                      onChange={(e) =>
-                        handleUpdate("panelOpacity", parseFloat(e.target.value))
-                      }
-                      className="w-full h-1 bg-white/5 rounded-full appearance-none cursor-pointer accent-primary"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <label className="text-sm font-bold text-gray-300">
-                        Console Opacity
-                      </label>
-                      <span className="text-[10px] font-mono text-primary">
-                        {Math.round((theme.consoleOpacity || 0.8) * 100)}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.1"
-                      max="1"
-                      step="0.05"
-                      value={theme.consoleOpacity || 0.8}
-                      onChange={(e) =>
-                        handleUpdate(
-                          "consoleOpacity",
-                          parseFloat(e.target.value),
-                        )
-                      }
-                      className="w-full h-1 bg-white/5 rounded-full appearance-none cursor-pointer accent-primary"
-                    />
-                  </div>
-                </div>
+        {/* Center & Right Columns */}
+        <div className="lg:col-span-9 space-y-6">
+          {/* Live Preview */}
+          <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+            <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6">
+              Live Preview
+            </h2>
+            <MiniPreview theme={theme} />
+          </section>
+
+          {/* Effects & Atmosphere Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Interactive Effects */}
+            <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+              <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6">
+                Interactive Effects
+              </h2>
+              <div className="space-y-5">
+                <SliderControl
+                  label="Corner Roundness"
+                  value={theme.borderRadius || 12}
+                  min={0}
+                  max={32}
+                  step={2}
+                  unit="px"
+                  onChange={(val) => handleUpdate("borderRadius", val)}
+                />
+                <SliderControl
+                  label="Glass Blur"
+                  value={theme.glassBlur}
+                  min={0}
+                  max={40}
+                  step={1}
+                  unit="px"
+                  onChange={(val) => handleUpdate("glassBlur", val)}
+                />
+                <SliderControl
+                  label="Sidebar Glow"
+                  value={Math.round((theme.sidebarGlow || 0.3) * 100)}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(val) => handleUpdate("sidebarGlow", val / 100)}
+                />
+                <SliderControl
+                  label="Panel Opacity"
+                  value={Math.round((theme.panelOpacity || 0.85) * 100)}
+                  min={10}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(val) => handleUpdate("panelOpacity", val / 100)}
+                />
+                <SliderControl
+                  label="Console Opacity"
+                  value={Math.round((theme.consoleOpacity || 0.8) * 100)}
+                  min={10}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(val) => handleUpdate("consoleOpacity", val / 100)}
+                />
               </div>
             </section>
 
-            <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5">
+            {/* Atmosphere */}
+            <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
               <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6">
                 Atmosphere
               </h2>
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div
                   onClick={handleSelectBackground}
                   className="aspect-video rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-white/5 hover:border-primary/50 transition-all group overflow-hidden relative"
@@ -590,27 +477,15 @@ function Styling() {
 
                 {theme.bgMedia?.url && (
                   <div className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <label className="text-sm font-bold text-gray-300">
-                          Overlay Intensity
-                        </label>
-                        <span className="text-[10px] font-mono text-primary">
-                          {Math.round((theme.bgOverlay || 0.4) * 100)}%
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.05"
-                        value={theme.bgOverlay || 0.4}
-                        onChange={(e) =>
-                          handleUpdate("bgOverlay", parseFloat(e.target.value))
-                        }
-                        className="w-full h-1 bg-white/5 rounded-full appearance-none cursor-pointer accent-primary"
-                      />
-                    </div>
+                    <SliderControl
+                      label="Overlay Intensity"
+                      value={Math.round((theme.bgOverlay || 0.4) * 100)}
+                      min={0}
+                      max={100}
+                      step={5}
+                      unit="%"
+                      onChange={(val) => handleUpdate("bgOverlay", val / 100)}
+                    />
                     <button
                       onClick={async () => {
                         if (theme.bgMedia.url) {
@@ -618,8 +493,11 @@ function Styling() {
                         }
                         handleUpdate("bgMedia", { url: "", type: "none" });
                       }}
-                      className="text-[10px] font-bold text-red-500 hover:text-red-400 flex items-center gap-1 mx-auto"
+                      className="text-xs font-bold text-red-500 hover:text-red-400 flex items-center gap-2 mx-auto transition-colors"
                     >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
                       Remove Background
                     </button>
                   </div>
@@ -628,74 +506,32 @@ function Styling() {
             </section>
           </div>
 
+          {/* Action Buttons */}
           <div className="flex justify-end gap-3">
             <button
               onClick={loadTheme}
-              className="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-8 py-3 rounded-xl font-bold transition-all text-sm"
+              className="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-6 py-3 rounded-xl font-bold transition-all text-sm border border-white/5 hover:border-white/10"
             >
               Reset
             </button>
             <button
               onClick={handleExportTheme}
-              className="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-8 py-3 rounded-xl font-bold transition-all text-sm border border-white/10"
+              className="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-6 py-3 rounded-xl font-bold transition-all text-sm border border-white/5 hover:border-white/10 flex items-center gap-2"
             >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
               Export Theme
             </button>
             <button
               onClick={handleSave}
-              className="bg-primary hover:scale-[1.02] active:scale-95 text-black px-12 py-3 rounded-xl font-black shadow-2xl shadow-primary/30 transition-all text-sm"
+              className="bg-primary hover:bg-primary-hover text-black px-8 py-3 rounded-xl font-black shadow-lg shadow-primary/30 transition-all text-sm hover:scale-[1.02] active:scale-95"
             >
               Save Theme
             </button>
           </div>
         </div>
       </div>
-
-      {/* Save Preset Modal */}
-      {showSaveModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-surface border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
-            <h2 className="text-xl font-black text-white mb-6 uppercase tracking-wider">Save Custom Preset</h2>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Display Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. My Awesome Theme"
-                  value={newPreset.name}
-                  onChange={(e) => setNewPreset({ ...newPreset, name: e.target.value })}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-colors"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Handle (Filename)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. awesome-theme"
-                  value={newPreset.handle}
-                  onChange={(e) => setNewPreset({ ...newPreset, handle: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') })}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-primary/50 transition-colors"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-8">
-              <button
-                onClick={() => setShowSaveModal(false)}
-                className="flex-1 px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSavePreset}
-                disabled={!newPreset.name || !newPreset.handle}
-                className="flex-1 px-6 py-3 rounded-xl bg-primary hover:bg-primary-hover text-black font-black transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
-              >
-                Export
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
