@@ -38,10 +38,10 @@ const Extensions = () => {
     };
 
     return (
-        <div className="p-8 text-white h-full overflow-y-auto max-w-7xl mx-auto">
+        <div className="p-8 text-white h-full overflow-y-auto">
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-green-400">Extensions</h1>
+                    <h1 className="text-3xl font-bold text-white">Extensions</h1>
                     <p className="text-gray-400 mt-1">Manage and configure your installed extensions.</p>
                 </div>
                 <button 
