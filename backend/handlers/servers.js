@@ -1204,14 +1204,12 @@ eula=false
     // Download server software
     ipcMain.handle('server:download-software', async (event, data) => {
         try {
-            const { name, downloadUrl } = data;
+            const { platform, version, downloadUrl } = data;
 
-            const serversDir = path.join(app.getPath('userData'), 'servers');
-            const safeName = sanitizeFileName(name);
-            const serverDir = path.join(serversDir, safeName);
-            const jarPath = path.join(serverDir, 'server.jar');
+            const downloadsDir = app.getPath('downloads');
+            const jarPath = path.join(downloadsDir, `${platform}-${version}.jar`);
 
-            await downloadServerJar(downloadUrl, jarPath, name, mainWindow);
+            await downloadServerJar(downloadUrl, jarPath, `${platform} ${version}`, mainWindow);
 
             return { success: true };
         } catch (error) {
@@ -1358,6 +1356,60 @@ eula=false
 
         for (const interval of serverStatsIntervals.values()) {
             clearInterval(interval);
+        }
+    });
+
+    // Server Settings Handlers
+    const serverSettingsPath = path.join(app.getPath('userData'), 'serverSettings.json');
+
+    const defaultServerSettings = {
+        serverPath: '',
+        backupPath: '',
+        autoBackup: false,
+        backupInterval: 24,
+        maxBackups: 5,
+        defaultMemory: '4096',
+        defaultPort: '25565',
+        defaultMaxPlayers: '20',
+        autoop: false
+    };
+
+    ipcMain.handle('server:get-settings', async () => {
+        try {
+            if (await fs.pathExists(serverSettingsPath)) {
+                const settings = await fs.readJson(serverSettingsPath);
+                return { success: true, settings: { ...defaultServerSettings, ...settings } };
+            }
+            return { success: true, settings: defaultServerSettings };
+        } catch (error) {
+            console.error('[Servers] Failed to get server settings:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('server:save-settings', async (_, newSettings) => {
+        try {
+            await fs.writeJson(serverSettingsPath, newSettings, { spaces: 2 });
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('server:settings-updated', newSettings);
+            }
+            return { success: true };
+        } catch (error) {
+            console.error('[Servers] Failed to save server settings:', error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('dialog:select-folder', async () => {
+        const { dialog } = require('electron');
+        try {
+            const result = await dialog.showOpenDialog({
+                properties: ['openDirectory']
+            });
+            return result;
+        } catch (error) {
+            console.error('[Servers] Error in folder selection:', error);
+            return { success: false, error: error.message };
         }
     });
 

@@ -13,6 +13,10 @@ yarn-error.log*
 .env.local
 .env.*.local
 
+# testfiles
+*.bat
+*.sh
+
 # Production and test build outputs
 dist/
 dist/**

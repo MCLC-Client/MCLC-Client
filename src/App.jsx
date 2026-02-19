@@ -18,6 +18,7 @@ const Extensions = React.lazy(() => import('./pages/Extensions'));
 
 import Sidebar from './components/Sidebar';
 import ServerSidebar from './components/ServerSidebar';
+// Minigames removed
 import RightPanel from './components/RightPanel';
 
 class ErrorBoundary extends React.Component {
@@ -351,7 +352,11 @@ function App() {
 
     const handleModeSelect = (mode) => {
         setCurrentMode(mode);
-        setCurrentView(mode === 'client' ? 'dashboard' : 'server-dashboard');
+        if (mode === 'client') {
+            setCurrentView('dashboard');
+        } else if (mode === 'server') {
+            setCurrentView('server-dashboard');
+        }
         setSelectedInstance(null);
         setSelectedServer(null);
         setShowModeMenu(false);
@@ -442,6 +447,7 @@ function App() {
                                             </svg>
                                         )}
                                     </button>
+                                    {/* Minigames menu removed */}
                                 </div>
                             )}
                         </div>
@@ -554,6 +560,8 @@ function App() {
                         { }
                         {currentMode === 'client' ? (
                             <Sidebar currentView={currentView} setView={setCurrentView} onLogout={handleLogout} onInstanceClick={handleInstanceClick} onCreateInstance={() => { setCurrentView('library'); setTriggerCreateInstance(true); }} />
+                        ) : currentMode === 'server' ? (
+                            <ServerSidebar currentView={currentView} setView={setCurrentView} onLogout={handleLogout} />
                         ) : (
                             <ServerSidebar currentView={currentView} setView={setCurrentView} onLogout={handleLogout} />
                         )}
@@ -607,6 +615,9 @@ function App() {
                                             {currentView === 'server-settings' && <ServerSettings />}
                                         </>
                                     )}
+
+                                    { }
+                                    {/* Minigames mode removed */}
                                 </React.Suspense>
                             </div>
                         </main>

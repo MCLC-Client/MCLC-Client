@@ -12,7 +12,8 @@ function ServerSettings() {
         maxBackups: 5,
         defaultMemory: '4096',
         defaultPort: '25565',
-        defaultMaxPlayers: '20'
+        defaultMaxPlayers: '20',
+        autoop: false
     });
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -218,6 +219,19 @@ function ServerSettings() {
                                 min="1"
                                 max="100"
                             />
+                        </div>
+
+                        <div className="col-span-2 flex items-center gap-3 pt-2">
+                            <input
+                                type="checkbox"
+                                id="autoop"
+                                checked={settings.autoop}
+                                onChange={(e) => handleChange('autoop', e.target.checked)}
+                                className="w-4 h-4 accent-primary"
+                            />
+                            <label htmlFor="autoop" className="text-gray-300">
+                                Automatically op (operator) server creator on server creation
+                            </label>
                         </div>
                     </div>
                 </div>

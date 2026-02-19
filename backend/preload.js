@@ -173,6 +173,9 @@ const electronAPI = {
     acceptServerEula: (serverName) => ipcRenderer.invoke('server:accept-eula', serverName),
     checkPlayitAvailable: (software, version) => ipcRenderer.invoke('server:check-playit-available', software, version),
     installPlayitPlugin: (serverName) => ipcRenderer.invoke('server:install-playit', serverName),
+    getServerSettings: () => ipcRenderer.invoke('server:get-settings'),
+    saveServerSettings: (settings) => ipcRenderer.invoke('server:save-settings', settings),
+    selectFolder: () => ipcRenderer.invoke('dialog:select-folder'),
     onServerStatus: (callback) => {
         const subscription = (_event, value) => callback(value);
         ipcRenderer.on('server:status', subscription);
