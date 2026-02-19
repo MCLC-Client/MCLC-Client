@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCLC - Extension Details</title>
+    <link rel="icon" type="image/png" href="/resources/icon.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+
+    <link rel="stylesheet" href="/style.css?v=2">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1bd96a",
+                        "primary-dark": "#14a34f",
+                        surface: "#121212",
+                        background: "#080808",
+                        "accent-dark": "#0f0f0f",
+                    },
+                    fontFamily: {
+                        sans: ["Outfit", "Poppins", "sans-serif"],
+                    },
+                    boxShadow: {
+                        "primary-glow": "0 0 30px rgba(27, 217, 106, 0.25)",
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+
+<body class="bg-background text-gray-200 selection:bg-primary/30 antialiased overflow-x-hidden">
+
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300"
+        id="navbar">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12">
+            <div class="flex items-center justify-between h-20">
+                <a href="/index.html" class="flex items-center gap-3 group shrink-0">
+                    <img src="/resources/icon.png" alt="MCLC Logo"
+                        class="w-10 h-10 object-contain group-hover:scale-110 transition-transform duration-300" />
+                    <span class="text-2xl font-extrabold tracking-tighter text-white">MCLC</span>
+                </a>
+
+                <div
+                    class="hidden md:flex items-center gap-10 text-sm font-semibold tracking-wide uppercase text-gray-400">
+                    <a href="/index.html#features" class="hover:text-primary transition-colors">Features</a>
+                    <a href="/extensions.html" class="hover:text-primary transition-colors">Extensions</a>
+                    <a href="https://github.com/Fernsehheft/MCLC-Client" class="hover:text-primary transition-colors"
+                        target="_blank">GitHub</a>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <a id="downloadNavBtn" href="#"
+                        class="bg-primary hover:bg-primary-dark text-black px-6 py-2.5 rounded-xl font-bold transition-all shadow-primary-glow transform hover:scale-105 active:scale-95 shrink-0 whitespace-nowrap">
+                        Download MCLC
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Project Hero Header -->
+    <section class="relative pt-32 pb-16 px-6 overflow-hidden">
+        <div id="hero-banner-bg" class="absolute inset-0 z-0 opacity-20 blur-3xl scale-125 pointer-events-none">
+            <!-- Dynamic Banner Image will be set here -->
+        </div>
+
+        <div class="relative z-10 max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
+            <!-- Big Banner/Icon -->
+            <div
+                class="w-full md:w-3/5 aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-surface/50">
+                <img id="extension-banner" src="/resources/icon.png" alt="Banner" class="w-full h-full object-cover">
+            </div>
+
+            <!-- Header Info -->
+            <div class="w-full md:w-2/5 text-center md:text-left">
+                <div class="flex items-center justify-center md:justify-start gap-3 mb-4">
+                    <span id="extension-type"
+                        class="text-[10px] font-black text-primary uppercase tracking-[0.2em] bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-lg">Extension</span>
+                    <span id="extension-version"
+                        class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">v1.0.0</span>
+                </div>
+                <h1 id="extension-name" class="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">
+                    Loading...</h1>
+                <p id="extension-summary" class="text-gray-400 text-lg mb-8 leading-relaxed">...</p>
+
+                <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                    <a id="download-btn" href="#" download
+                        class="bg-primary hover:bg-primary-dark text-black px-8 py-4 rounded-2xl font-black transition-all shadow-primary-glow transform hover:scale-[1.02] active:scale-95 text-center flex items-center justify-center gap-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pb-32 px-6">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+            <!-- Main Content -->
+            <div class="lg:col-span-8 space-y-12">
+                <!-- Overview -->
+                <div class="bg-surface/30 border border-white/5 p-8 md:p-12 rounded-[2.5rem] backdrop-blur-md">
+                    <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Overview
+                    </h2>
+                    <div id="extension-description" class="text-gray-400 leading-relaxed whitespace-pre-wrap text-lg">
+                        ...
+                    </div>
+                </div>
+
+                <!-- Installation -->
+                <div class="bg-surface/30 border border-white/5 p-8 md:p-12 rounded-[2.5rem] backdrop-blur-md">
+                    <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Installation
+                    </h2>
+                    <div class="space-y-4">
+                        <div class="flex gap-4">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">
+                                1</div>
+                            <p class="text-gray-400">Download the extension file using the button above.</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">
+                                2</div>
+                            <p class="text-gray-400">Open MCLC Launcher and go to the <b>Extensions</b> tab.</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">
+                                3</div>
+                            <p class="text-gray-400">Click on <b>Import</b> and select the downloaded file.</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">
+                                4</div>
+                            <p class="text-gray-400">Restart the launcher or the instance to apply changes.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="lg:col-span-4 space-y-8">
+                <!-- Info Card -->
+                <div class="bg-surface/50 border border-white/10 p-8 rounded-[2.5rem] sticky top-28">
+                    <h3 class="text-xl font-bold text-white mb-6 tracking-tight">Project Info</h3>
+
+                    <div class="space-y-6">
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-500 font-medium">Developer</span>
+                            <div class="flex items-center gap-2">
+                                <img id="dev-avatar" src=""
+                                    class="w-6 h-6 rounded-full bg-white/10 overflow-hidden hidden" alt="">
+                                <span id="dev-name" class="text-white font-bold">...</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-500 font-medium">Downloads</span>
+                            <span id="downloads-count" class="text-white font-bold">0</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-500 font-medium">Released</span>
+                            <span id="release-date" class="text-white font-bold">...</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-500 font-medium">Identifier</span>
+                            <span id="ext-identifier"
+                                class="text-primary font-mono text-sm bg-primary/5 px-2 py-1 rounded">...</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 pt-8 border-t border-white/5 space-y-4">
+                        <p class="text-xs font-black text-gray-500 uppercase tracking-widest">Trust & Quality</p>
+                        <div class="flex items-center gap-3 text-sm text-gray-400">
+                            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            Verified Extension
+                        </div>
+                        <div class="flex items-center gap-3 text-sm text-gray-400">
+                            <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            Secure Download
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <script>
+        // Fetch Extension Data
+        async function loadExtensionData() {
+            const pathParts = window.location.pathname.split('/');
+            const identifier = pathParts[pathParts.length - 1];
+
+            try {
+                const response = await fetch(`/api/extensions/i/${identifier}`);
+                if (!response.ok) throw new Error('Not found');
+                const ext = await response.json();
+
+                // Update UI
+                document.title = `MCLC - ${ext.name}`;
+                document.getElementById('extension-name').textContent = ext.name;
+                document.getElementById('extension-summary').textContent = ext.summary || ext.name;
+                document.getElementById('extension-description').textContent = ext.description;
+                document.getElementById('extension-type').textContent = ext.type;
+                document.getElementById('downloads-count').textContent = (ext.downloads || 0).toLocaleString();
+                document.getElementById('release-date').textContent = new Date(ext.created_at).toLocaleDateString('de-DE');
+                document.getElementById('dev-name').textContent = ext.developer || 'Anonym';
+                document.getElementById('ext-identifier').textContent = ext.identifier;
+
+                if (ext.developer_avatar) {
+                    const avatar = document.getElementById('dev-avatar');
+                    avatar.src = ext.developer_avatar;
+                    avatar.classList.remove('hidden');
+                }
+
+                const bannerImg = ext.banner_path ? (ext.banner_path.startsWith('http') ? ext.banner_path : `/uploads/${ext.banner_path}`) : '/resources/icon.png';
+                document.getElementById('extension-banner').src = bannerImg;
+
+                // Set background blurred image
+                document.getElementById('hero-banner-bg').style.backgroundImage = `url('${bannerImg}')`;
+                document.getElementById('hero-banner-bg').style.backgroundSize = 'cover';
+                document.getElementById('hero-banner-bg').style.backgroundPosition = 'center';
+
+                // Download Button
+                const downloadBtn = document.getElementById('download-btn');
+                downloadBtn.href = ext.file_path.startsWith('http') ? ext.file_path : `/uploads/${ext.file_path}`;
+
+            } catch (err) {
+                console.error(err);
+                document.body.innerHTML = `
+                    <div class="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+                        <h1 class="text-6xl font-black text-white mb-4">404</h1>
+                        <p class="text-gray-400 text-xl mb-8">Extension "${identifier}" wurde nicht gefunden oder noch nicht freigegeben.</p>
+                        <a href="/extensions.html" class="bg-primary text-black px-8 py-3 rounded-xl font-bold">Zurück zur Übersicht</a>
+                    </div>
+                `;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadExtensionData);
+    </script>
+
+</body>
+
+</html>

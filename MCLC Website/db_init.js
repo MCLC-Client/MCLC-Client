@@ -21,7 +21,6 @@ const createTables = async () => {
         `);
         console.log('[Database] Users table checked/created.');
 
-        // 2. Extensions Table
         await connection.query(`
             CREATE TABLE IF NOT EXISTS extensions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -41,6 +40,31 @@ const createTables = async () => {
             )
         `);
         console.log('[Database] Extensions table checked/created.');
+
+        // Migration: Ensure new columns exist if table was created previously
+        const [columns] = await connection.query('SHOW COLUMNS FROM extensions');
+        const columnNames = columns.map(c => c.Field);
+
+        if (!columnNames.includes('identifier')) {
+            await connection.query('ALTER TABLE extensions ADD COLUMN identifier VARCHAR(100) UNIQUE AFTER name');
+            console.log('[Database] Added identifier column to extensions.');
+        }
+        if (!columnNames.includes('summary')) {
+            await connection.query('ALTER TABLE extensions ADD COLUMN summary VARCHAR(255) AFTER identifier');
+            console.log('[Database] Added summary column to extensions.');
+        }
+        if (!columnNames.includes('banner_path')) {
+            await connection.query('ALTER TABLE extensions ADD COLUMN banner_path VARCHAR(255) AFTER file_path');
+            console.log('[Database] Added banner_path column to extensions.');
+        }
+        if (!columnNames.includes('type')) {
+            await connection.query("ALTER TABLE extensions ADD COLUMN type ENUM('extension', 'theme') DEFAULT 'extension' AFTER description");
+            console.log('[Database] Added type column to extensions.');
+        }
+        if (!columnNames.includes('visibility')) {
+            await connection.query("ALTER TABLE extensions ADD COLUMN visibility ENUM('public', 'unlisted') DEFAULT 'public' AFTER type");
+            console.log('[Database] Added visibility column to extensions.');
+        }
 
         connection.release();
         return true;

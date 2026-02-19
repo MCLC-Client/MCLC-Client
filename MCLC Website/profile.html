@@ -106,18 +106,51 @@
                     <form id="uploadForm" class="space-y-6">
                         <div>
                             <label class="block text-gray-500 text-sm font-bold mb-2">Extension Name</label>
-                            <input type="text" name="name" required
+                            <input type="text" name="name" required placeholder="My Amazing Extension"
+                                class="w-full bg-background border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary focus:outline-none transition-colors">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-500 text-sm font-bold mb-2">Identifier (Slug)</label>
+                                <input type="text" name="identifier" required placeholder="my-extension"
+                                    pattern="[a-z0-9\-]+"
+                                    class="w-full bg-background border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary focus:outline-none transition-colors">
+                                <p class="text-[10px] text-gray-600 mt-1">Nur Kleinbuchstaben, Zahlen und Bindestriche.
+                                </p>
+                            </div>
+                            <div>
+                                <label class="block text-gray-500 text-sm font-bold mb-2">Type</label>
+                                <select name="type"
+                                    class="w-full bg-background border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary focus:outline-none transition-colors">
+                                    <option value="extension">Extension</option>
+                                    <option value="theme">Theme</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-500 text-sm font-bold mb-2">Summary (Short)</label>
+                            <input type="text" name="summary" required placeholder="A brief overview of your extension"
                                 class="w-full bg-background border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary focus:outline-none transition-colors">
                         </div>
                         <div>
-                            <label class="block text-gray-500 text-sm font-bold mb-2">Description</label>
-                            <textarea name="description" required rows="3"
+                            <label class="block text-gray-500 text-sm font-bold mb-2">Full Description</label>
+                            <textarea name="description" required rows="4"
+                                placeholder="Detailed instructions and features..."
                                 class="w-full bg-background border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary focus:outline-none transition-colors"></textarea>
                         </div>
-                        <div>
-                            <label class="block text-gray-500 text-sm font-bold mb-2">File (.js, .zip)</label>
-                            <input type="file" name="extensionFile" required
-                                class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-black hover:file:bg-primary-dark transition-all">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-500 text-sm font-bold mb-2">Extension File (.js,
+                                    .zip)</label>
+                                <input type="file" name="extensionFile" required
+                                    class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-black hover:file:bg-primary-dark transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-gray-500 text-sm font-bold mb-2">Banner Image
+                                    (Optional)</label>
+                                <input type="file" name="bannerImage" accept="image/*"
+                                    class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-black hover:file:bg-primary-dark transition-all">
+                            </div>
                         </div>
                         <button type="submit"
                             class="w-full bg-primary hover:bg-primary-dark text-black px-6 py-3 rounded-xl font-bold transition-all shadow-primary-glow">Submit

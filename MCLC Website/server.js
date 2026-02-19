@@ -361,16 +361,44 @@ app.get('/api/extensions', async (req, res) => {
     }
 });
 
-app.post('/api/extensions/upload', ensureAuthenticated, upload.single('extensionFile'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    const { name, description } = req.body;
-    const filePath = '/uploads/' + req.file.filename;
+app.post('/api/extensions/upload', ensureAuthenticated, upload.fields([
+    { name: 'extensionFile', maxCount: 1 },
+    { name: 'bannerImage', maxCount: 1 }
+]), async (req, res) => {
+    const files = req.files;
+    if (!files || !files.extensionFile) return res.status(400).json({ error: 'No extension file uploaded' });
+
+    const { name, description, identifier, summary, type } = req.body;
+    const filePath = '/uploads/' + files.extensionFile[0].filename;
+    const bannerPath = files.bannerImage ? '/uploads/' + files.bannerImage[0].filename : null;
+
     try {
         await pool.query(
-            'INSERT INTO extensions (user_id, name, description, file_path) VALUES (?, ?, ?, ?)',
-            [req.user.id, name, description, filePath]
+            'INSERT INTO extensions (user_id, name, identifier, summary, description, type, file_path, banner_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [req.user.id, name, identifier, summary, description, type || 'extension', filePath, bannerPath]
         );
         res.json({ success: true });
+    } catch (err) {
+        console.error('Upload Error:', err);
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ error: 'Identifier already exists' });
+        }
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+app.get('/api/extensions/i/:identifier', async (req, res) => {
+    const { identifier } = req.params;
+    try {
+        const [rows] = await pool.query(`
+            SELECT extensions.*, users.username as developer, users.avatar as developer_avatar
+            FROM extensions 
+            LEFT JOIN users ON extensions.user_id = users.id 
+            WHERE extensions.identifier = ? AND extensions.status = "approved"
+        `, [identifier]);
+
+        if (rows.length === 0) return res.status(404).json({ error: 'Extension not found' });
+        res.json(rows[0]);
     } catch (err) {
         res.status(500).json({ error: 'Database error' });
     }
@@ -502,6 +530,13 @@ app.use(express.static(adminPublicPath));
 
 // Serve uploads
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
+// Dynamic route for individual extension pages
+app.get('/extensions/:identifier', (req, res) => {
+    // If the identifier corresponds to a file that exists, let express.static handle it
+    // But since we want dynamic pages, we'll serve the template
+    res.sendFile(path.join(__dirname, 'extension_detail.html'));
+});
 
 // Initialize Codes System
 codesSystem(app, ADMIN_PASSWORD);
