@@ -134,12 +134,12 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
 
     const getToday = () => {
         const date = new Date();
-        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+        return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
     };
 
     const selectTodaysModId = (ids) => {
         if (!ids || ids.length === 0) return;
-        
+
         const today = getToday();
         const savedData = localStorage.getItem('modOfTheDay');
         let data = savedData ? JSON.parse(savedData) : {};
@@ -238,10 +238,19 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
 
     const loadNewModOfTheDay = async () => {
         if (modIds.length === 0) return;
-        const newId = selectRandomModId(modIds);
-        if (newId) {
-            setCurrentModId(newId);
-        }
+
+        const today = getToday();
+        const randomIndex = Math.floor(Math.random() * modIds.length);
+        const newId = modIds[randomIndex];
+
+        // Neue Mod mit Datum speichern
+        const data = {
+            date: today,
+            id: newId
+        };
+        localStorage.setItem('modOfTheDay', JSON.stringify(data));
+
+        setCurrentModId(newId);
     };
 
     const recentInstances = [...instances]
