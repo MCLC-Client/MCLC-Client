@@ -14,6 +14,18 @@ const serverStartTimes = new Map();
 
 const serverConsoleBuffers = new Map();
 
+function stripAnsi(text) {
+    if (!text) return '';
+    // Strips ANSI escape codes
+    const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
+    let clean = text.replace(ansiRegex, '');
+
+    clean = clean.replace(/[┌┐└┘─│┤├┬┴┼═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬■●]/g, ' ');
+
+    // Remove other weird control characters but keep most printable symbols
+    return clean.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+}
+
 function sanitizeFileName(name) {
     return name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 }
@@ -93,36 +105,43 @@ async function downloadPlayitPlugin(serverDir, software, version, serverName, ma
         console.log(`[Servers] Checking Playit plugin for ${software} ${version}`);
         const loaderMap = {
             'paper': 'paper',
-            'purpur': 'purpur',
-            'spigot': 'spigot',
-            'bukkit': 'bukkit',
-            'folia': 'folia',
+            'purpur': 'paper',
+            'spigot': 'paper',
+            'bukkit': 'paper',
+            'folia': 'paper',
             'fabric': 'fabric',
             'forge': 'forge',
             'neoforge': 'neoforge',
+            'quilt': 'quilt',
             'vanilla': 'vanilla'
         };
 
-        const loader = loaderMap[software.toLowerCase()];
+        const softwareLower = software.toLowerCase();
+        let loader = loaderMap[softwareLower];
+
+        // Paper, Purpur, Spigot etc are technically 'paper' in our map, 
+        // but we should check if they are plugins or mods.
         if (!loader || loader === 'vanilla') {
-            console.log(`[Servers] ${software} doesn't support plugins or is vanilla, skipping Playit plugin`);
             return false;
         }
-        const projectId = 'og7kbNBC';
+
+        const projectId = 'og7kbNBC'; // Playit-gg Modrinth ID
         const versionsResponse = await axios.get(`https://api.modrinth.com/v2/project/${projectId}/version`, {
-            headers: {
-                'User-Agent': 'Antigravity/MinecraftLauncher/1.0'
-            }
+            headers: { 'User-Agent': 'Antigravity/MinecraftLauncher/1.0' }
         });
 
         if (!versionsResponse.data || versionsResponse.data.length === 0) {
             console.log('[Servers] No versions found for Playit plugin');
             return false;
         }
-        const matchingVersion = versionsResponse.data.find(v => {
 
+        // Broaden matching for paper-like loaders
+        const isPaperLike = ['paper', 'spigot', 'bukkit', 'purpur', 'folia'].includes(softwareLower);
+        const targetLoaders = isPaperLike ? ['paper', 'spigot', 'bukkit'] : [loader.toLowerCase()];
+
+        const matchingVersion = versionsResponse.data.find(v => {
             const supportsLoader = v.loaders.some(l =>
-                l.toLowerCase() === loader.toLowerCase()
+                targetLoaders.includes(l.toLowerCase())
             );
             const supportsGameVersion = v.game_versions.some(gv =>
                 gv === version
@@ -152,8 +171,6 @@ async function downloadPlayitPlugin(serverDir, software, version, serverName, ma
 
         console.log(`[Servers] Downloading Playit plugin v${matchingVersion.version_number} for ${software} ${version}`);
         let pluginDir;
-        const softwareLower = software.toLowerCase();
-
         if (['fabric', 'forge', 'neoforge', 'quilt'].includes(softwareLower)) {
 
             pluginDir = path.join(serverDir, 'mods');
@@ -234,25 +251,29 @@ async function getProcessStats(pid) {
                         return;
                     }
 
-                    const lines = stdout.trim().split('\n');
+                    const lines = stdout.trim().split('\r\n').filter(l => l.trim());
                     if (lines.length > 0) {
+                        // "Image Name","PID","Session Name","Session#","Mem Usage"
+                        // parts might be split by commas within quotes. 
+                        // Simplified regex to match the last quoted part which is usually memory.
+                        const matches = lines[0].match(/"([^"]+)"/g);
+                        if (matches && matches.length >= 5) {
+                            const memStr = matches[4].replace(/[",]/g, '').trim();
+                            let memoryMB = 0;
+                            // tasklist memory is usually in K (e.g. "150.000 K")
+                            const val = parseInt(memStr.replace(/[^\d]/g, ''));
+                            if (memStr.includes('K')) memoryMB = val / 1024;
+                            else if (memStr.includes('M')) memoryMB = val;
+                            else if (memStr.includes('G')) memoryMB = val * 1024;
+                            else memoryMB = val / (1024 * 1024);
 
-                        const parts = lines[0].split('","');
-                        if (parts.length >= 5) {
-                            const memStr = parts[4].replace(/[",]/g, '').trim();
-                            let memory = 0;
-                            if (memStr.endsWith('K')) memory = parseInt(memStr) / 1024;
-                            else if (memStr.endsWith('M')) memory = parseInt(memStr);
-                            else if (memStr.endsWith('G')) memory = parseInt(memStr) * 1024;
-                            else memory = parseInt(memStr) / (1024 * 1024);
-
-                            // Get CPU usage
-                            exec(`wmic process where ProcessId=${pid} get PercentProcessorTime`, (error, stdout) => {
-                                const cpuMatch = stdout.match(/(\d+)/);
-                                const cpu = cpuMatch ? parseInt(cpuMatch[0]) : Math.random() * 30 + 5;
+                            // Get CPU usage using PowerShell for more reliable Percentage values
+                            const psCmd = `powershell -Command "Get-WmiObject -Class Win32_PerfFormattedData_PerfProc_Process -Filter \\"IDProcess=${pid}\\" | Select-Object -ExpandProperty PercentProcessorTime"`;
+                            exec(psCmd, (error, stdout) => {
+                                const cpuVal = parseInt(stdout.trim());
                                 resolve({
-                                    cpu: Math.min(Math.round(cpu), 100),
-                                    memory: Math.round(memory)
+                                    cpu: isNaN(cpuVal) ? 0 : Math.min(cpuVal, 100),
+                                    memory: Math.round(memoryMB) || 1
                                 });
                             });
                         } else {
@@ -290,6 +311,31 @@ async function getProcessStats(pid) {
         return { cpu: 0, memory: 0 };
     }
 }
+
+
+
+async function getServerConfig(serverName) {
+    try {
+        const serversDir = path.join(app.getPath('userData'), 'servers');
+        const safeName = sanitizeFileName(serverName);
+        const configPath = path.join(serversDir, safeName, 'server.json');
+
+        if (!await fs.pathExists(configPath)) return null;
+
+        const config = await fs.readJson(configPath);
+
+        const proc = serverProcesses.get(serverName);
+        if (proc && !proc.killed) {
+            config.status = 'running';
+        }
+
+        return config;
+    } catch (error) {
+        return null;
+    }
+}
+
+
 
 // Start collecting server stats
 function startServerStatsCollection(serverName, process, mainWindow) {
@@ -421,20 +467,37 @@ eula=true
                 const configPath = path.join(serversDir, dir, 'server.json');
                 if (await fs.pathExists(configPath)) {
                     try {
-                        const config = await fs.readJson(configPath);
+                        let config = await fs.readJson(configPath);
+                        let needsUpdate = false;
 
                         // Check if process is still running
-                        const process = serverProcesses.get(config.name);
-                        if (process && !process.killed) {
-                            config.status = 'running';
+                        const activeProc = serverProcesses.get(config.name);
+                        if (activeProc && !activeProc.killed) {
+                            if (config.status !== 'running') {
+                                config.status = 'running';
+                                needsUpdate = true;
+                            }
                         } else {
-                            config.status = 'stopped';
+                            // If not running in memory, it should be stopped 
+                            // unless it's a transient state we want to preserve (like downloading/installing)
+                            if (config.status !== 'downloading' && config.status !== 'installing') {
+                                if (config.status !== 'stopped') {
+                                    config.status = 'stopped';
+                                    needsUpdate = true;
+                                }
+                            }
                             config.pid = null;
+                        }
+
+
+
+                        if (needsUpdate) {
+                            await fs.writeJson(configPath, config, { spaces: 4 });
                         }
 
                         servers.push(config);
                     } catch (err) {
-                        console.error(`Error reading server config for ${dir}:`, err);
+                        console.error(`Error reading/updating server config for ${dir}:`, err);
                     }
                 }
             }
@@ -444,6 +507,54 @@ eula=true
             console.error('Error getting servers:', error);
             return [];
         }
+    });
+
+    // Get server status
+    ipcMain.handle('server:get-status', async (event, name) => {
+        try {
+            const process = serverProcesses.get(name);
+            if (process && !process.killed) {
+                return 'running';
+            }
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(name);
+            const configPath = path.join(serversDir, safeName, 'server.json');
+
+            if (await fs.pathExists(configPath)) {
+                const config = await fs.readJson(configPath);
+                // Memory is truth
+                const proc = serverProcesses.get(name);
+                if (proc && !proc.killed) return 'running';
+
+                return config.status === 'starting' || config.status === 'stopping' ? 'stopped' : (config.status || 'stopped');
+            }
+            return 'stopped';
+        } catch (error) {
+            console.error('Error getting server status:', error);
+            return 'stopped';
+        }
+    });
+
+    app.on('before-quit', (e) => {
+        console.log('[Servers] App quitting, cleaning up processes...');
+
+        for (const [name, proc] of serverProcesses.entries()) {
+            if (proc && !proc.killed) {
+                console.log(`[Servers] Force killing server ${name} before quit`);
+                if (process.platform === 'win32') {
+                    // Use execSync to ensure it completes before the app exits
+                    try {
+                        require('child_process').execSync(`taskkill /F /T /PID ${proc.pid}`, { stdio: 'ignore' });
+                    } catch (err) {
+                        console.error(`Failed to kill process ${proc.pid}:`, err);
+                    }
+                } else {
+                    proc.kill('SIGKILL');
+                }
+            }
+        }
+
+
     });
 
     // Get server logs
@@ -673,8 +784,7 @@ eula=false
                         }
                     }
                 } catch (pluginError) {
-                    console.error(`[Servers] Error installing Playit plugin:`, pluginError);
-                    // Don't fail the server creation if plugin fails
+                    // Silent fail for plugin
                 }
 
                 if (mainWindow && !mainWindow.isDestroyed()) {
@@ -719,6 +829,8 @@ eula=false
                 await fs.remove(serverDir);
             }
 
+
+
             return { success: true };
         } catch (error) {
             console.error('[Servers] Error deleting server:', error);
@@ -728,6 +840,10 @@ eula=false
 
     // Start server
     ipcMain.handle('server:start', async (event, name) => {
+        return await startServerInternal(name, mainWindow);
+    });
+
+    async function startServerInternal(name, mainWindow) {
         try {
             const serversDir = path.join(app.getPath('userData'), 'servers');
             const safeName = sanitizeFileName(name);
@@ -737,7 +853,7 @@ eula=false
             const eulaPath = path.join(serverDir, 'eula.txt');
 
             if (!await fs.pathExists(configPath)) {
-                throw new Error('Server not found');
+                throw new Error('Server configuration not found');
             }
 
             if (!await fs.pathExists(jarPath)) {
@@ -835,6 +951,8 @@ eula=false
                                 server: updatedConfig
                             });
                         }
+
+
                     });
                 }
             });
@@ -856,7 +974,7 @@ eula=false
                 }
             });
 
-            serverProcess.on('exit', (code, signal) => {
+            serverProcess.on('exit', async (code, signal) => {
                 console.log(`[Servers] Server ${name} exited with code ${code}, signal ${signal}`);
 
                 serverProcesses.delete(name);
@@ -867,27 +985,28 @@ eula=false
                     serverStatsIntervals.delete(name);
                 }
 
+
+
                 // Add exit message to buffer
                 const buffer = serverConsoleBuffers.get(name) || [];
                 buffer.push(`[INFO] Server stopped (exit code: ${code})`);
                 serverConsoleBuffers.set(name, buffer);
 
-                updateServerConfig(name, { status: 'stopped', pid: null }).then(updatedConfig => {
-                    if (mainWindow && !mainWindow.isDestroyed()) {
-                        mainWindow.webContents.send('server:status', {
-                            serverName: name,
-                            status: 'stopped',
-                            server: updatedConfig
-                        });
-                        mainWindow.webContents.send('server:console', {
-                            serverName: name,
-                            log: '[INFO] Server stopped'
-                        });
-                    }
-                });
+                const updatedConfig = await updateServerConfig(name, { status: 'stopped', pid: null });
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('server:status', {
+                        serverName: name,
+                        status: 'stopped',
+                        server: updatedConfig
+                    });
+                    mainWindow.webContents.send('server:console', {
+                        serverName: name,
+                        log: '[INFO] Server stopped'
+                    });
+                }
             });
 
-            serverProcess.on('error', (err) => {
+            serverProcess.on('error', async (err) => {
                 console.error(`[Servers] Error starting server ${name}:`, err);
 
                 serverProcesses.delete(name);
@@ -905,15 +1024,19 @@ eula=false
                 updateServerConfig(name, { status: 'stopped', pid: null });
 
                 if (mainWindow && !mainWindow.isDestroyed()) {
+                    const serverObj = await getServerConfig(name);
                     mainWindow.webContents.send('server:status', {
                         serverName: name,
                         status: 'error',
-                        error: err.message
+                        error: err.message,
+                        server: serverObj
                     });
                 }
             });
 
             startServerStatsCollection(name, serverProcess, mainWindow);
+
+
 
             return { success: true };
         } catch (error) {
@@ -926,23 +1049,32 @@ eula=false
             }
 
             if (mainWindow && !mainWindow.isDestroyed()) {
+                const serverObj = await getServerConfig(name);
                 mainWindow.webContents.send('server:status', {
                     serverName: name,
                     status: 'error',
-                    error: error.message
+                    error: error.message,
+                    server: serverObj
                 });
             }
             return { success: false, error: error.message };
         }
-    });
+    }
 
     // Stop server
     ipcMain.handle('server:stop', async (event, name) => {
+        return await stopServerInternal(name, mainWindow);
+    });
+
+    async function stopServerInternal(name, mainWindow) {
         try {
             const process = serverProcesses.get(name);
 
             if (!process || process.killed) {
-                await updateServerConfig(name, { status: 'stopped', pid: null });
+                const configPath = path.join(app.getPath('userData'), 'servers', sanitizeFileName(name), 'server.json');
+                if (await fs.pathExists(configPath)) {
+                    await updateServerConfig(name, { status: 'stopped', pid: null });
+                }
 
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     mainWindow.webContents.send('server:status', {
@@ -968,7 +1100,14 @@ eula=false
                 await new Promise((resolve) => {
                     const timeout = setTimeout(() => {
                         if (serverProcesses.has(name) && !serverProcesses.get(name).killed) {
-                            process.kill('SIGKILL');
+                            console.log(`[Servers] Force killing ${name} (timed out)`);
+                            if (require('os').platform() === 'win32') {
+                                try {
+                                    require('child_process').execSync(`taskkill /F /T /PID ${process.pid}`);
+                                } catch (e) { }
+                            } else {
+                                process.kill('SIGKILL');
+                            }
                         }
                         resolve();
                     }, 10000);
@@ -979,7 +1118,13 @@ eula=false
                     });
                 });
             } else {
-                process.kill('SIGKILL');
+                if (require('os').platform() === 'win32') {
+                    try {
+                        require('child_process').execSync(`taskkill /F /T /PID ${process.pid}`);
+                    } catch (e) { }
+                } else {
+                    process.kill('SIGKILL');
+                }
             }
 
             if (serverStatsIntervals.has(name)) {
@@ -987,8 +1132,7 @@ eula=false
                 serverStatsIntervals.delete(name);
             }
 
-            serverProcesses.delete(name);
-            serverStartTimes.delete(name);
+
 
             await updateServerConfig(name, { status: 'stopped', pid: null });
 
@@ -1004,7 +1148,7 @@ eula=false
             console.error('[Servers] Error stopping server:', error);
             return { success: false, error: error.message };
         }
-    });
+    }
 
     // Restart server
     ipcMain.handle('server:restart', async (event, name) => {
@@ -1018,43 +1162,19 @@ eula=false
             serverConsoleBuffers.set(name, buffer);
 
             // First stop
-            await ipcMain.emit('server:stop', event, name);
+            await stopServerInternal(name, mainWindow);
 
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             // Then start
-            const result = await ipcMain.emit('server:start', event, name);
-
-            return result || { success: true };
+            return await startServerInternal(name, mainWindow);
         } catch (error) {
             console.error('[Servers] Error restarting server:', error);
             return { success: false, error: error.message };
         }
     });
 
-    // Get server status
-    ipcMain.handle('server:get-status', async (event, name) => {
-        try {
-            const process = serverProcesses.get(name);
-            if (process && !process.killed) {
-                return 'running';
-            }
 
-            const serversDir = path.join(app.getPath('userData'), 'servers');
-            const safeName = sanitizeFileName(name);
-            const configPath = path.join(serversDir, safeName, 'server.json');
-
-            if (await fs.pathExists(configPath)) {
-                const config = await fs.readJson(configPath);
-                return config.status || 'stopped';
-            }
-
-            return 'stopped';
-        } catch (error) {
-            console.error('[Servers] Error getting server status:', error);
-            return 'stopped';
-        }
-    });
 
     // Open server folder
     ipcMain.handle('server:open-folder', async (event, name) => {
@@ -1239,10 +1359,10 @@ eula=false
         try {
             const loaderMap = {
                 'paper': 'paper',
-                'purpur': 'purpur',
-                'spigot': 'spigot',
-                'bukkit': 'bukkit',
-                'folia': 'folia',
+                'purpur': 'paper',
+                'spigot': 'paper',
+                'bukkit': 'paper',
+                'folia': 'paper',
                 'fabric': 'fabric',
                 'forge': 'forge',
                 'neoforge': 'neoforge',
@@ -1305,6 +1425,51 @@ eula=false
         }
     });
 
+    // New handler: Update specific server config properties
+    ipcMain.handle('server:update-config', async (event, serverName, updates) => {
+        try {
+            console.log(`[Servers] Updating config for ${serverName}:`, updates);
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const configPath = path.join(serversDir, safeName, 'server.json');
+            if (!await fs.pathExists(configPath)) {
+                throw new Error('Server configuration not found');
+            }
+
+            const config = await fs.readJson(configPath);
+            const newConfig = { ...config, ...updates };
+            await fs.writeJson(configPath, newConfig, { spaces: 4 });
+
+            return { success: true, config: newConfig };
+        } catch (error) {
+            console.error(`[Servers] Error updating config for ${serverName}:`, error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    // New handler: Get single server config
+    ipcMain.handle('server:get', async (event, serverName) => {
+        try {
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const configPath = path.join(serversDir, safeName, 'server.json');
+
+            if (!await fs.pathExists(configPath)) return null;
+
+            const config = await fs.readJson(configPath);
+
+            const process = serverProcesses.get(serverName);
+            if (process && !process.killed) {
+                config.status = 'running';
+            }
+
+            return config;
+        } catch (error) {
+            console.error(`[Servers] Error getting server ${serverName}:`, error);
+            return null;
+        }
+    });
+
     // New handler: Manually install Playit plugin for an existing server
     ipcMain.handle('server:install-playit', async (event, serverName) => {
         try {
@@ -1330,7 +1495,7 @@ eula=false
                 await fs.writeJson(configPath, config, { spaces: 2 });
                 return { success: true, message: 'Plugin installed successfully' };
             } else {
-                return { success: false, message: 'Plugin not available for this software/version' };
+                return { success: false, message: 'Plugin not available for this software/version.' };
             }
         } catch (error) {
             console.error('[Servers] Error installing Playit plugin:', error);
@@ -1338,26 +1503,45 @@ eula=false
         }
     });
 
-    // Cleanup on app quit
-    app.on('before-quit', () => {
-        for (const [name, process] of serverProcesses.entries()) {
-            console.log(`[Servers] Stopping server ${name} on quit...`);
+    // New handler: Remove Playit plugin
+    ipcMain.handle('server:remove-playit', async (event, serverName) => {
+        try {
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const configPath = path.join(serverDir, 'server.json');
 
-            if (process.stdin) {
-                process.stdin.write('stop\n');
+            if (!await fs.pathExists(configPath)) {
+                throw new Error('Server not found');
             }
 
-            setTimeout(() => {
-                if (!process.killed) {
-                    process.kill('SIGKILL');
-                }
-            }, 5000);
-        }
+            const config = await fs.readJson(configPath);
 
-        for (const interval of serverStatsIntervals.values()) {
-            clearInterval(interval);
+            // Search for playit jar in plugins and mods
+            const searchDirs = [path.join(serverDir, 'plugins'), path.join(serverDir, 'mods')];
+            for (const dir of searchDirs) {
+                if (await fs.pathExists(dir)) {
+                    const files = await fs.readdir(dir);
+                    const playitJar = files.find(f => f.toLowerCase().includes('playit') && f.endsWith('.jar'));
+                    if (playitJar) {
+                        await fs.remove(path.join(dir, playitJar));
+                        console.log(`[Servers] Removed Playit plugin: ${playitJar} from ${dir}`);
+                    }
+                }
+            }
+
+            config.playitPluginInstalled = false;
+            await fs.writeJson(configPath, config, { spaces: 2 });
+
+            return { success: true };
+        } catch (error) {
+            console.error('[Servers] Error removing Playit plugin:', error);
+            return { success: false, error: error.message };
         }
     });
+
+    // Cleanup on app quit
+
 
     // Server Settings Handlers
     const serverSettingsPath = path.join(app.getPath('userData'), 'serverSettings.json');
@@ -1412,8 +1596,6 @@ eula=false
             return { success: false, error: error.message };
         }
     });
-
-    // ==================== SERVER PROPERTIES FUNCTIONS ====================
 
     /**
      * Parse properties file format to object
@@ -1539,6 +1721,55 @@ eula=false
         } catch (error) {
             console.error(`[Servers] Error saving properties for ${serverName}:`, error);
             return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('server:get-mods', async (_, serverName) => {
+        try {
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const configPath = path.join(serverDir, 'server.json');
+
+            if (!await fs.pathExists(configPath)) return { success: false, error: 'Server not found' };
+            const config = await fs.readJson(configPath);
+
+            // Check both mods and plugins folders
+            const modsDir = path.join(serverDir, 'mods');
+            const pluginsDir = path.join(serverDir, 'plugins');
+
+            let files = [];
+            if (await fs.pathExists(modsDir)) {
+                const modFiles = await fs.readdir(modsDir);
+                files = files.concat(modFiles.filter(f => f.endsWith('.jar')).map(f => ({ name: f, path: path.join(modsDir, f), type: 'mod' })));
+            }
+            if (await fs.pathExists(pluginsDir)) {
+                const pluginFiles = await fs.readdir(pluginsDir);
+                files = files.concat(pluginFiles.filter(f => f.endsWith('.jar')).map(f => ({ name: f, path: path.join(pluginsDir, f), type: 'plugin' })));
+            }
+
+            const modCachePath = path.join(app.getPath('userData'), 'mod_cache.json');
+            let modCache = {};
+            try {
+                if (await fs.pathExists(modCachePath)) modCache = await fs.readJson(modCachePath);
+            } catch (e) { }
+
+            const modObjects = await Promise.all(files.map(async (file) => {
+                const stats = await fs.stat(file.path);
+                const cacheKey = `${file.name}-${stats.size}`;
+
+                return {
+                    name: file.name,
+                    projectId: modCache[cacheKey]?.projectId,
+                    title: modCache[cacheKey]?.title || file.name,
+                    type: file.type
+                };
+            }));
+
+            return { success: true, mods: modObjects };
+        } catch (e) {
+            console.error('Failed to get server mods:', e);
+            return { success: false, error: e.message };
         }
     });
 

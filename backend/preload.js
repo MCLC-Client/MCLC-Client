@@ -67,6 +67,8 @@ const electronAPI = {
     getInstances: () => ipcRenderer.invoke('instance:get-all'),
     installModpack: (url, name) => ipcRenderer.invoke('instance:install-modpack', url, name),
     searchModrinth: (query, facets, options) => ipcRenderer.invoke('modrinth:search', query, facets, options),
+    modrinthSearch: (query, facets, options) => ipcRenderer.invoke('modrinth:search', query, facets, options),
+    getServerMods: (serverName) => ipcRenderer.invoke('server:get-mods', serverName),
     installMod: (data) => ipcRenderer.invoke('modrinth:install', data),
     installLocalMod: (instanceName, filePath) => ipcRenderer.invoke('instance:install-local-mod', instanceName, filePath),
     getModVersions: (projectId, loaders, gameVersions) => ipcRenderer.invoke('modrinth:get-versions', projectId, loaders, gameVersions),
@@ -157,12 +159,14 @@ const electronAPI = {
     createServer: (data) => ipcRenderer.invoke('server:create', data),
     deleteServer: (name) => ipcRenderer.invoke('server:delete', name),
     duplicateServer: (name) => ipcRenderer.invoke('server:duplicate', name),
+    getServer: (name) => ipcRenderer.invoke('server:get', name),
+    updateServerConfig: (name, updates) => ipcRenderer.invoke('server:update-config', name, updates),
     importServer: () => ipcRenderer.invoke('server:import'),
     startServer: (name) => ipcRenderer.invoke('server:start', name),
     stopServer: (name) => ipcRenderer.invoke('server:stop', name),
     restartServer: (name) => ipcRenderer.invoke('server:restart', name),
     getServerStatus: (name) => ipcRenderer.invoke('server:get-status', name),
-    getServerLogs: (name) => ipcRenderer.invoke('server:get-console', name),
+    getServerConsole: (name) => ipcRenderer.invoke('server:get-console', name),
     sendServerCommand: (serverName, command) => ipcRenderer.invoke('server:send-command', serverName, command),
     getServerStats: (name) => ipcRenderer.invoke('server:get-stats', name),
     saveServerLogs: (serverName, logs) => ipcRenderer.invoke('server:save-logs', serverName, logs),
@@ -173,6 +177,7 @@ const electronAPI = {
     acceptServerEula: (serverName) => ipcRenderer.invoke('server:accept-eula', serverName),
     checkPlayitAvailable: (software, version) => ipcRenderer.invoke('server:check-playit-available', software, version),
     installPlayitPlugin: (serverName) => ipcRenderer.invoke('server:install-playit', serverName),
+    removePlayit: (serverName) => ipcRenderer.invoke('server:remove-playit', serverName),
     getServerSettings: () => ipcRenderer.invoke('server:get-settings'),
     saveServerSettings: (settings) => ipcRenderer.invoke('server:save-settings', settings),
     selectFolder: () => ipcRenderer.invoke('dialog:select-folder'),
@@ -181,10 +186,25 @@ const electronAPI = {
         ipcRenderer.on('server:status', subscription);
         return () => ipcRenderer.removeListener('server:status', subscription);
     },
+    onServerConsoleOutput: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('server:console', subscription);
+        return () => ipcRenderer.removeListener('server:console', subscription);
+    },
     onServerLog: (callback) => {
         const subscription = (_event, value) => callback(value);
         ipcRenderer.on('server:console', subscription);
         return () => ipcRenderer.removeListener('server:console', subscription);
+    },
+    onServerStats: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('server:stats', subscription);
+        return () => ipcRenderer.removeListener('server:stats', subscription);
+    },
+    onServerConsoleCleared: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('server:console-cleared', subscription);
+        return () => ipcRenderer.removeListener('server:console-cleared', subscription);
     },
     onServerStats: (callback) => {
         const subscription = (_event, value) => callback(value);

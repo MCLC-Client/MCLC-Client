@@ -101,6 +101,77 @@ function Styling() {
   useEffect(() => {
     loadTheme();
     loadCustomPresets();
+
+    return () => {
+      // Revert to saved theme if not saved
+      window.electronAPI.getSettings().then(res => {
+        if (res.success && res.settings.theme) {
+          const t = res.settings.theme;
+          const root = document.documentElement;
+          root.style.setProperty("--primary-color", t.primaryColor);
+          root.style.setProperty("--background-color", t.backgroundColor);
+          root.style.setProperty("--surface-color", t.surfaceColor);
+          root.style.setProperty("--glass-blur", `${t.glassBlur}px`);
+          root.style.setProperty("--glass-opacity", t.glassOpacity);
+          root.style.setProperty("--console-opacity", t.consoleOpacity || 0.8);
+          root.style.setProperty("--border-radius", `${t.borderRadius || 12}px`);
+          root.style.setProperty("--sidebar-glow-intensity", t.sidebarGlow || 0.3);
+          root.style.setProperty("--panel-opacity", t.panelOpacity || 0.85);
+          root.style.setProperty("--bg-overlay-opacity", t.bgOverlay || 0.4);
+
+          const adjustColor = (hex, pct) => {
+            const n = parseInt(hex.replace("#", ""), 16);
+            const a = Math.round(2.55 * pct);
+            const R = (n >> 16) + a;
+            const G = ((n >> 8) & 0x00ff) + a;
+            const B = (n & 0x0000ff) + a;
+            return (
+              "#" +
+              (
+                0x1000000 +
+                (R < 255 ? (R < 0 ? 0 : R) : 255) * 0x10000 +
+                (G < 255 ? (G < 0 ? 0 : G) : 255) * 0x100 +
+                (B < 255 ? (B < 0 ? 0 : B) : 255)
+              )
+                .toString(16)
+                .slice(1)
+            );
+          };
+
+          root.style.setProperty(
+            "--primary-hover-color",
+            adjustColor(t.primaryColor, 15),
+          );
+          root.style.setProperty(
+            "--background-dark-color",
+            adjustColor(t.backgroundColor, -20),
+          );
+
+          const hexToRgb = (hex) => {
+            if (!hex || typeof hex !== 'string') return '28, 28, 28';
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `${r}, ${g}, ${b}`;
+          };
+
+          root.style.setProperty("--surface-color-rgb", hexToRgb(t.surfaceColor));
+          root.style.setProperty("--primary-color-rgb", hexToRgb(t.primaryColor));
+          root.style.setProperty(
+            "--background-dark-color-rgb",
+            hexToRgb(adjustColor(t.backgroundColor, -20)),
+          );
+
+          if (t.bgMedia && t.bgMedia.url) {
+            root.style.setProperty("--bg-url", t.bgMedia.url);
+            root.style.setProperty("--bg-type", t.bgMedia.type);
+          } else {
+            root.style.setProperty("--bg-url", "");
+            root.style.setProperty("--bg-type", "none");
+          }
+        }
+      });
+    };
   }, []);
 
   const loadCustomPresets = async () => {
@@ -182,7 +253,7 @@ function Styling() {
     root.style.setProperty("--sidebar-glow-intensity", t.sidebarGlow || 0.3);
     root.style.setProperty("--panel-opacity", t.panelOpacity || 0.85);
     root.style.setProperty("--bg-overlay-opacity", t.bgOverlay || 0.4);
-    
+
     const adjustColor = (hex, pct) => {
       const n = parseInt(hex.replace("#", ""), 16);
       const a = Math.round(2.55 * pct);
@@ -210,14 +281,14 @@ function Styling() {
       "--background-dark-color",
       adjustColor(t.backgroundColor, -20),
     );
-    
+
     const hexToRgb = (hex) => {
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
       const b = parseInt(hex.slice(5, 7), 16);
       return `${r}, ${g}, ${b}`;
     };
-    
+
     root.style.setProperty("--surface-color-rgb", hexToRgb(t.surfaceColor));
     root.style.setProperty("--primary-color-rgb", hexToRgb(t.primaryColor));
     root.style.setProperty(
@@ -272,7 +343,7 @@ function Styling() {
 
       {/* Main Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl">
-        
+
         {/* Left Column - Colors & Themes */}
         <div className="lg:col-span-3 space-y-6">
           {/* Accent & Base Colors */}

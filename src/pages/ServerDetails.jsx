@@ -62,12 +62,30 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
     const commandInputRef = useRef(null);
     const statsInterval = useRef(null);
     const chartsCanvasRef = useRef(null);
-    const extractPlayitCode = (line) => {
-        const match = line.match(/https:\/\/playit\.gg\/claim\/([a-zA-Z0-9]+)/);
-        if (match && match[1]) {
-            return match[1];
+
+    const stripAnsi = (text) => {
+        if (!text) return '';
+        // Strips ANSI escape codes
+        const ansiRegex = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
+        let clean = text.replace(ansiRegex, '');
+
+        // Specifically target TUI line characters that clutter the log
+        clean = clean.replace(/[┌┐└┘─│┤├┬┴┼═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬■●]/g, ' ');
+
+        // Remove other weird control characters
+        return clean.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+    };
+
+    const parsePlayitOutput = (line) => {
+        const cleanLine = stripAnsi(line);
+        if (!cleanLine) return;
+
+        // Match standard claim URL or "claim code: XXXX"
+        const claimMatch = cleanLine.match(/https:\/\/playit\.gg\/claim\/([a-zA-Z0-9]+)/i) ||
+            cleanLine.match(/claim code:\s*([a-zA-Z0-9]+)/i);
+        if (claimMatch && claimMatch[1]) {
+            setPlayitCode(claimMatch[1]);
         }
-        return null;
     };
     const extractPlayerEvents = (line) => {
 
@@ -384,7 +402,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
 
         const removeStatusListener = window.electronAPI.onServerStatus?.(({ serverName, status, server: updatedServer }) => {
             if (serverName === server.name) {
-                console.log(`[ServerDetails] Status update for ${serverName}: ${status}`);
+                console.log(`[ServerDetails] Status update for ${serverName}: ${status}`, updatedServer);
                 setCurrentStatus(status);
 
                 if (updatedServer && onServerUpdate) {
@@ -397,10 +415,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
             if (serverName === server.name) {
                 setConsoleLog(prev => {
                     const newLog = [...prev, log];
-                    const code = extractPlayitCode(log);
-                    if (code) {
-                        setPlayitCode(code);
-                    }
+                    parsePlayitOutput(log);
                     extractPlayerEvents(log);
 
                     if (newLog.length > 500) {
@@ -486,13 +501,11 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
         }
     }, [activeTab, serverStats.history]);
     useEffect(() => {
-        if (consoleLog.length > 0 && !playitCode) {
-            for (const line of consoleLog) {
-                const code = extractPlayitCode(line);
-                if (code) {
-                    setPlayitCode(code);
-                    break;
-                }
+        if (consoleLog.length > 0) {
+            // Periodic scan of the last 100 lines for the IP/claim code as fallback
+            const recentLogs = consoleLog.slice(-100);
+            for (const line of recentLogs) {
+                parsePlayitOutput(line);
             }
         }
     }, [consoleLog]);
@@ -525,10 +538,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
             if (Array.isArray(log)) {
                 setConsoleLog(log.slice(-500));
                 for (const line of log) {
-                    const code = extractPlayitCode(line);
-                    if (code) {
-                        setPlayitCode(code);
-                    }
+                    parsePlayitOutput(line);
                     extractPlayerEvents(line);
                 }
             }
@@ -829,9 +839,14 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
 
         setIsSearchingMods(true);
         try {
-            const projectType = getProjectType();
-            const result = await window.electronAPI.modrinthSearch(query, [], {
-                projectType,
+            const loader = getLoaderForModrinth();
+            const facets = [];
+            if (loader !== 'vanilla') {
+                facets.push([`categories:${loader}`]);
+            }
+
+            const result = await window.electronAPI.modrinthSearch(query, facets, {
+                projectType: 'mod',
                 limit: 10
             });
 
@@ -864,7 +879,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
                     ...prev,
                     [projectId]: result.versions || []
                 }));
-                
+
                 if (result.versions && result.versions.length > 0) {
                     setSelectedModVersion(prev => ({
                         ...prev,
@@ -909,7 +924,8 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
                 versionId: versionId,
                 filename: file.filename,
                 url: file.url,
-                projectType: getProjectType()
+                projectType: getLoaderType() === 'paper-like' ? 'plugin' : 'mod',
+                isServer: true
             });
 
             if (result.success) {
@@ -1326,15 +1342,17 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
                 >
                     Console
                 </button>
-                <button
-                    onClick={() => setActiveTab('publicity')}
-                    className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeTab === 'publicity'
-                        ? 'bg-primary/20 text-primary border-b-2 border-primary'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
-                        }`}
-                >
-                    Publicity
-                </button>
+                {(playitAvailable || server.playitPluginInstalled || playitChecking) && (
+                    <button
+                        onClick={() => setActiveTab('publicity')}
+                        className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeTab === 'publicity'
+                            ? 'bg-primary/20 text-primary border-b-2 border-primary'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
+                    >
+                        Publicity
+                    </button>
+                )}
                 <button
                     onClick={() => setActiveTab('charts')}
                     className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeTab === 'charts'
@@ -1442,98 +1460,183 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
                                 Server must be running to send commands
                             </p>
                         )}
+                        {/* Publicity tab entry hint if address is known */}
+                        {server.playitAddress && (
+                            <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-between animate-in fade-in zoom-in duration-300">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span className="text-white font-mono text-sm">Public IP: {server.playitAddress}</span>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(server.playitAddress);
+                                        addNotification('IP Copied!', 'success');
+                                    }}
+                                    className="text-xs text-primary hover:underline font-bold"
+                                >
+                                    Copy
+                                </button>
+                            </div>
+                        )}
                     </>
                 )}
 
                 {activeTab === 'publicity' && (
-
-                    <div className="flex flex-col items-center justify-center h-full">
-                        <div className="max-w-md w-full text-center">
-                            { }
-                            <div className="mb-6">
-                                <svg className="w-20 h-20 mx-auto text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 4.034a2.5 2.5 0 0 1 3.62 0l3.156 3.156a2.5 2.5 0 0 1 0 3.62l-8.96 8.96a2.5 2.5 0 0 1-3.62 0L3.37 12.81a2.5 2.5 0 0 1 0-3.62l3.156-3.156a2.5 2.5 0 0 1 3.62 0L12 5.439l1.19-1.405z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m-3-3h6" />
-                                </svg>
+                    <div className="p-6 h-full overflow-y-auto custom-scrollbar">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white mb-2">Publicity & Tunneling</h2>
+                                    <p className="text-gray-400 text-sm">Choose how you want to make your server accessible to the public.</p>
+                                </div>
+                                <div className="bg-primary/10 border border-primary/20 px-4 py-2 rounded-xl flex items-center gap-3">
+                                    <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 4.034a2.5 2.5 0 0 1 3.62 0l3.156 3.156a2.5 2.5 0 0 1 0 3.62l-8.96 8.96a2.5 2.5 0 0 1-3.62 0L3.37 12.81a2.5 2.5 0 0 1 0-3.62l3.156-3.156a2.5 2.5 0 0 1 3.62 0L12 5.439l1.19-1.405z" />
+                                    </svg>
+                                    <span className="text-primary font-bold text-sm">Playit.gg Powered</span>
+                                </div>
                             </div>
 
-                            <h2 className="text-2xl font-bold text-white mb-4">Playit.gg Tunnel</h2>
-
-                            {playitChecking ? (
-                                <div className="flex items-center justify-center gap-2 text-gray-400 mb-6">
-                                    <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-                                    <span>Checking availability...</span>
-                                </div>
-                            ) : playitCode ? (
-                                <>
-                                    <p className="text-gray-300 mb-4">
-                                        Your Playit tunnel code is ready! Click the button below to claim your tunnel.
-                                    </p>
-                                    <div className="bg-background/50 rounded-lg p-4 mb-6 font-mono text-sm">
-                                        <span className="text-primary">Code: </span>
-                                        <span className="text-white">{playitCode}</span>
-                                    </div>
-                                    <button
-                                        onClick={openPlayitClaim}
-                                        className="w-full bg-primary hover:bg-primary-hover text-black font-bold py-4 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-lg"
-                                    >
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.19 4.034a2.5 2.5 0 0 1 3.62 0l3.156 3.156a2.5 2.5 0 0 1 0 3.62l-8.96 8.96a2.5 2.5 0 0 1-3.62 0L3.37 12.81a2.5 2.5 0 0 1 0-3.62l3.156-3.156a2.5 2.5 0 0 1 3.62 0L12 5.439l1.19-1.405z" />
-                                        </svg>
-                                        Go Public
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <p className="text-gray-400 mb-2">
-                                        {isRunning ? (
-                                            playitAvailable ? (
-                                                "Waiting for Playit code... Start the server and check the console for the claim code."
-                                            ) : (
-                                                <>
-                                                    Currently not available for this version.
-                                                    <br />
-                                                    Please use playit.gg manually.
-                                                </>
-                                            )
-                                        ) : (
-                                            playitAvailable ? (
-                                                "Start the server to generate a Playit tunnel code."
-                                            ) : (
-                                                <>
-                                                    Currently not available for this version.
-                                                    <br />
-                                                    Please use playit.gg manually.
-                                                </>
-                                            )
-                                        )}
-                                    </p>
-
-                                    {!playitAvailable && !playitChecking && (
+                            {/* Simplified IP display if available from plugin */}
+                            {server.playitAddress && (
+                                <div className="mb-8 p-6 bg-green-500/20 border border-green-500/30 rounded-2xl shadow-green-glow animate-in fade-in slide-in-from-top-4 duration-500 text-center relative group">
+                                    <h3 className="text-xl font-bold text-white mb-2">Server Public!</h3>
+                                    <div className="flex items-center justify-center gap-3">
+                                        <div className="bg-black/40 rounded-xl px-4 py-2 font-mono text-lg border border-white/5 text-white">
+                                            {server.playitAddress}
+                                        </div>
                                         <button
-                                            onClick={installPlayitPlugin}
-                                            disabled={isLoading}
-                                            className="mt-4 px-6 py-3 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(server.playitAddress);
+                                                addNotification('Address Copied!', 'success');
+                                            }}
+                                            className="p-2 bg-primary text-black rounded-lg hover:scale-105 transition-transform"
+                                            title="Copy Address"
                                         >
-                                            Install Playit Plugin
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                            </svg>
                                         </button>
-                                    )}
-
-                                    <button
-                                        onClick={openPlayitClaim}
-                                        className="w-full bg-primary/20 hover:bg-primary/30 text-primary font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-lg mt-2"
-                                    >
-                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
-                                        PLAYIT.GG
-                                    </button>
-                                </>
+                                    </div>
+                                    <p className="mt-3 text-sm text-gray-400">Share this address with your friends to join the server.</p>
+                                </div>
                             )}
 
-                            <p className="text-xs text-gray-600 mt-6">
-                                Playit.gg creates a secure tunnel to make your server accessible online without port forwarding.
-                            </p>
+                            {playitCode && (
+                                <div className="mb-8 p-6 bg-primary/20 border border-primary/30 rounded-2xl shadow-primary-glow animate-in fade-in slide-in-from-top-4 duration-500">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="w-12 h-12 bg-primary text-black rounded-xl flex items-center justify-center">
+                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.19 4.034a2.5 2.5 0 0 1 3.62 0l3.156 3.156a2.5 2.5 0 0 1 0 3.62l-8.96 8.96a2.5 2.5 0 0 1-3.62 0L3.37 12.81a2.5 2.5 0 0 1 0-3.62l3.156-3.156a2.5 2.5 0 0 1 3.62 0L12 5.439l1.19-1.405z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-white">Tunnel Claim Code Ready</h3>
+                                            <p className="text-primary/80 text-sm">Click to claim your tunnel and get your public IP.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <div className="flex-1 bg-black/40 rounded-xl p-4 font-mono text-center text-lg border border-white/5 flex items-center justify-between">
+                                            <span className="text-gray-500 text-sm uppercase font-sans font-bold">Code</span>
+                                            <span className="text-white select-all">{playitCode}</span>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(playitCode);
+                                                    addNotification('Copied!', 'success');
+                                                }}
+                                                className="text-primary hover:text-primary-hover p-1 transition-colors"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <button
+                                            onClick={openPlayitClaim}
+                                            className="px-8 bg-primary hover:bg-primary-hover text-black font-bold rounded-xl transition-all transform hover:scale-105 shadow-lg flex items-center gap-2 whitespace-nowrap"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                            Go Public
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 gap-6">
+                                {/* Option: Minecraft Plugin */}
+                                <div className={`relative group p-6 rounded-2xl border transition-all ${server.playitPluginInstalled ? 'bg-primary/5 border-primary/50 shadow-primary-glow' : 'bg-surface/40 border-white/5 hover:border-white/10'} ${!playitAvailable && !playitChecking ? 'opacity-50 grayscale' : ''}`}>
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className={`p-3 rounded-xl ${server.playitPluginInstalled ? 'bg-primary text-black' : 'bg-white/5 text-gray-400'}`}>
+                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+                                            </svg>
+                                        </div>
+                                        {server.playitPluginInstalled && (
+                                            <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/20 px-2 py-1 rounded-lg">
+                                                <div className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                                                {isRunning ? 'Integrated' : 'Ready'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <h3 className="text-lg font-bold text-white mb-2">Minecraft Plugin</h3>
+                                    <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                                        Seamless integration inside the server process. Recommended for modded and plugin-based servers.
+                                    </p>
+
+                                    {playitChecking ? (
+                                        <div className="flex items-center justify-center py-3 text-gray-500 gap-2">
+                                            <div className="w-4 h-4 border-2 border-gray-500/30 border-t-gray-500 rounded-full animate-spin"></div>
+                                            <span className="text-xs uppercase font-bold tracking-wider">Checking...</span>
+                                        </div>
+                                    ) : playitAvailable ? (
+                                        <button
+                                            onClick={async () => {
+                                                setIsLoading(true);
+                                                try {
+                                                    if (server.playitPluginInstalled) {
+                                                        const res = await window.electronAPI.removePlayit(server.name);
+                                                        if (res.success) {
+                                                            addNotification('Plugin removed successfully', 'info');
+                                                            const updated = await window.electronAPI.getServer(server.name);
+                                                            if (onServerUpdate) onServerUpdate(updated);
+                                                        }
+                                                    } else {
+                                                        installPlayitPlugin();
+                                                    }
+                                                } catch (err) {
+                                                    addNotification('Action failed: ' + err.message, 'error');
+                                                } finally {
+                                                    setIsLoading(false);
+                                                }
+                                            }}
+                                            disabled={isLoading}
+                                            className={`w-full py-3 rounded-xl font-bold transition-all transform active:scale-95 ${server.playitPluginInstalled ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-primary/20 text-primary hover:bg-primary/30'}`}
+                                        >
+                                            {server.playitPluginInstalled ? 'Remove Plugin' : 'Install Plugin'}
+                                        </button>
+                                    ) : (
+                                        <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-xl">
+                                            <p className="text-[10px] text-red-400 font-bold uppercase mb-1">Incompatible</p>
+                                            <p className="text-[11px] text-gray-500">Not available for {server.software} {server.version}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-12 bg-surface/20 border border-white/5 rounded-2xl p-6 text-center">
+                                <p className="text-gray-400 text-sm mb-4">Need help with your tunnel configuration?</p>
+                                <button
+                                    onClick={() => openExternal('https://playit.gg/dashboard')}
+                                    className="inline-flex items-center gap-2 text-primary hover:text-primary-hover font-bold transition-colors"
+                                >
+                                    Open Playit.gg Dashboard
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

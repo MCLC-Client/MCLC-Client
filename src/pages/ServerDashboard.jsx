@@ -68,9 +68,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
         loadPlatforms();
 
         const removeListener = window.electronAPI.onServerStatus(({ serverName, status }) => {
-            if (status === 'stopped' || status === 'ready' || status === 'error' || status === 'deleted') {
-                loadServers();
-            }
+            loadServers();
             if (selectedServer?.name === serverName && status === 'stopped') {
                 addNotification(`Server ${serverName} stopped`, 'info');
             }
@@ -93,6 +91,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
         const loadVersionsForSoftware = async () => {
             setLoadingVersions(true);
             try {
+                // Ignore platforms not supported by mcutils, or gracefully handle them
                 const response = await fetch(`https://mcutils.com/api/server-jars/${selectedSoftware}`);
 
                 if (!response.ok) {
@@ -100,10 +99,18 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                 }
 
                 const data = await response.json();
-                setAvailableVersions(data);
 
-                if (data.length > 0) {
-                    setSelectedVersion(data[0].version);
+                let versionsList = [];
+                if (Array.isArray(data)) {
+                    versionsList = data.map(v => typeof v === 'string' ? { version: v } : v);
+                } else if (data && data.versions) {
+                    versionsList = data.versions.map(v => typeof v === 'string' ? { version: v } : v);
+                }
+
+                setAvailableVersions(versionsList);
+
+                if (versionsList.length > 0) {
+                    setSelectedVersion(versionsList[0].version);
                 } else {
                     setSelectedVersion('');
                 }
@@ -122,11 +129,19 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
 
     const loadPlatforms = async () => {
         try {
-            const response = await fetch('https://mcutils.com/api/server-jars');
-            if (response.ok) {
-                const data = await response.json();
-                setPlatforms(data);
-            }
+            // Using mcutils platforms
+            const list = [
+                { type: 'vanilla', name: 'Vanilla' },
+                { type: 'paper', name: 'Paper' },
+                { type: 'purpur', name: 'Purpur' },
+                { type: 'spigot', name: 'Spigot' },
+                { type: 'bukkit', name: 'Bukkit' },
+                { type: 'fabric', name: 'Fabric' },
+                { type: 'forge', name: 'Forge' },
+                { type: 'neoforge', name: 'NeoForge' },
+                { type: 'folia', name: 'Folia' }
+            ];
+            setPlatforms(list);
         } catch (error) {
             console.error('Failed to load platforms:', error);
         }
@@ -165,34 +180,29 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
 
         setIsCreating(true);
         const nameToUse = newServerName.trim() || "New Server";
+        const newPort = parseInt(serverPort) || 25565;
+
+        // Check for port collision
+        if (servers.some(s => s.port === newPort && s.name.toLowerCase() !== nameToUse.toLowerCase())) {
+            addNotification('Another server is already using this port.', 'error');
+            setIsCreating(false);
+            return;
+        }
 
         try {
 
-            console.log(`Fetching version info for ${selectedSoftware}/${selectedVersion}`);
-            const versionResponse = await fetch(`https://mcutils.com/api/server-jars/${selectedSoftware}/${selectedVersion}`);
+            console.log(`Using mcutils.com for ${selectedSoftware}/${selectedVersion}`);
+            const downloadUrl = `https://mcutils.com/api/server-jars/${selectedSoftware}/${selectedVersion}/download`;
 
-            if (!versionResponse.ok) {
-                const errorText = await versionResponse.text();
-                console.error('MCUtils API error:', errorText);
-                throw new Error(`Failed to fetch version info: ${versionResponse.status} - ${errorText}`);
-            }
-
-            const versionData = await versionResponse.json();
-            console.log('Version data received:', versionData);
-
-            if (!versionData.downloadUrl) {
-                console.error('No downloadUrl in response:', versionData);
-                throw new Error('No download URL provided in response');
-            }
             const serverData = {
                 name: nameToUse,
                 version: selectedVersion,
                 software: selectedSoftware,
-                port: parseInt(serverPort) || 25565,
+                port: newPort,
                 maxPlayers: parseInt(maxPlayers) || 20,
                 memory: parseInt(serverMemory) || 1024,
                 icon: newServerIcon || DEFAULT_ICON,
-                downloadUrl: versionData.downloadUrl
+                downloadUrl: downloadUrl
             };
 
             console.log('Sending server data:', serverData);

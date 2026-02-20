@@ -7,13 +7,15 @@ const MODRINTH_API = 'https://api.modrinth.com/v2';
 const appData = app.getPath('userData');
 const instancesDir = path.join(appData, 'instances');
 
-const installModInternal = async (win, { instanceName, projectId, versionId, filename, url, projectType }) => {
+const installModInternal = async (win, { instanceName, projectId, versionId, filename, url, projectType, isServer }) => {
     try {
         let folder = 'mods';
         if (projectType === 'resourcepack') folder = 'resourcepacks';
         if (projectType === 'shader') folder = 'shaderpacks';
+        if (projectType === 'plugin') folder = 'plugins';
 
-        const contentDir = path.join(instancesDir, instanceName, folder);
+        const baseDir = isServer ? path.join(appData, 'servers') : instancesDir;
+        const contentDir = path.join(baseDir, instanceName, folder);
         await fs.ensureDir(contentDir);
 
         const dest = path.join(contentDir, filename);
@@ -232,36 +234,54 @@ module.exports = (ipcMain, win) => {
     });
 
     ipcMain.handle('modrinth:install', async (_, data) => {
-        if (data.projectType === 'mod') {
+        if (data.projectType === 'mod' || data.projectType === 'plugin') {
             try {
-                const instanceJsonPath = path.join(instancesDir, data.instanceName, 'instance.json');
-                if (await fs.pathExists(instanceJsonPath)) {
-                    const instance = await fs.readJson(instanceJsonPath);
-                    const loader = instance.loader ? instance.loader.toLowerCase() : 'vanilla';
-                    const version = instance.version;
-                    if (loader !== 'vanilla') {
-                        const resolveRes = await resolveDependenciesInternal(data.versionId, [loader], [version]);
+                let loader = 'vanilla';
+                let version = '';
 
-                        if (resolveRes.success && resolveRes.dependencies.length > 0) {
-                            let successCount = 0;
-                            let failCount = 0;
-                            for (const dep of resolveRes.dependencies) {
-                                const installRes = await installModInternal(win, {
-                                    instanceName: data.instanceName,
-                                    projectId: dep.projectId,
-                                    versionId: dep.versionId,
-                                    filename: dep.filename,
-                                    url: dep.url,
-                                    projectType: dep.projectType || 'mod'
-                                });
+                if (data.isServer) {
+                    const serversDir = path.join(appData, 'servers');
+                    const serverJsonPath = path.join(serversDir, data.instanceName, 'server.json');
+                    if (await fs.pathExists(serverJsonPath)) {
+                        const serverConfig = await fs.readJson(serverJsonPath);
+                        loader = serverConfig.software ? serverConfig.software.toLowerCase() : 'vanilla';
+                        version = serverConfig.version;
+                    }
+                } else {
+                    const instanceJsonPath = path.join(instancesDir, data.instanceName, 'instance.json');
+                    if (await fs.pathExists(instanceJsonPath)) {
+                        const instance = await fs.readJson(instanceJsonPath);
+                        loader = instance.loader ? instance.loader.toLowerCase() : 'vanilla';
+                        version = instance.version;
+                    }
+                }
 
-                                if (installRes.success) successCount++;
-                                else failCount++;
-                            }
+                if (loader !== 'vanilla' && version) {
+                    // map paper-like loaders for modrinth resolution just in case
+                    const resolveLoader = ['spigot', 'bukkit', 'purpur', 'folia'].includes(loader) ? 'paper' : loader;
 
-                            if (failCount === 0) return { success: true };
-                            return { success: true };
+                    const resolveRes = await resolveDependenciesInternal(data.versionId, [resolveLoader], [version]);
+
+                    if (resolveRes.success && resolveRes.dependencies.length > 0) {
+                        let successCount = 0;
+                        let failCount = 0;
+                        for (const dep of resolveRes.dependencies) {
+                            const installRes = await installModInternal(win, {
+                                instanceName: data.instanceName,
+                                projectId: dep.projectId,
+                                versionId: dep.versionId,
+                                filename: dep.filename,
+                                url: dep.url,
+                                projectType: dep.projectType || data.projectType,
+                                isServer: data.isServer
+                            });
+
+                            if (installRes.success) successCount++;
+                            else failCount++;
                         }
+
+                        if (failCount === 0) return { success: true };
+                        return { success: true };
                     }
                 }
             } catch (err) {
@@ -283,10 +303,15 @@ module.exports = (ipcMain, win) => {
         }
     });
 
-    ipcMain.handle('modrinth:update-file', async (_, { instanceName, projectType, oldFileName, newFileName, url }) => {
+    ipcMain.handle('modrinth:update-file', async (_, { instanceName, projectType, oldFileName, newFileName, url, isServer }) => {
         try {
-            const folder = projectType === 'resourcepack' ? 'resourcepacks' : 'mods';
-            const contentDir = path.join(instancesDir, instanceName, folder);
+            let folder = 'mods';
+            if (projectType === 'resourcepack') folder = 'resourcepacks';
+            if (projectType === 'shader') folder = 'shaderpacks';
+            if (projectType === 'plugin') folder = 'plugins';
+
+            const baseDir = isServer ? path.join(appData, 'servers') : instancesDir;
+            const contentDir = path.join(baseDir, instanceName, folder);
             const oldPath = path.join(contentDir, oldFileName);
             const newPath = path.join(contentDir, newFileName);
 

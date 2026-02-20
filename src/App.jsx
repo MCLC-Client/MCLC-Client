@@ -12,6 +12,7 @@ const Settings = React.lazy(() => import('./pages/Settings'));
 const Styling = React.lazy(() => import('./pages/Styling'));
 const Skins = React.lazy(() => import('./pages/Skins'));
 const ServerSettings = React.lazy(() => import('./pages/ServerSettings'));
+const ServerSearch = React.lazy(() => import('./pages/ServerSearch'));
 const ServerLibrary = React.lazy(() => import('./pages/ServerLibrary'));
 const InstanceDetails = React.lazy(() => import('./pages/InstanceDetails'));
 const Extensions = React.lazy(() => import('./pages/Extensions'));
@@ -163,6 +164,27 @@ function App() {
             }
         });
 
+        const removeServerStatusListener = window.electronAPI.onServerStatus?.(({ serverName, status }) => {
+            setRunningInstances(prev => {
+                const next = { ...prev };
+                if (status === 'stopped' || status === 'deleted' || status === 'error') {
+                    delete next[serverName];
+                } else {
+                    next[serverName] = status;
+                }
+                return next;
+            });
+
+            // Cleanup active downloads for servers too if applicable
+            setActiveDownloads(prev => {
+                const next = { ...prev };
+                if (status === 'stopped' || status === 'error' || status === 'ready' || status === 'deleted' || status === 'running') {
+                    delete next[serverName];
+                }
+                return next;
+            });
+        });
+
         const removeInstallListener = window.electronAPI.onInstallProgress(({ instanceName, progress, status }) => {
             setActiveDownloads(prev => {
                 const next = { ...prev };
@@ -228,6 +250,7 @@ function App() {
             if (removeInstallListener) removeInstallListener();
             if (removeLaunchProgressListener) removeLaunchProgressListener();
             if (removeStatusListener) removeStatusListener();
+            if (removeServerStatusListener) removeServerStatusListener();
             if (removeThemeListener) removeThemeListener();
             if (removeWindowStateListener) removeWindowStateListener();
             document.removeEventListener('mousedown', handleClickOutside);
@@ -609,7 +632,7 @@ function App() {
                                                     onServerUpdate={handleServerUpdate}
                                                 />
                                             )}
-                                            {currentView === 'search' && <Search />}
+                                            {currentView === 'search' && <ServerSearch />}
                                             {currentView === 'styling' && <Styling />}
                                             {currentView === 'server-library' && <ServerLibrary />}
                                             {currentView === 'server-settings' && <ServerSettings />}
