@@ -119,6 +119,8 @@ function DashboardCustomizer({ settings, onUpdate, onClose, onEnterEditor }) {
                                 <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isVisible('modpacks') ? 'right-1' : 'left-1'}`} />
                             </button>
                         </div>
+
+
                     </div>
                 </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import DashboardCustomizer from '../components/DashboardCustomizer';
+import modOfTheDayData from '../data/modOfTheDay.json';
 
 const formatTimeAgo = (timestamp) => {
     if (!timestamp) return '';
@@ -36,16 +37,22 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
     const [recentWorlds, setRecentWorlds] = useState([]);
     const [showCustomizer, setShowCustomizer] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [modOfTheDay, setModOfTheDay] = useState(null);
+    const [loadingModOfTheDay, setLoadingModOfTheDay] = useState(true);
+    const [modIds, setModIds] = useState([]);
+    const [currentModId, setCurrentModId] = useState(null);
     const [dashSettings, setDashSettings] = useState({
         welcomeMessage: 'Welcome back!',
         layout: [
             { id: 'recent-instances', visible: true, width: 12 },
             { id: 'recent-worlds', visible: true, width: 12 },
+            { id: 'mod-of-the-day', visible: true, width: 12 },
             { id: 'modpacks', visible: true, width: 12 }
         ]
     });
 
     useEffect(() => {
+        loadModIds();
         loadInstances();
         loadModpacks();
         loadDashSettings();
@@ -71,16 +78,25 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                     const newLayout = [];
                     if (settings.showRecentInstances !== false) newLayout.push({ id: 'recent-instances', visible: true, width: 12 });
                     if (settings.showRecentWorlds !== false) newLayout.push({ id: 'recent-worlds', visible: true, width: 12 });
+                    if (settings.showModOfTheDay !== false) newLayout.push({ id: 'mod-of-the-day', visible: true, width: 12 });
                     if (settings.showModpacks !== false) newLayout.push({ id: 'modpacks', visible: true, width: 12 });
                     const existingIds = newLayout.map(i => i.id);
                     if (!existingIds.includes('recent-instances')) newLayout.push({ id: 'recent-instances', visible: false, width: 12 });
                     if (!existingIds.includes('recent-worlds')) newLayout.push({ id: 'recent-worlds', visible: false, width: 12 });
+                    if (!existingIds.includes('mod-of-the-day')) newLayout.push({ id: 'mod-of-the-day', visible: false, width: 12 });
                     if (!existingIds.includes('modpacks')) newLayout.push({ id: 'modpacks', visible: false, width: 12 });
 
                     settings = { ...settings, layout: newLayout };
                     delete settings.showRecentInstances;
                     delete settings.showRecentWorlds;
+                    delete settings.showModOfTheDay;
                     delete settings.showModpacks;
+                    await window.electronAPI.saveSettings({
+                        ...res.settings,
+                        dashboard: settings
+                    });
+                } else if (settings.layout && !settings.layout.find(l => l.id === 'mod-of-the-day')) {
+                    settings.layout.splice(2, 0, { id: 'mod-of-the-day', visible: true, width: 12 });
                     await window.electronAPI.saveSettings({
                         ...res.settings,
                         dashboard: settings
@@ -108,6 +124,52 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
             console.error('Failed to save dashboard settings:', e);
         }
     };
+
+    const loadModIds = () => {
+        if (modOfTheDayData && modOfTheDayData.projectIds) {
+            setModIds(modOfTheDayData.projectIds);
+            selectTodaysModId(modOfTheDayData.projectIds);
+        }
+    };
+
+    const getToday = () => {
+        const date = new Date();
+        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    };
+
+    const selectTodaysModId = (ids) => {
+        if (!ids || ids.length === 0) return;
+        
+        const today = getToday();
+        const savedData = localStorage.getItem('modOfTheDay');
+        let data = savedData ? JSON.parse(savedData) : {};
+
+        if (data.date !== today) {
+            const randomIndex = Math.floor(Math.random() * ids.length);
+            data = {
+                date: today,
+                id: ids[randomIndex]
+            };
+            localStorage.setItem('modOfTheDay', JSON.stringify(data));
+        }
+
+        setCurrentModId(data.id);
+        loadModOfTheDay(data.id);
+    };
+
+    const selectRandomModId = (ids) => {
+        if (!ids || ids.length === 0) return;
+        const randomIndex = Math.floor(Math.random() * ids.length);
+        const randomId = ids[randomIndex];
+        setCurrentModId(randomId);
+        return randomId;
+    };
+
+    useEffect(() => {
+        if (currentModId && modIds.length > 0) {
+            loadModOfTheDay(currentModId);
+        }
+    }, [currentModId]);
 
     const loadInstances = async () => {
         const list = await window.electronAPI.getInstances();
@@ -158,6 +220,24 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
         } finally {
             setLoadingModpacks(false);
         }
+    };
+
+    const loadModOfTheDay = async () => {
+        setLoadingModOfTheDay(true);
+        try {
+            const res = await window.electronAPI.getModrinthProject('e2R0wxyL');
+            if (res && res.success) {
+                setModOfTheDay(res.project);
+            }
+        } catch (e) {
+            console.error('Failed to load Mod of the Day:', e);
+        } finally {
+            setLoadingModOfTheDay(false);
+        }
+    };
+
+    const loadNewModOfTheDay = async () => {
+        await loadModOfTheDay();
     };
 
     const recentInstances = [...instances]
@@ -402,6 +482,215 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                         )}
                     </div>
                 )}
+
+                {section.id === 'mod-of-the-day' && (
+                    <div className="mb-8">
+                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Mod of the Day</h2>
+                        {loadingModOfTheDay ? (
+                            <div className="flex items-center gap-3 text-gray-500 text-sm"><div className="w-5 h-5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></div>Loading mod...</div>
+                        ) : modOfTheDay ? (
+                            <div className="rounded-xl overflow-hidden border border-white/5 bg-surface/30 hover:bg-surface/50 transition-all">
+                                {/* Header - Featured Image */}
+                                <div className="relative w-full h-40 bg-gradient-to-br from-primary/20 to-background overflow-hidden">
+                                    {modOfTheDay.featured_image ? (
+                                        <img
+                                            src={modOfTheDay.featured_image}
+                                            alt=""
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : modOfTheDay.gallery && modOfTheDay.gallery.length > 0 ? (
+                                        <img
+                                            src={modOfTheDay.gallery[0].url}
+                                            alt={modOfTheDay.gallery[0].title || ""}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : modOfTheDay.icon_url ? (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <img
+                                                src={modOfTheDay.icon_url}
+                                                alt=""
+                                                className="w-20 h-20 rounded-xl"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <svg
+                                                className="w-16 h-16 text-gray-600"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={1.5}
+                                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                                                />
+                                            </svg>
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent"></div>
+                                </div>
+
+
+                                {/* Footer */}
+                                <div className="p-4">
+
+                                    {/* Top Row */}
+                                    <div className="flex gap-3 mb-3">
+
+                                        {/* Icon */}
+                                        <div className="flex-shrink-0">
+                                            {modOfTheDay.icon_url && (
+                                                <img
+                                                    src={modOfTheDay.icon_url}
+                                                    alt=""
+                                                    className="w-12 h-12 rounded-lg border border-white/10"
+                                                />
+                                            )}
+                                        </div>
+
+
+                                        {/* Title, Author, Stats */}
+                                        <div className="min-w-0 flex-1">
+
+                                            {/* Title + Author */}
+                                            <div className="flex items-center gap-2 flex-wrap">
+
+                                                <h3 className="text-sm font-bold text-white truncate">
+                                                    {modOfTheDay.title}
+                                                </h3>
+
+                                                <span className="text-xs text-gray-500">
+                                                    by {modOfTheDay.author}
+                                                </span>
+
+                                            </div>
+
+
+                                            {/* Stats */}
+                                            <div className="flex items-center gap-3 text-xs text-gray-400 mt-1">
+
+                                                {/* Downloads */}
+                                                <div className="flex items-center gap-1">
+
+                                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" />
+                                                    </svg>
+
+                                                    <span>
+                                                        {modOfTheDay.downloads >= 1000000
+                                                            ? `${(modOfTheDay.downloads / 1000000).toFixed(1)}M`
+                                                            : `${(modOfTheDay.downloads / 1000).toFixed(0)}k`}
+                                                    </span>
+
+                                                </div>
+
+
+                                                {/* Followers */}
+                                                <div className="flex items-center gap-1">
+
+                                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+                                                    </svg>
+
+                                                    <span>
+                                                        {modOfTheDay.followers >= 1000
+                                                            ? `${(modOfTheDay.followers / 1000).toFixed(0)}k`
+                                                            : modOfTheDay.followers || 0}
+                                                    </span>
+
+                                                </div>
+
+
+                                                {/* Updated */}
+                                                {modOfTheDay.updated && (
+
+                                                    <span className="text-gray-500">
+                                                        {formatTimeAgo(new Date(modOfTheDay.updated).getTime())}
+                                                    </span>
+
+                                                )}
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+
+
+                                    {/* Loaders + Tags */}
+                                    <div className="flex flex-wrap gap-1.5 mb-3">
+
+                                        {/* Loaders */}
+                                        {modOfTheDay.loaders?.map(loader => (
+
+                                            <span
+                                                key={loader}
+                                                className="text-xs bg-primary/15 text-primary px-2 py-1 rounded-lg border border-primary/30 capitalize font-medium"
+                                            >
+                                                {loader}
+                                            </span>
+
+                                        ))}
+
+
+                                        {/* Tags */}
+                                        {modOfTheDay.categories?.slice(0, 4).map(cat => (
+
+                                            <span
+                                                key={cat}
+                                                className="text-xs bg-white/5 text-gray-400 px-2 py-1 rounded-lg capitalize font-medium border border-white/10"
+                                            >
+                                                {cat.replace(/-/g, ' ')}
+                                            </span>
+
+                                        ))}
+
+                                    </div>
+
+
+
+                                    {/* Summary */}
+                                    <p className="text-xs text-gray-400 line-clamp-2 mb-4">
+
+                                        {modOfTheDay.description || 'No description available'}
+
+                                    </p>
+
+
+
+                                    {/* Buttons */}
+                                    <div className="flex gap-2">
+
+                                        <a
+                                            href={`https://modrinth.com/mod/${modOfTheDay.slug}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 px-3 py-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg text-xs font-bold transition-all border border-primary/30 flex items-center justify-center gap-1.5"
+                                        >
+                                            Modrinth
+                                        </a>
+
+
+                                        <button
+                                            onClick={loadNewModOfTheDay}
+                                            className="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg text-xs font-bold transition-all border border-white/10"
+                                        >
+                                            Other Mod
+                                        </button>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        ) : (
+                            <div className="p-4 text-center text-gray-400 text-sm">Failed to load Mod of the Day</div>
+                        )}
+                    </div>
+                )}
             </div>
         );
     };
@@ -461,176 +750,9 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                 </div>
             )}
 
-            { }
-            {dashSettings.showRecentWorlds && recentWorlds.length > 0 && (
-                <div className="mb-10">
-                    <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Recent Worlds</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        {recentWorlds.map((world, idx) => {
-                            const inst = instances.find(i => i.name === world.instanceName);
-                            const status = inst ? runningInstances[inst.name] : null;
-                            const isRunning = status === 'running';
-                            const isLaunching = status === 'launching';
-                            const isInstalling = status === 'installing';
-                            const isPending = pendingLaunches[world.instanceName];
 
-                            return (
-                                <div
-                                    key={`${world.instanceName}-${world.name}-${idx}`}
-                                    onClick={() => {
-                                        if (inst) onInstanceClick(inst);
-                                    }}
-                                    className="group bg-surface/40 hover:bg-surface/60 border border-white/5 hover:border-primary/30 rounded-xl p-4 cursor-pointer transition-all"
-                                >
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-8 h-8 bg-background rounded-lg flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
-                                            {world.instanceIcon && world.instanceIcon.startsWith('data:') ? (
-                                                <img src={world.instanceIcon} alt="" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                                            )}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-bold text-white truncate group-hover:text-primary transition-colors">{world.name}</p>
-                                            <p className="text-[10px] text-gray-500 truncate">{world.instanceName}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" /></svg>
-                                            <span>{formatTimeAgo(new Date(world.lastPlayed).getTime())}</span>
-                                        </div>
 
-                                        { }
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (isRunning) {
-                                                    window.electronAPI.killGame(world.instanceName);
-                                                    return;
-                                                }
-                                                if (isInstalling || isLaunching || isPending) return;
 
-                                                setPendingLaunches(prev => ({ ...prev, [world.instanceName]: true }));
-                                                window.electronAPI.launchGame(world.instanceName, { world: world.name })
-                                                    .then(result => {
-                                                        if (!result.success) console.error('Launch failed:', result.error);
-                                                    })
-                                                    .catch(err => console.error('Launch error:', err.message))
-                                                    .finally(() => {
-                                                        setPendingLaunches(prev => {
-                                                            const next = { ...prev };
-                                                            delete next[world.instanceName];
-                                                            return next;
-                                                        });
-                                                    });
-                                            }}
-                                            disabled={isInstalling || isLaunching || isPending}
-                                            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${isRunning
-                                                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
-                                                : (isInstalling || isLaunching || isPending)
-                                                    ? 'bg-gray-700/50 text-gray-500 cursor-wait border border-white/5'
-                                                    : 'bg-white/5 text-gray-300 hover:bg-primary/20 hover:text-primary border border-white/10 hover:border-primary/30'
-                                                }`}
-                                        >
-                                            {isRunning ? (
-                                                <>
-                                                    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><rect x="6" y="6" width="8" height="8" rx="1" /></svg>
-                                                    Stop
-                                                </>
-                                            ) : (isInstalling || isLaunching || isPending) ? (
-                                                <>
-                                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                    {isInstalling ? 'Installing' : 'Starting'}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
-                                                    Play
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            { }
-            {dashSettings.showModpacks && (
-                <div className="mb-8">
-                    <button
-                        onClick={() => onNavigateSearch && onNavigateSearch('modpack')}
-                        className="flex items-center gap-2 mb-4 group cursor-pointer"
-                    >
-                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider group-hover:text-primary transition-colors">Discover a modpack</h2>
-                        <svg className="w-4 h-4 text-gray-500 group-hover:text-primary group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
-
-                    {loadingModpacks ? (
-                        <div className="flex items-center gap-3 text-gray-500 text-sm">
-                            <div className="w-5 h-5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></div>
-                            Loading modpacks...
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {modpacks.map((pack) => (
-                                <div
-                                    key={pack.project_id || pack.slug}
-                                    className="group relative rounded-xl overflow-hidden border border-white/5 hover:border-primary/30 transition-all cursor-pointer bg-surface/30 hover:bg-surface/50"
-                                    onClick={() => setSelectedModpack(pack)}
-                                >
-                                    <div className="aspect-video w-full overflow-hidden bg-background">
-                                        {pack.gallery && pack.gallery.length > 0 ? (
-                                            <img
-                                                src={pack.gallery[0]}
-                                                alt={pack.title}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                            />
-                                        ) : pack.icon_url ? (
-                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-transparent">
-                                                <img src={pack.icon_url} alt={pack.title} className="w-16 h-16 rounded-lg" />
-                                            </div>
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <svg className="w-10 h-10 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                                                </svg>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="p-3">
-                                        <div className="flex items-start gap-2">
-                                            {pack.icon_url && (
-                                                <img src={pack.icon_url} alt="" className="w-8 h-8 rounded-lg shrink-0 border border-white/10" />
-                                            )}
-                                            <div className="min-w-0">
-                                                <h3 className="text-sm font-bold text-white truncate group-hover:text-primary transition-colors">{pack.title}</h3>
-                                                <p className="text-[10px] text-gray-500 mt-0.5">by {pack.author}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-500">
-                                            <span className="flex items-center gap-1">
-                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" /></svg>
-                                                {pack.downloads ? `${(pack.downloads / 1000).toFixed(0)}k` : '0'}
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                                {pack.follows || 0}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
 
             { }
             {selectedModpack && (

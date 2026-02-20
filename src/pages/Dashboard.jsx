@@ -653,55 +653,58 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-hidden pr-1 flex flex-col relative w-full h-full">
-                    {groupMethod !== 'none' ? (
-                        <div className="h-full overflow-y-auto custom-scrollbar pb-20">
-                            {groupedData.map((group, gIdx) => (
-                                <div key={group.title || 'all'} className={gIdx > 0 ? 'mt-3' : ''}>
-                                    {group.title && (
-                                        <div className="flex items-center gap-4 mb-4">
-                                            <span className="text-white font-bold text-sm whitespace-nowrap opacity-80">{group.title}</span>
-                                            <div className="h-px bg-white/10 flex-1"></div>
+                    {/* Instances Section */}
+                    <div className="flex-1 min-h-0 overflow-hidden pr-1 flex flex-col">
+                        {groupMethod !== 'none' ? (
+                            <div className="h-full overflow-y-auto custom-scrollbar pb-20">
+                                {groupedData.map((group, gIdx) => (
+                                    <div key={group.title || 'all'} className={gIdx > 0 ? 'mt-3' : ''}>
+                                        {group.title && (
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <span className="text-white font-bold text-sm whitespace-nowrap opacity-80">{group.title}</span>
+                                                <div className="h-px bg-white/10 flex-1"></div>
+                                            </div>
+                                        )}
+                                        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mb-8">
+                                            {group.items.map((instance) => (
+                                                <InstanceCard
+                                                    key={instance.name}
+                                                    instance={instance}
+                                                    runningInstances={runningInstances}
+                                                    installProgress={installProgress}
+                                                    pendingLaunches={pendingLaunches}
+                                                    onInstanceClick={onInstanceClick}
+                                                    handleContextMenu={handleContextMenu}
+                                                    addNotification={addNotification}
+                                                    loadInstances={loadInstances}
+                                                    setPendingLaunches={setPendingLaunches}
+                                                />
+                                            ))}
                                         </div>
-                                    )}
-                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mb-8">
-                                        {group.items.map((instance) => (
-                                            <InstanceCard
-                                                key={instance.name}
-                                                instance={instance}
-                                                runningInstances={runningInstances}
-                                                installProgress={installProgress}
-                                                pendingLaunches={pendingLaunches}
-                                                onInstanceClick={onInstanceClick}
-                                                handleContextMenu={handleContextMenu}
-                                                addNotification={addNotification}
-                                                loadInstances={loadInstances}
-                                                setPendingLaunches={setPendingLaunches}
-                                            />
-                                        ))}
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="h-full overflow-y-auto custom-scrollbar pb-20">
-                            <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 p-1">
-                                {sortedInstances.map((instance) => (
-                                    <InstanceCard
-                                        key={instance.name}
-                                        instance={instance}
-                                        runningInstances={runningInstances}
-                                        installProgress={installProgress}
-                                        pendingLaunches={pendingLaunches}
-                                        onInstanceClick={onInstanceClick}
-                                        handleContextMenu={handleContextMenu}
-                                        addNotification={addNotification}
-                                        loadInstances={loadInstances}
-                                        setPendingLaunches={setPendingLaunches}
-                                    />
                                 ))}
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="h-full overflow-y-auto custom-scrollbar pb-20">
+                                <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 p-1">
+                                    {sortedInstances.map((instance) => (
+                                        <InstanceCard
+                                            key={instance.name}
+                                            instance={instance}
+                                            runningInstances={runningInstances}
+                                            installProgress={installProgress}
+                                            pendingLaunches={pendingLaunches}
+                                            onInstanceClick={onInstanceClick}
+                                            handleContextMenu={handleContextMenu}
+                                            addNotification={addNotification}
+                                            loadInstances={loadInstances}
+                                            setPendingLaunches={setPendingLaunches}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {groupedData.length === 0 || (groupedData.length === 1 && groupedData[0].items.length === 0) ? (
