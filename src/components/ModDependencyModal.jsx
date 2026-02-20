@@ -26,7 +26,7 @@ function ModDependencyModal({ mods, onConfirm, onCancel }) {
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-[#0b0e14] w-full max-w-lg rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col animate-scale-in">
+            <div className="bg-[#151515] w-full max-w-lg rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col animate-scale-in">
                 {/* Header */}
                 <div className="p-6 border-b border-white/5 bg-white/[0.02]">
                     <h2 className="text-xl font-bold text-white tracking-tight">Confirm mods selection</h2>

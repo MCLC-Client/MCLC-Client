@@ -50,6 +50,8 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 - [ ] Command line support
 
+> Everything below is not right, some of these are just versions that aren't there or are not updated
+
 ---
 
 ## [1.7.1] - 2026-02-16

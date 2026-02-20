@@ -322,7 +322,7 @@ function Settings() {
                 {/* Java Modal */}
                 {showJavaModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-                        <div className="bg-secondary p-6 rounded-xl border border-white/10 w-96 shadow-2xl animate-scale-in">
+                        <div className="bg-[#151515] p-6 rounded-2xl border border-white/10 w-96 shadow-2xl animate-scale-in">
                             <h3 className="text-xl font-bold mb-4">Install Java</h3>
                             <p className="text-gray-400 mb-6 text-sm">Select a Java version to install. We recommend Java 17 for most modern versions (1.18+).</p>
 
@@ -564,6 +564,7 @@ function Settings() {
                         description="Automatically upload logs to mclo.gs if the game crashes"
                     />
                     <ToggleBox
+                        className="mt-6 pt-6 border-t border-white/5"
                         checked={settings.showDisabledFeatures || false}
                         onChange={(val) => handleChange('showDisabledFeatures', val)}
                         label="Show Disabled Features"

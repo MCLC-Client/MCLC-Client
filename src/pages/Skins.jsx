@@ -381,7 +381,7 @@ function Skins({ onLogout, onProfileUpdate }) {
             { }
             {showCapeModal && (
                 <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-8 backdrop-blur-sm">
-                    <div className="bg-surface border border-white/10 rounded-2xl p-6 w-full max-w-2xl max-h-full flex flex-col">
+                    <div className="bg-[#151515] border border-white/10 rounded-2xl p-6 w-full max-w-2xl max-h-full flex flex-col">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-bold text-white">Select a Cape</h2>
                             <button onClick={() => setShowCapeModal(false)} className="text-gray-400 hover:text-white transition-colors">

@@ -14,7 +14,7 @@
     "dist-all": "concurrently \"npm run dist-clean\" \"npm run build\" \"electron-builder --wl\""
   },
   "build": {
-    "appId": "com.launcher.mclc",
+    "appId": "de.pluginhub.mclc",
     "productName": "MCLC",
     "icon": "resources/icon.png",
     "files": [

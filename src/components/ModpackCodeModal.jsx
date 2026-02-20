@@ -95,7 +95,7 @@ function ModpackCodeModal({
 
     return (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-            <div className="bg-surface-dark w-full max-w-md rounded-2xl border border-white/10 shadow-2xl animate-scale-in">
+            <div className="bg-[#151515] w-full max-w-md rounded-2xl border border-white/10 shadow-2xl animate-scale-in">
                 { }
                 <div className="p-6 border-b border-white/5 flex justify-between items-center">
                     <h2 className="text-2xl font-bold text-white">

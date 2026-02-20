@@ -137,10 +137,10 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
     return (
         <>
             <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8 backdrop-blur-sm">
-                <div className="bg-background-dark w-full max-w-4xl h-[600px] rounded-xl border border-white/10 flex overflow-hidden shadow-2xl">
+                <div className="bg-[#151515] w-full max-w-4xl h-[600px] rounded-2xl border border-white/10 flex overflow-hidden shadow-2xl">
 
                     { }
-                    <div className="w-64 bg-surface/50 border-r border-white/5 p-4 flex flex-col gap-2">
+                    <div className="w-64 bg-[#111] border-r border-white/5 p-4 flex flex-col gap-2">
                         <div className="text-xl font-bold mb-4 px-2 truncate" title={instance.name}>{instance.name}</div>
 
                         <SettingsTab label="General" id="general" active={activeTab} onClick={setActiveTab} icon="info" />
