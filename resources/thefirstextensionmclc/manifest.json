@@ -1,8 +1,0 @@
-{
-  "id": "the-fist-mclc-extension",
-  "name": "The first MCLC Extension",
-  "version": "1.0.0",
-  "description": "Adds a cool new feature.",
-  "author": "ItzzMateo",
-  "main": "main.js"
-}

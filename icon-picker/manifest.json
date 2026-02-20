@@ -1,0 +1,8 @@
+{
+    "id": "icon-picker",
+    "name": "Icon Picker",
+    "description": "An icon picker for the MCLC Client.",
+    "author": "ItzzMateo",
+    "version": "1.0.0",
+    "entry": "main.js"
+}

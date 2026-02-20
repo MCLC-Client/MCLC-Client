@@ -1,8 +1,0 @@
-{
-    "id": "extension-example",
-    "name": "Extension Example",
-    "version": "1.0.0",
-    "description": "A clean example of what an extension can look like.",
-    "entry": "main.js",
-    "author": "ItzzMateo"
-}

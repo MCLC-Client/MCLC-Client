@@ -323,8 +323,27 @@ module.exports = (ipcMain, win) => {
 
     ipcMain.handle('modrinth:get-project', async (_, projectId) => {
         try {
-            const response = await axios.get(`${MODRINTH_API}/project/${projectId}`);
-            return { success: true, project: response.data };
+            const response = await axios.get(`${MODRINTH_API}/project/${projectId}`, {
+                headers: { 'User-Agent': 'Antigravity/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)' }
+            });
+            const project = response.data;
+
+            // Fetch team members to get the author
+            if (project.team) {
+                try {
+                    const teamRes = await axios.get(`${MODRINTH_API}/team/${project.team}/members`, {
+                        headers: { 'User-Agent': 'Antigravity/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)' }
+                    });
+                    if (teamRes.data && teamRes.data.length > 0) {
+                        const owner = teamRes.data.find(m => m.role === 'Owner') || teamRes.data[0];
+                        project.author = owner.user.username;
+                    }
+                } catch (e) {
+                    console.error("Modrinth Get Team Error:", e.message);
+                }
+            }
+
+            return { success: true, project };
         } catch (e) {
             console.error("Modrinth Get Project Error:", e.response ? e.response.data : e.message);
             return { success: false, error: e.message };
