@@ -37,7 +37,7 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 #### Possible Future Features
 
-- [ ] Script support
+- [ ] Script support (Partially implemented through Extensions)
 - [ ] Logging analysis utility
 - [ ] Cloud synchronization for worlds and configurations (e.g., Google Drive, Dropbox, OneDrive)
 - [ ] Mod dependency validation
