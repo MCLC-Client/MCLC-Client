@@ -45,6 +45,18 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
     const [showXpMenu, setShowXpMenu] = useState(false);
     const [xpAmount, setXpAmount] = useState(100);
     const [xpType, setXpType] = useState('add');
+    const [serverProperties, setServerProperties] = useState({});
+    const [isSavingProperties, setIsSavingProperties] = useState(false);
+
+    // Mods/Plugins state
+    const [modSearch, setModSearch] = useState('');
+    const [modSearchResults, setModSearchResults] = useState([]);
+    const [isSearchingMods, setIsSearchingMods] = useState(false);
+    const [installedMods, setInstalledMods] = useState([]);
+    const [selectedModVersion, setSelectedModVersion] = useState({});
+    const [isInstallingMod, setIsInstallingMod] = useState(false);
+    const [modVersions, setModVersions] = useState({});
+    const [loadingVersions, setLoadingVersions] = useState(new Set());
 
     const consoleRef = useRef(null);
     const commandInputRef = useRef(null);
@@ -140,6 +152,42 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
             console.error('Failed to load player stats:', error);
         }
     };
+
+    const loadServerProperties = async () => {
+        try {
+            if (window.electronAPI.getServerProperties) {
+                const properties = await window.electronAPI.getServerProperties(server.name);
+                if (properties) {
+                    setServerProperties(properties);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load server properties:', error);
+        }
+    };
+
+    const saveServerProperties = async () => {
+        setIsSavingProperties(true);
+        try {
+            if (window.electronAPI.saveServerProperties) {
+                await window.electronAPI.saveServerProperties(server.name, serverProperties);
+                addNotification('Server properties saved successfully', 'success');
+            }
+        } catch (error) {
+            console.error('Failed to save server properties:', error);
+            addNotification(`Failed to save properties: ${error.message}`, 'error');
+        } finally {
+            setIsSavingProperties(false);
+        }
+    };
+
+    const updateProperty = (key, value) => {
+        setServerProperties(prev => ({
+            ...prev,
+            [key]: value
+        }));
+    };
+
     const togglePlayerSelection = (player) => {
         setSelectedPlayers(prev =>
             prev.includes(player)
@@ -332,6 +380,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
         loadConsoleLog();
         loadOfflinePlayers();
         loadPlayerStats();
+        loadServerProperties();
 
         const removeStatusListener = window.electronAPI.onServerStatus?.(({ serverName, status, server: updatedServer }) => {
             if (serverName === server.name) {
@@ -447,6 +496,13 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
             }
         }
     }, [consoleLog]);
+
+    // Check if mods tab is still valid when server changes
+    useEffect(() => {
+        if (activeTab === 'mods' && !shouldShowModTab()) {
+            setActiveTab('console');
+        }
+    }, [server.software, server.version]);
 
     const checkServerStatus = async () => {
         try {
@@ -721,6 +777,156 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
         if (hours > 0) return `${hours}h ${minutes}m`;
         if (minutes > 0) return `${minutes}m`;
         return 'Just now';
+    };
+
+    // Helper function to determine loader type
+    const getLoaderType = () => {
+        const software = server.software || 'vanilla';
+        const lowerSoftware = software.toLowerCase();
+
+        if (lowerSoftware === 'vanilla') return 'vanilla';
+        if (['forge', 'neoforge', 'quilt', 'fabric'].includes(lowerSoftware)) return 'fabric-like';
+        if (['bukkit', 'spigot', 'paper', 'purpur', 'folia'].includes(lowerSoftware)) return 'paper-like';
+        return 'vanilla';
+    };
+
+    const getModTabName = () => {
+        const loaderType = getLoaderType();
+        if (loaderType === 'fabric-like') return 'Mods';
+        if (loaderType === 'paper-like') return 'Plugins';
+        return null;
+    };
+
+    const getProjectType = () => {
+        const loaderType = getLoaderType();
+        if (loaderType === 'fabric-like') return 'mod';
+        // Modrinth doesn't have plugin type, we'll search for spigot mods
+        if (loaderType === 'paper-like') return 'mod';
+        return null;
+    };
+
+    const shouldShowModTab = () => {
+        return getLoaderType() !== 'vanilla';
+    };
+
+    const getLoaderForModrinth = () => {
+        const software = server.software || 'vanilla';
+        const lowerSoftware = software.toLowerCase();
+
+        if (lowerSoftware === 'forge') return 'forge';
+        if (lowerSoftware === 'neoforge') return 'neoforge';
+        if (lowerSoftware === 'quilt') return 'quilt';
+        if (lowerSoftware === 'fabric') return 'fabric';
+
+        return lowerSoftware;
+    };
+
+    const searchMods = async (query) => {
+        if (!query.trim()) {
+            setModSearchResults([]);
+            return;
+        }
+
+        setIsSearchingMods(true);
+        try {
+            const projectType = getProjectType();
+            const result = await window.electronAPI.modrinthSearch(query, [], {
+                projectType,
+                limit: 10
+            });
+
+            if (result.success) {
+                setModSearchResults(result.results || []);
+                setModVersions({});
+            } else {
+                addNotification(result.error || 'Failed to search mods', 'error');
+            }
+        } catch (err) {
+            console.error('Mod search error:', err);
+            addNotification(err.message || 'Failed to search mods', 'error');
+        } finally {
+            setIsSearchingMods(false);
+        }
+    };
+
+    const loadModVersions = async (projectId) => {
+        if (modVersions[projectId]) {
+            return;
+        }
+
+        setLoadingVersions(prev => new Set(prev).add(projectId));
+        try {
+            const loaders = [getLoaderForModrinth()];
+            const result = await window.electronAPI.modrinthGetVersions(projectId, loaders, [server.version]);
+
+            if (result.success) {
+                setModVersions(prev => ({
+                    ...prev,
+                    [projectId]: result.versions || []
+                }));
+                
+                if (result.versions && result.versions.length > 0) {
+                    setSelectedModVersion(prev => ({
+                        ...prev,
+                        [projectId]: result.versions[0].id
+                    }));
+                }
+            } else {
+                addNotification('Failed to load available versions', 'error');
+            }
+        } catch (err) {
+            console.error('Version fetch error:', err);
+        } finally {
+            setLoadingVersions(prev => {
+                const updated = new Set(prev);
+                updated.delete(projectId);
+                return updated;
+            });
+        }
+    };
+
+    const installMod = async (projectId, versionId, projectTitle) => {
+        if (!versionId) {
+            addNotification('No compatible version found for your server', 'error');
+            return;
+        }
+
+        setIsInstallingMod(true);
+        try {
+            const versions = modVersions[projectId] || [];
+            const version = versions.find(v => v.id === versionId);
+
+            if (!version) {
+                addNotification('Version not found', 'error');
+                return;
+            }
+
+            const file = version.files.find(f => f.primary) || version.files[0];
+
+            const result = await window.electronAPI.modrinthInstall({
+                instanceName: server.name,
+                projectId: projectId,
+                versionId: versionId,
+                filename: file.filename,
+                url: file.url,
+                projectType: getProjectType()
+            });
+
+            if (result.success) {
+                addNotification(`${projectTitle} installed successfully`, 'success');
+                setModSearch('');
+                setModSearchResults([]);
+                setSelectedModVersion({});
+                setModVersions({});
+            } else {
+                addNotification(result.error || 'Failed to install mod', 'error');
+            }
+        } catch (err) {
+            console.error('Installation error:', err);
+            addNotification(err.message || 'Failed to install mod', 'error');
+        } finally {
+            setIsInstallingMod(false);
+        }
     };
 
     const isRunning = currentStatus === 'running';
@@ -1146,6 +1352,26 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
                         }`}
                 >
                     Players ({serverStats.players?.length || 0} online)
+                </button>
+                {shouldShowModTab() && (
+                    <button
+                        onClick={() => setActiveTab('mods')}
+                        className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeTab === 'mods'
+                            ? 'bg-primary/20 text-primary border-b-2 border-primary'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
+                    >
+                        {getModTabName()}
+                    </button>
+                )}
+                <button
+                    onClick={() => setActiveTab('properties')}
+                    className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeTab === 'properties'
+                        ? 'bg-primary/20 text-primary border-b-2 border-primary'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        }`}
+                >
+                    Properties
                 </button>
             </div>
 
@@ -1704,6 +1930,501 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate }) {
                                             No players have joined yet
                                         </div>
                                     )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'mods' && (
+                    <div className="flex flex-col h-full">
+                        <div className="mb-4">
+                            <h2 className="text-lg font-bold text-white mb-3">{getModTabName()} Management</h2>
+
+                            <div className="flex gap-2 mb-4">
+                                <input
+                                    type="text"
+                                    value={modSearch}
+                                    onChange={(e) => setModSearch(e.target.value)}
+                                    placeholder={`Search ${getModTabName().toLowerCase()}...`}
+                                    className="flex-1 bg-background border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                    onKeyUp={(e) => {
+                                        if (e.key === 'Enter') {
+                                            searchMods(modSearch);
+                                        }
+                                    }}
+                                />
+                                <button
+                                    onClick={() => searchMods(modSearch)}
+                                    disabled={isSearchingMods || !modSearch.trim()}
+                                    className="px-6 py-2 bg-primary/20 text-primary rounded-lg font-bold hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSearchingMods ? 'Searching...' : 'Search'}
+                                </button>
+                            </div>
+
+                            {modSearchResults.length > 0 && (
+                                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {modSearchResults.map(result => (
+                                            <div key={result.project_id} className="bg-surface/40 rounded-lg p-4 hover:bg-surface/60 transition-colors">
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div className="flex-1">
+                                                        <h3 className="font-bold text-white text-lg">{result.title}</h3>
+                                                        <p className="text-gray-400 text-sm line-clamp-2">{result.description}</p>
+                                                        <div className="flex gap-2 mt-2 flex-wrap">
+                                                            <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
+                                                                Downloads: {Math.floor(result.downloads / 1000)}K
+                                                            </span>
+                                                            <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
+                                                                ⭐ {result.follows > 0 ? Math.floor(result.follows / 100) : '0'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    {result.icon_url && (
+                                                        <img
+                                                            src={result.icon_url}
+                                                            alt={result.title}
+                                                            className="w-16 h-16 rounded-lg object-cover ml-4"
+                                                        />
+                                                    )}
+                                                </div>
+
+                                                <div className="mt-3 flex gap-2">
+                                                    <select
+                                                        value={selectedModVersion[result.project_id] || ''}
+                                                        onChange={(e) => {
+                                                            setSelectedModVersion(prev => ({
+                                                                ...prev,
+                                                                [result.project_id]: e.target.value
+                                                            }));
+                                                        }}
+                                                        onClick={() => {
+                                                            if (!modVersions[result.project_id]) {
+                                                                loadModVersions(result.project_id);
+                                                            }
+                                                        }}
+                                                        className="flex-1 bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                                    >
+                                                        <option value="">
+                                                            {loadingVersions.has(result.project_id) ? 'Loading versions...' : 'Select version...'}
+                                                        </option>
+                                                        {modVersions[result.project_id] && modVersions[result.project_id].map(version => (
+                                                            <option key={version.id} value={version.id}>
+                                                                {version.version_number}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <button
+                                                        onClick={() => installMod(result.project_id, selectedModVersion[result.project_id], result.title)}
+                                                        disabled={isInstallingMod || !selectedModVersion[result.project_id]}
+                                                        className="px-6 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bold text-sm"
+                                                    >
+                                                        {isInstallingMod ? 'Installing...' : 'Install'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {modSearch && !isSearchingMods && modSearchResults.length === 0 && (
+                                <div className="flex items-center justify-center h-48 text-gray-400">
+                                    No {getModTabName().toLowerCase()} found matching your search
+                                </div>
+                            )}
+
+                            {!modSearch && modSearchResults.length === 0 && (
+                                <div className="flex flex-col items-center justify-center h-48 text-gray-400">
+                                    <p>Search for {getModTabName().toLowerCase()} to install</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'properties' && (
+                    <div className="flex flex-col h-full">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-bold text-white">Server Properties</h2>
+                            <button
+                                onClick={saveServerProperties}
+                                disabled={isSavingProperties}
+                                className="px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {isSavingProperties ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                        Saving...
+                                    </>
+                                ) : (
+                                    'Save Properties'
+                                )}
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
+                                {/* Server Settings */}
+                                <div className="bg-surface/40 rounded-xl p-4 md:col-span-2">
+                                    <h3 className="font-bold text-white mb-4">Server Settings</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Max Players</label>
+                                            <input
+                                                type="number"
+                                                value={serverProperties['max-players'] || '20'}
+                                                onChange={(e) => updateProperty('max-players', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">MOTD</label>
+                                            <input
+                                                type="text"
+                                                value={serverProperties['motd'] || 'A Minecraft Server'}
+                                                onChange={(e) => updateProperty('motd', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Server Port</label>
+                                            <input
+                                                type="number"
+                                                value={serverProperties['server-port'] || '25565'}
+                                                onChange={(e) => updateProperty('server-port', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">View Distance</label>
+                                            <input
+                                                type="number"
+                                                value={serverProperties['view-distance'] || '10'}
+                                                onChange={(e) => updateProperty('view-distance', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Simulation Distance</label>
+                                            <input
+                                                type="number"
+                                                value={serverProperties['simulation-distance'] || '10'}
+                                                onChange={(e) => updateProperty('simulation-distance', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Spawn Protection</label>
+                                            <input
+                                                type="number"
+                                                value={serverProperties['spawn-protection'] || '16'}
+                                                onChange={(e) => updateProperty('spawn-protection', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Gameplay Settings */}
+                                <div className="bg-surface/40 rounded-xl p-4">
+                                    <h3 className="font-bold text-white mb-4">Gameplay</h3>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Difficulty</label>
+                                            <select
+                                                value={serverProperties['difficulty'] || 'easy'}
+                                                onChange={(e) => updateProperty('difficulty', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            >
+                                                <option value="peaceful">Peaceful</option>
+                                                <option value="easy">Easy</option>
+                                                <option value="normal">Normal</option>
+                                                <option value="hard">Hard</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Gamemode</label>
+                                            <select
+                                                value={serverProperties['gamemode'] || 'survival'}
+                                                onChange={(e) => updateProperty('gamemode', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            >
+                                                <option value="survival">Survival</option>
+                                                <option value="creative">Creative</option>
+                                                <option value="adventure">Adventure</option>
+                                                <option value="spectator">Spectator</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Level Name</label>
+                                            <input
+                                                type="text"
+                                                value={serverProperties['level-name'] || 'world'}
+                                                onChange={(e) => updateProperty('level-name', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Level Seed</label>
+                                            <input
+                                                type="text"
+                                                value={serverProperties['level-seed'] || ''}
+                                                onChange={(e) => updateProperty('level-seed', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                                placeholder="Leave empty for random"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Op Permission Level</label>
+                                            <select
+                                                value={serverProperties['op-permission-level'] || '4'}
+                                                onChange={(e) => updateProperty('op-permission-level', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            >
+                                                <option value="1">1 - Bypass user protection</option>
+                                                <option value="2">2 - Use /clear, /difficulty, /effect, /gamemode, /gamerule, /give, /setblock, /tellraw</option>
+                                                <option value="3">3 - Use /ban, /deop, /kick, /op</option>
+                                                <option value="4">4 - Use /stop</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* World Settings */}
+                                <div className="bg-surface/40 rounded-xl p-4">
+                                    <h3 className="font-bold text-white mb-4">World</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm text-gray-400">Generate Structures</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['generate-structures'] === 'true' || serverProperties['generate-structures'] === true}
+                                                onChange={(e) => updateProperty('generate-structures', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm text-gray-400">Hardcore</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['hardcore'] === 'true' || serverProperties['hardcore'] === true}
+                                                onChange={(e) => updateProperty('hardcore', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm text-gray-400">PVP</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['pvp'] === 'true' || serverProperties['pvp'] === true}
+                                                onChange={(e) => updateProperty('pvp', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Network Settings */}
+                                <div className="bg-surface/40 rounded-xl p-4">
+                                    <h3 className="font-bold text-white mb-4">Network</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm text-gray-400">Online Mode</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['online-mode'] === 'true' || serverProperties['online-mode'] === true}
+                                                onChange={(e) => updateProperty('online-mode', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm text-gray-400">Enforce Secure Profile</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['enforce-secure-profile'] === 'true' || serverProperties['enforce-secure-profile'] === true}
+                                                onChange={(e) => updateProperty('enforce-secure-profile', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm text-gray-400">Prevent Proxy Connections</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['prevent-proxy-connections'] === 'true' || serverProperties['prevent-proxy-connections'] === true}
+                                                onChange={(e) => updateProperty('prevent-proxy-connections', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm text-gray-400">Use Native Transport</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['use-native-transport'] === 'true' || serverProperties['use-native-transport'] === true}
+                                                onChange={(e) => updateProperty('use-native-transport', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Network Compression Threshold</label>
+                                            <input
+                                                type="number"
+                                                value={serverProperties['network-compression-threshold'] || '256'}
+                                                onChange={(e) => updateProperty('network-compression-threshold', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Player Settings */}
+                                <div className="bg-surface/40 rounded-xl p-4">
+                                    <h3 className="font-bold text-white mb-4">Players</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm text-gray-400">Whitelist</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['white-list'] === 'true' || serverProperties['white-list'] === true}
+                                                onChange={(e) => updateProperty('white-list', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm text-gray-400">Enforce Whitelist</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['enforce-whitelist'] === 'true' || serverProperties['enforce-whitelist'] === true}
+                                                onChange={(e) => updateProperty('enforce-whitelist', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Player Idle Timeout (minutes, 0=disabled)</label>
+                                            <input
+                                                type="number"
+                                                value={serverProperties['player-idle-timeout'] || '0'}
+                                                onChange={(e) => updateProperty('player-idle-timeout', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Advanced Settings */}
+                                <div className="bg-surface/40 rounded-xl p-4 md:col-span-2">
+                                    <h3 className="font-bold text-white mb-4">Advanced Settings</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="flex items-center justify-between col-span-1">
+                                            <label className="text-sm text-gray-400">Enable RCON</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['enable-rcon'] === 'true' || serverProperties['enable-rcon'] === true}
+                                                onChange={(e) => updateProperty('enable-rcon', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between col-span-1">
+                                            <label className="text-sm text-gray-400">Enable Query</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['enable-query'] === 'true' || serverProperties['enable-query'] === true}
+                                                onChange={(e) => updateProperty('enable-query', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between col-span-1">
+                                            <label className="text-sm text-gray-400">Broadcast Console to Ops</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['broadcast-console-to-ops'] === 'true' || serverProperties['broadcast-console-to-ops'] === true}
+                                                onChange={(e) => updateProperty('broadcast-console-to-ops', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between col-span-1">
+                                            <label className="text-sm text-gray-400">Broadcast RCON to Ops</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['broadcast-rcon-to-ops'] === 'true' || serverProperties['broadcast-rcon-to-ops'] === true}
+                                                onChange={(e) => updateProperty('broadcast-rcon-to-ops', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between col-span-1">
+                                            <label className="text-sm text-gray-400">Allow Flight</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['allow-flight'] === 'true' || serverProperties['allow-flight'] === true}
+                                                onChange={(e) => updateProperty('allow-flight', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between col-span-1">
+                                            <label className="text-sm text-gray-400">Enable Status</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['enable-status'] === 'true' || serverProperties['enable-status'] === true}
+                                                onChange={(e) => updateProperty('enable-status', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between col-span-1">
+                                            <label className="text-sm text-gray-400">Force Gamemode</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['force-gamemode'] === 'true' || serverProperties['force-gamemode'] === true}
+                                                onChange={(e) => updateProperty('force-gamemode', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between col-span-1">
+                                            <label className="text-sm text-gray-400">Log IPs</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['log-ips'] === 'true' || serverProperties['log-ips'] === true}
+                                                onChange={(e) => updateProperty('log-ips', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between col-span-1">
+                                            <label className="text-sm text-gray-400">Require Resource Pack</label>
+                                            <input
+                                                type="checkbox"
+                                                checked={serverProperties['require-resource-pack'] === 'true' || serverProperties['require-resource-pack'] === true}
+                                                onChange={(e) => updateProperty('require-resource-pack', e.target.checked ? 'true' : 'false')}
+                                                className="w-4 h-4 rounded"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Max Tick Time (ms)</label>
+                                            <input
+                                                type="number"
+                                                value={serverProperties['max-tick-time'] || '60000'}
+                                                onChange={(e) => updateProperty('max-tick-time', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">RCON Port</label>
+                                            <input
+                                                type="number"
+                                                value={serverProperties['rcon.port'] || '25575'}
+                                                onChange={(e) => updateProperty('rcon.port', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm text-gray-400 block mb-2">Query Port</label>
+                                            <input
+                                                type="number"
+                                                value={serverProperties['query.port'] || '25565'}
+                                                onChange={(e) => updateProperty('query.port', e.target.value)}
+                                                className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

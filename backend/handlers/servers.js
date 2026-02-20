@@ -1413,5 +1413,134 @@ eula=false
         }
     });
 
+    // ==================== SERVER PROPERTIES FUNCTIONS ====================
+
+    /**
+     * Parse properties file format to object
+     * Supports comments, empty lines, and key=value format
+     */
+    function parsePropertiesFile(content) {
+        const properties = {};
+        const lines = content.split('\n');
+        let header = '';
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+
+            // Skip empty lines, but preserve header comments
+            if (!trimmed) {
+                continue;
+            }
+
+            // Preserve first header comments
+            if (trimmed.startsWith('#') && !header) {
+                header += (header ? '\n' : '') + line;
+                continue;
+            }
+
+            // Skip other comments (mid-file)
+            if (trimmed.startsWith('#')) {
+                continue;
+            }
+
+            // Parse key=value pairs
+            const eqIndex = line.indexOf('=');
+            if (eqIndex > 0) {
+                const key = line.substring(0, eqIndex).trim();
+                const value = line.substring(eqIndex + 1);
+                properties[key] = value;
+            }
+        }
+
+        return { properties, header };
+    }
+
+    /**
+     * Convert properties object back to file format
+     * Preserves header comments and maintains all properties
+     */
+    function stringifyPropertiesFile(properties, header) {
+        let content = header ? header + '\n' : '';
+
+        // Get list of keys, sorted alphabetically but with important ones first
+        const keys = Object.keys(properties).sort();
+
+        for (const key of keys) {
+            const value = properties[key];
+            content += `${key}=${value}\n`;
+        }
+
+        return content;
+    }
+
+    ipcMain.handle('server:get-properties', async (event, serverName) => {
+        try {
+            console.log(`[Servers] Getting properties for ${serverName}`);
+
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const propertiesPath = path.join(serverDir, 'server.properties');
+
+            if (!await fs.pathExists(propertiesPath)) {
+                console.log(`[Servers] server.properties not found for ${serverName}`);
+                return {};
+            }
+
+            const content = await fs.readFile(propertiesPath, 'utf-8');
+            const { properties } = parsePropertiesFile(content);
+
+            console.log(`[Servers] Loaded ${Object.keys(properties).length} properties for ${serverName}`);
+
+            return properties;
+        } catch (error) {
+            console.error(`[Servers] Error getting properties for ${serverName}:`, error);
+            return {};
+        }
+    });
+
+    ipcMain.handle('server:save-properties', async (event, serverName, properties) => {
+        try {
+            console.log(`[Servers] Saving properties for ${serverName}`);
+
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const propertiesPath = path.join(serverDir, 'server.properties');
+
+            if (!await fs.pathExists(propertiesPath)) {
+                console.log(`[Servers] server.properties not found for ${serverName}`);
+                return { success: false, error: 'server.properties file not found' };
+            }
+
+            // Read the current file to preserve header and any properties not in the UI
+            const currentContent = await fs.readFile(propertiesPath, 'utf-8');
+            const { properties: currentProperties, header } = parsePropertiesFile(currentContent);
+
+            // Merge: keep all current properties and update with new ones
+            const mergedProperties = { ...currentProperties, ...properties };
+
+            // Convert back to file format
+            const newContent = stringifyPropertiesFile(mergedProperties, header);
+
+            // Write the file
+            await fs.writeFile(propertiesPath, newContent);
+
+            console.log(`[Servers] Properties saved for ${serverName}. Updated ${Object.keys(properties).length} properties, total ${Object.keys(mergedProperties).length}`);
+
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('server:console', {
+                    serverName,
+                    log: `[INFO] Server properties updated (${Object.keys(properties).length} changes)`
+                });
+            }
+
+            return { success: true };
+        } catch (error) {
+            console.error(`[Servers] Error saving properties for ${serverName}:`, error);
+            return { success: false, error: error.message };
+        }
+    });
+
     console.log('[Servers] Server handlers setup complete.');
 };

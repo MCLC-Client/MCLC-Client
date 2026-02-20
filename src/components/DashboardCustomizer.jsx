@@ -120,6 +120,21 @@ function DashboardCustomizer({ settings, onUpdate, onClose, onEnterEditor }) {
                             </button>
                         </div>
 
+                        <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 group hover:border-white/10 transition-all">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-400">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
+                                </div>
+                                <span className="text-sm font-medium text-gray-200">Mod of the Day</span>
+                            </div>
+                            <button
+                                onClick={() => toggleSection('mod-of-the-day')}
+                                className={`w-10 h-5 rounded-full transition-all relative ${isVisible('mod-of-the-day') ? 'bg-primary' : 'bg-gray-700'}`}
+                            >
+                                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isVisible('mod-of-the-day') ? 'right-1' : 'left-1'}`} />
+                            </button>
+                        </div>
+
 
                     </div>
                 </div>

@@ -623,6 +623,12 @@ module.exports = (ipcMain, win) => {
                                 '4I1XuqiY',
                                 'BVzZfTc1',
                                 'NNAgCjsB',
+                                'g96Z4WVZ',
+                                'uXXizFIs',
+                                'fQEb0iXm',
+                                'nmDcB62a',
+                                '51shyZVL',
+                                'NRjRiSSD',
                                 'LQ3K71Q1'
                             ];
                             const fallbackMods = ['GchcoXML', '4ZqxOvjD']; // fallback if YL57xq9U unavailable

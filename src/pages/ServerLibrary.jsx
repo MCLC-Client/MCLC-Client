@@ -11,16 +11,18 @@ function ServerLibrary() {
     const [isLoadingVersions, setIsLoadingVersions] = useState(false);
     const [downloading, setDownloading] = useState(null);
     const [installedSoftware, setInstalledSoftware] = useState({});
+    const platformOrder = ['vanilla', 'bukkit', 'spigot', 'paper', 'purpur', 'folia', 'forge', 'fabric', 'neoforge', 'quilt'];
     const platformDetails = {
         vanilla: { icon: '🌱', name: 'Vanilla', description: 'Official Minecraft server', color: 'from-green-500/20' },
+        bukkit: { icon: '🔨', name: 'Bukkit', description: 'Original plugin API', color: 'from-orange-500/20' },
+        spigot: { icon: '⚙️', name: 'Spigot', description: 'Most popular server software', color: 'from-yellow-500/20' },
         paper: { icon: '📄', name: 'Paper', description: 'High-performance fork of Spigot', color: 'from-blue-500/20' },
         purpur: { icon: '💜', name: 'Purpur', description: 'Fork of Paper with many features', color: 'from-purple-500/20' },
-        spigot: { icon: '⚙️', name: 'Spigot', description: 'Most popular server software', color: 'from-yellow-500/20' },
-        bukkit: { icon: '🔨', name: 'Bukkit', description: 'Original plugin API', color: 'from-orange-500/20' },
+        folia: { icon: '🍃', name: 'Folia', description: 'Regionized multithreaded server', color: 'from-emerald-500/20' },
         forge: { icon: '⚒️', name: 'Forge', description: 'Modded server for Forge mods', color: 'from-red-500/20' },
         fabric: { icon: '🧵', name: 'Fabric', description: 'Lightweight modding platform', color: 'from-cyan-500/20' },
         neoforge: { icon: '🆕', name: 'NeoForge', description: 'Modern fork of Forge', color: 'from-indigo-500/20' },
-        folia: { icon: '🍃', name: 'Folia', description: 'Regionized multithreaded server', color: 'from-emerald-500/20' }
+        quilt: { icon: '🧩', name: 'Quilt', description: 'Community-driven modding platform', color: 'from-pink-500/20' }
     };
 
     useEffect(() => {
@@ -34,23 +36,25 @@ function ServerLibrary() {
 
             const response = await fetch('https://mcutils.com/api/server-jars');
             const data = await response.json();
-            const supportedPlatforms = ['vanilla', 'paper', 'purpur', 'spigot', 'bukkit', 'forge', 'fabric', 'neoforge', 'folia'];
+            const supportedPlatforms = ['vanilla', 'bukkit', 'spigot', 'paper', 'purpur', 'folia', 'forge', 'fabric', 'neoforge', 'quilt'];
             const filteredPlatforms = data.filter(p => supportedPlatforms.includes(p.key));
+            const sortedPlatforms = filteredPlatforms.sort((a, b) => supportedPlatforms.indexOf(a.key) - supportedPlatforms.indexOf(b.key));
 
-            setPlatforms(filteredPlatforms);
+            setPlatforms(sortedPlatforms);
         } catch (error) {
             console.error('Failed to load platforms:', error);
             addNotification('Failed to load server platforms', 'error');
             setPlatforms([
                 { key: 'vanilla', name: 'Vanilla' },
+                { key: 'bukkit', name: 'Bukkit' },
+                { key: 'spigot', name: 'Spigot' },
                 { key: 'paper', name: 'Paper' },
                 { key: 'purpur', name: 'Purpur' },
-                { key: 'spigot', name: 'Spigot' },
-                { key: 'bukkit', name: 'Bukkit' },
+                { key: 'folia', name: 'Folia' },
                 { key: 'forge', name: 'Forge' },
                 { key: 'fabric', name: 'Fabric' },
                 { key: 'neoforge', name: 'NeoForge' },
-                { key: 'folia', name: 'Folia' }
+                { key: 'quilt', name: 'Quilt' }
             ]);
         } finally {
             setIsLoading(false);
