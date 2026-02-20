@@ -34,16 +34,18 @@
     <!-- Navbar -->
     <nav class="fixed top-0 left-0 right-0 z-[100] transition-all duration-300 bg-background/80 backdrop-blur-md border-b border-white/5"
         id="navbar">
-        <div class="max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between h-full">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between h-20">
             <a href="index.html" class="flex items-center gap-3">
                 <img src="resources/icon.png" alt="MCLC Logo" class="w-10 h-10 object-contain">
                 <span class="text-2xl font-extrabold tracking-tighter text-white">MCLC Admin</span>
             </a>
 
-            <a id="downloadNavBtn" href="#"
-                class="bg-primary hover:bg-primary-dark text-black px-6 py-2.5 rounded-xl font-bold transition-all shadow-primary-glow transform hover:scale-105 active:scale-95 shrink-0">
-                Download
-            </a>
+            <div class="flex items-center gap-4" id="nav-right-group">
+                <a id="downloadNavBtn" href="#"
+                    class="bg-primary hover:bg-primary-dark text-black px-6 py-2.5 rounded-xl font-bold transition-all shadow-primary-glow transform hover:scale-105 active:scale-95 shrink-0">
+                    Download
+                </a>
+            </div>
         </div>
     </nav>
 
@@ -127,6 +129,11 @@
                 const versions = await verRes.json();
                 const drafts = await draftRes.json();
 
+                if (!Array.isArray(extensions) || !Array.isArray(versions) || !Array.isArray(drafts)) {
+                    list.innerHTML = '<div class="bg-surface/30 border border-dashed border-white/5 p-12 rounded-2xl text-center text-gray-500 font-bold">Invalid response format from server.</div>';
+                    return;
+                }
+
                 if (extensions.length === 0 && versions.length === 0 && drafts.length === 0) {
                     list.innerHTML = '<div class="bg-surface/30 border border-dashed border-white/5 p-12 rounded-2xl text-center text-gray-600 font-bold">No pending items.</div>';
                     return;
@@ -150,10 +157,18 @@
                                 <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500 bg-black/20 p-4 rounded-xl">
                                     <span>By: <span class="text-white font-bold">${ext.developer}</span></span>
                                 </div>
+                                <div class="mt-4 flex items-center gap-4">
+                                    <a href="/uploads/${ext.file_path}" download class="text-primary hover:underline flex items-center gap-2 text-sm font-bold">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        Download File for Review
+                                    </a>
+                                </div>
                             </div>
                             <div class="flex lg:flex-col items-center gap-3 shrink-0 w-full lg:w-48">
                                 <button onclick="updateExtensionStatus(${ext.id}, 'approve')" 
                                     class="w-full bg-primary hover:bg-primary-dark text-black px-6 py-4 rounded-xl font-bold transition-all shadow-primary-glow">Approve</button>
+                                <button onclick="updateExtensionStatus(${ext.id}, 'action_required')" 
+                                    class="w-full bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-4 rounded-xl font-bold transition-all">Action Required</button>
                                 <button onclick="updateExtensionStatus(${ext.id}, 'reject')" 
                                     class="w-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 px-6 py-4 rounded-xl font-bold transition-all">Reject</button>
                             </div>
@@ -230,8 +245,11 @@
         }
 
         async function updateExtensionStatus(id, action) {
-            const reason = action === 'reject' ? prompt('Enter rejection reason:') : '';
-            if (action === 'reject' && !reason) return;
+            let reason = '';
+            if (action === 'reject' || action === 'action_required') {
+                reason = prompt(`Enter ${action === 'reject' ? 'rejection' : 'feedback'} reason:`);
+                if (reason === null) return;
+            }
 
             try {
                 const res = await fetch(`/api/admin/extensions/${id}/${action}`, {
@@ -239,14 +257,24 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ reason })
                 });
-                if (res.ok) loadPending();
-            } catch (err) { alert('Action failed'); }
+                const data = await res.json();
+                if (data.success) {
+                    loadPending();
+                    if (typeof loadAllExtensions === 'function') loadAllExtensions();
+                } else {
+                    alert(data.error || 'Update failed');
+                }
+            } catch (err) {
+                alert('Action failed');
+            }
         }
 
         async function updateVersionStatus(vid, action) {
-            const reason = action === 'reject' ? prompt('Enter rejection reason:') : '';
-            if (action === 'reject' && !reason) return;
-
+            let reason = '';
+            if (action === 'reject') {
+                reason = prompt("Enter rejection reason:");
+                if (reason === null) return;
+            }
             try {
                 const res = await fetch(`/api/admin/versions/${vid}/${action}`, {
                     method: 'POST',
@@ -254,30 +282,50 @@
                     body: JSON.stringify({ reason })
                 });
                 if (res.ok) loadPending();
-            } catch (err) { alert('Action failed'); }
+                else alert('Update failed');
+            } catch (err) {
+                alert('Action failed');
+            }
         }
 
         async function updateDraftStatus(did, action) {
-            const reason = action === 'reject' ? prompt('Enter rejection reason:') : '';
-            if (action === 'reject' && !reason) return;
-
+            let reason = '';
+            if (action === 'reject') {
+                reason = prompt("Enter rejection reason:");
+                if (reason === null) return;
+            }
             try {
                 const res = await fetch(`/api/admin/drafts/${did}/${action}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ reason })
                 });
-                if (res.ok) loadPending();
-            } catch (err) { alert('Action failed'); }
+                if (res.ok) {
+                    loadPending();
+                    if (typeof loadAllExtensions === 'function') loadAllExtensions();
+                } else alert('Update failed');
+            } catch (err) {
+                alert('Action failed');
+            }
         }
 
         async function loadAllExtensions() {
+            const list = document.getElementById('all-extensions-list');
+            if (!list) return;
+            list.innerHTML = '<div class="text-gray-500 animate-pulse p-12 text-center font-bold">Loading global extension list...</div>';
+
             try {
                 const res = await fetch('/api/admin/extensions/all');
-                allExtensions = await res.json();
+                if (!res.ok) {
+                    list.innerHTML = `<div class="bg-red-500/10 border border-red-500/20 p-12 rounded-2xl text-center text-red-500 font-bold">Failed to load extensions (Status: ${res.status})</div>`;
+                    return;
+                }
+                const data = await res.json();
+                allExtensions = Array.isArray(data) ? data : [];
                 renderAllExtensions(allExtensions);
             } catch (err) {
-                console.error('Error loading all extensions');
+                console.error('[MCLC] Error loading all extensions:', err);
+                list.innerHTML = '<div class="bg-red-500/10 border border-red-500/20 p-12 rounded-2xl text-center text-red-500 font-bold">Network error loading extensions.</div>';
             }
         }
 
@@ -321,12 +369,15 @@
                                     <div class="text-sm font-semibold text-gray-300">${ext.developer}</div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded ${ext.status === 'approved' ? 'bg-primary/20 text-primary' : (ext.status === 'rejected' ? 'bg-red-500/20 text-red-500' : 'bg-yellow-500/20 text-yellow-500')}">
-                                        ${ext.status}
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded 
+                                        ${ext.status === 'approved' ? 'bg-primary/20 text-primary' :
+                    (ext.status === 'rejected' ? 'bg-red-500/20 text-red-500' :
+                        (ext.status === 'action_required' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-blue-500/20 text-blue-400'))}">
+                                        ${ext.status === 'action_required' ? 'Action Required' : ext.status}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right rounded-r-2xl">
-                                    <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                    <div class="flex items-center justify-end gap-2 transition-all">
                                         <a href="dashboard.html?edit=${ext.id}" class="p-2 bg-primary/10 hover:bg-primary text-primary hover:text-black rounded-lg transition-all" title="Edit in Dashboard">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                         </a>
@@ -393,6 +444,7 @@
 
         loadPending();
     </script>
+    <script src="main.js?v=4"></script>
 </body>
 
 </html>

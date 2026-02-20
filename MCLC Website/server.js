@@ -384,15 +384,15 @@ app.post('/api/extensions/upload', ensureAuthenticated, upload.fields([
         try {
             // 1. Insert into extensions (Metadata)
             const [extResult] = await connection.query(
-                'INSERT INTO extensions (user_id, name, identifier, summary, description, type, visibility, banner_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                [req.user.id, name, identifier, summary, description, type || 'extension', visibility || 'public', bannerFilename]
+                'INSERT INTO extensions (user_id, name, identifier, summary, description, type, visibility, banner_path, file_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [req.user.id, name, identifier, summary, description, type || 'extension', visibility || 'public', bannerFilename, extensionFilename]
             );
             const extensionId = extResult.insertId;
 
             // 2. Insert into extension_versions (Initial version)
             await connection.query(
-                'INSERT INTO extension_versions (extension_id, version, changelog, file_path, status) VALUES (?, ?, ?, ?, ?)',
-                [extensionId, version || '1.0.0', 'Initial upload', extensionFilename, 'pending']
+                'INSERT INTO extension_versions (extension_id, version, changelog, file_path, downloads, status) VALUES (?, ?, ?, ?, ?, ?)',
+                [extensionId, version || '1.0.0', 'Initial upload', extensionFilename, 0, 'pending']
             );
 
             await connection.commit();
@@ -408,7 +408,7 @@ app.post('/api/extensions/upload', ensureAuthenticated, upload.fields([
         if (err.code === 'ER_DUP_ENTRY') {
             return res.status(400).json({ error: 'Identifier already exists' });
         }
-        res.status(500).json({ error: 'Database error' });
+        res.status(500).json({ error: 'Database error', details: err.message });
     }
 });
 
@@ -443,6 +443,10 @@ app.post('/api/extensions/update/:id', ensureAuthenticated, upload.fields([
                 queryParams.push(id);
                 await pool.query(`UPDATE extensions SET ${updateFields.join(', ')} WHERE id = ?`, queryParams);
             }
+
+            // Even if an admin edits their own extension, if it was action_required, it should return to pending.
+            await pool.query('UPDATE extensions SET status = "pending" WHERE id = ? AND status = "action_required"', [id]);
+
             res.json({ success: true, message: 'Updated directly (Admin)' });
         } else {
             // Save to Metadata Draft
@@ -450,11 +454,14 @@ app.post('/api/extensions/update/:id', ensureAuthenticated, upload.fields([
                 'INSERT INTO extension_metadata_drafts (extension_id, name, summary, description, banner_path, status) VALUES (?, ?, ?, ?, ?, ?)',
                 [id, name, summary, description, bannerPath, 'pending']
             );
+            // Reset extension status back to pending if it was action_required
+            await pool.query('UPDATE extensions SET status = "pending" WHERE id = ? AND status = "action_required"', [id]);
+
             res.json({ success: true, message: 'Metadata draft submitted for review' });
         }
     } catch (err) {
         console.error('Update (Draft) Error:', err);
-        res.status(500).json({ error: 'Database error' });
+        res.status(500).json({ error: 'Database error', details: err.message });
     }
 });
 
@@ -475,10 +482,13 @@ app.post('/api/extensions/:id/version', ensureAuthenticated, upload.single('exte
             'INSERT INTO extension_versions (extension_id, version, changelog, file_path, status) VALUES (?, ?, ?, ?, ?)',
             [id, version, changelog, req.file.filename, 'pending']
         );
+        // Reset extension status back to pending if it was action_required
+        await pool.query('UPDATE extensions SET status = "pending" WHERE id = ? AND status = "action_required"', [id]);
+
         res.json({ success: true });
     } catch (err) {
         console.error('Version Upload Error:', err);
-        res.status(500).json({ error: 'Database error' });
+        res.status(500).json({ error: 'Database error', details: err.message });
     }
 });
 
@@ -540,6 +550,41 @@ app.delete('/api/extensions/versions/:vid', ensureAuthenticated, async (req, res
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Extension Deletion
+app.delete('/api/extensions/:id', ensureAuthenticated, async (req, res) => {
+    const { id } = req.params;
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 1. Verify Ownership
+        const [ext] = await connection.query('SELECT user_id FROM extensions WHERE id = ?', [id]);
+        if (ext.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Extension not found' });
+        }
+
+        if (ext[0].user_id !== req.user.id && req.user.role !== 'admin') {
+            await connection.rollback();
+            return res.status(403).json({ error: 'Unauthorized: You do not own this extension' });
+        }
+
+        // 2. Delete related data
+        await connection.query('DELETE FROM extension_versions WHERE extension_id = ?', [id]);
+        await connection.query('DELETE FROM extension_metadata_drafts WHERE extension_id = ?', [id]);
+        await connection.query('DELETE FROM extensions WHERE id = ?', [id]);
+
+        await connection.commit();
+        res.json({ success: true, message: 'Extension deleted successfully' });
+    } catch (err) {
+        if (connection) await connection.rollback();
+        console.error('[MCLC] Error deleting extension:', err);
+        res.status(500).json({ error: 'Database error while deleting' });
+    } finally {
+        if (connection) connection.release();
     }
 });
 
@@ -746,7 +791,7 @@ app.get('/api/admin/versions/pending', ensureAdmin, async (req, res) => {
             FROM extension_versions
             JOIN extensions ON extension_versions.extension_id = extensions.id
             JOIN users ON extensions.user_id = users.id
-            WHERE extension_versions.status = "pending"
+            WHERE extension_versions.status = "pending" AND extensions.status = "approved"
         `);
         res.json(rows);
     } catch (err) {
@@ -771,6 +816,48 @@ app.delete('/api/admin/extensions/:id', ensureAdmin, async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: 'Database error' });
+    }
+});
+
+app.post('/api/admin/extensions/:id/:action', ensureAdmin, async (req, res) => {
+    const { id, action } = req.params;
+    const { reason } = req.body;
+    let status = 'pending';
+    if (action === 'approve') status = 'approved';
+    else if (action === 'reject') status = 'rejected';
+    else if (action === 'action_required') status = 'action_required';
+
+    try {
+        await pool.query('UPDATE extensions SET status = ? WHERE id = ?', [status, id]);
+
+        // Fetch extension details for notification
+        const [ext] = await pool.query('SELECT user_id, name FROM extensions WHERE id = ?', [id]);
+        if (ext.length > 0) {
+            const userId = ext[0].user_id;
+            const name = ext[0].name;
+            let msg = '';
+            let type = 'info';
+
+            if (status === 'approved') {
+                msg = `Your extension "${name}" has been approved!`;
+                type = 'success';
+                // Auto-approve all pending versions when the main project is approved
+                await pool.query('UPDATE extension_versions SET status = "approved" WHERE extension_id = ? AND status = "pending"', [id]);
+            } else if (status === 'rejected') {
+                msg = `Your extension "${name}" was rejected. Reason: ${reason || 'No reason specified'}`;
+                type = 'error';
+            } else if (status === 'action_required') {
+                msg = `Action required for your extension "${name}". Please check the feedback: ${reason || 'No reason specified'}`;
+                type = 'warning';
+            }
+
+            await pool.query('INSERT INTO notifications (user_id, message, type) VALUES (?, ?, ?)', [userId, msg, type]);
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[MCLC] Admin extension status update error:', err);
+        res.status(500).json({ error: 'Database error', details: err.message });
     }
 });
 

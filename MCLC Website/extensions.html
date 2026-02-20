@@ -165,18 +165,8 @@
         </div>
     </section>
 
-    <script src="main.js"></script>
+    <script src="main.js?v=4"></script>
     <script>
-        // --- Mobile Menu Logic ---
-        const btn = document.getElementById('mobile-menu-btn');
-        const menu = document.getElementById('mobile-menu');
-
-        function toggleMenu() {
-            menu.classList.toggle('open');
-        }
-
-        btn.addEventListener('click', toggleMenu);
-
         // --- Release Fetcher ---
         async function fetchLatestRelease() {
             try {

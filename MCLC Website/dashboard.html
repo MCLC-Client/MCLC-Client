@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -295,15 +296,20 @@
                         <div class="text-5xl font-black text-yellow-500" id="stat-pending">0</div>
                     </div>
                 </div>
-                <!-- Future chart area could go here -->
-                <div class="bg-surface/30 border border-dashed border-white/10 p-20 rounded-[3rem] text-center">
-                    <svg class="w-16 h-16 mx-auto text-gray-700 mb-6" fill="none" stroke="currentColor"
-                        viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                    </svg>
-                    <p class="text-gray-500 font-bold uppercase tracking-widest text-sm">Advanced charts coming soon</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <div class="bg-surface/30 border border-white/5 p-8 rounded-[2rem]">
+                        <h3 class="text-white font-bold mb-6 tracking-wide">Downloads per Extension</h3>
+                        <canvas id="downloadsChart" class="w-full h-64"></canvas>
+                    </div>
+                    <div class="bg-surface/30 border border-white/5 p-8 rounded-[2rem] flex flex-col items-center">
+                        <h3 class="text-white font-bold mb-6 tracking-wide w-full text-left">Project Status Distribution
+                        </h3>
+                        <div class="w-full max-w-[250px] aspect-square">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
                 </div>
+
             </section>
 
             <!-- Tab: Extensions -->
@@ -327,6 +333,16 @@
                         class="bg-surface/50 border border-white/10 p-10 rounded-[2.5rem] shadow-2xl overflow-hidden relative">
                         <div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-3xl rounded-full -mr-32 -mt-32">
                         </div>
+
+                        <!-- Close Button -->
+                        <button type="button"
+                            onclick="document.getElementById('upload-section').classList.add('hidden')"
+                            class="absolute top-8 right-8 text-gray-500 hover:text-white transition-all z-50">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
 
                         <!-- Editor Tabs -->
                         <div id="editor-tabs" class="flex gap-4 mb-8 hidden border-b border-white/5 pb-4">
@@ -391,283 +407,323 @@
                                             </div>
                                         </div>
 
+                                        <div class="space-y-4 pt-4" id="initial-file-upload">
+                                            <div class="flex justify-between">
+                                                <label
+                                                    class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block">Extension
+                                                    File (.zip)</label>
+                                                <input type="text" name="version" placeholder="v1.0.0"
+                                                    class="bg-transparent border-b border-white/10 text-right text-xs text-white focus:outline-none w-20"
+                                                    value="1.0.0">
+                                            </div>
+                                            <input type="file" name="extensionFile" accept=".zip,.mclcextension"
+                                                class="w-full text-xs text-gray-400 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-primary/10 file:text-primary hover:file:bg-primary transition-all border border-white/5 p-2 rounded-2xl bg-black/20">
+                                        </div>
                                     </div>
 
-                                    <div class="space-y-4 pt-4" id="initial-file-upload">
-                                        <div class="flex justify-between">
-                                            <label
-                                                class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 block">Extension
-                                                File (.zip)</label>
-                                            <input type="text" name="version" placeholder="v1.0.0"
-                                                class="bg-transparent border-b border-white/10 text-right text-xs text-white focus:outline-none w-20"
-                                                value="1.0.0">
+                                    <!-- Right: Metadata -->
+                                    <div class="lg:col-span-7 space-y-6">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div class="space-y-2">
+                                                <label
+                                                    class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Name</label>
+                                                <input type="text" name="name" placeholder="Awesome Plugin" required
+                                                    class="w-full bg-background/50 border border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary outline-none transition-all placeholder:text-gray-700">
+                                            </div>
+                                            <div class="space-y-2">
+                                                <label
+                                                    class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Identifier</label>
+                                                <input type="text" name="identifier" placeholder="awesome-plugin"
+                                                    required pattern="[a-z0-9\-]+"
+                                                    oninput="this.nextElementSibling.classList.toggle('hidden', !/[A-Z]/.test(this.value))"
+                                                    title="Lowercase letters, numbers and hyphens only"
+                                                    class="w-full bg-background/50 border border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary outline-none transition-all placeholder:text-gray-700 font-mono text-sm">
+                                                <div
+                                                    class="hidden text-[10px] font-bold text-yellow-500 mt-2 flex items-center gap-1.5 px-1">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="3"
+                                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                    </svg>
+                                                    Identifier should be lowercase only.
+                                                </div>
+                                            </div>
                                         </div>
-                                        <input type="file" name="extensionFile" accept=".zip,.mclcextension"
-                                            class="w-full text-xs text-gray-400 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-primary/10 file:text-primary hover:file:bg-primary transition-all border border-white/5 p-2 rounded-2xl bg-black/20">
+
+                                        <div class="space-y-2">
+                                            <label
+                                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Quick
+                                                Summary</label>
+                                            <input type="text" name="summary" required
+                                                placeholder="A short one-liner describing your creation."
+                                                maxlength="255"
+                                                class="w-full bg-background/50 border border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary outline-none transition-all placeholder:text-gray-700 text-sm">
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-6">
+                                            <div class="space-y-2">
+                                                <label
+                                                    class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Type</label>
+                                                <select name="type"
+                                                    class="w-full bg-background/50 border border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary outline-none transition-all appearance-none cursor-pointer">
+                                                    <option value="extension">Extension (Plugin)</option>
+                                                    <option value="theme">Theme (Skin)</option>
+                                                </select>
+                                            </div>
+                                            <div class="space-y-2">
+                                                <label
+                                                    class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Visibility</label>
+                                                <select name="visibility"
+                                                    class="w-full bg-background/50 border border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary outline-none transition-all appearance-none cursor-pointer">
+                                                    <option value="public">Public</option>
+                                                    <option value="unlisted">Unlisted</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <!-- Right: Metadata -->
-                                <div class="lg:col-span-7 space-y-6">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div class="space-y-2">
-                                            <label
-                                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Name</label>
-                                            <input type="text" name="name" placeholder="Awesome Plugin" required
-                                                class="w-full bg-background/50 border border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary outline-none transition-all placeholder:text-gray-700">
-                                        </div>
-                                        <div class="space-y-2">
-                                            <label
-                                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Identifier</label>
-                                            <input type="text" name="identifier" placeholder="awesome-plugin"
-                                                class="w-full bg-background/50 border border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary outline-none transition-all placeholder:text-gray-700 font-mono text-sm">
-                                        </div>
-                                    </div>
-
-                                    <div class="space-y-2">
+                                <!-- Bottom Section: Markdown Description -->
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between px-1">
                                         <label
-                                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Quick
-                                            Summary</label>
-                                        <input type="text" name="summary"
-                                            placeholder="A short one-liner describing your creation." maxlength="255"
-                                            class="w-full bg-background/50 border border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary outline-none transition-all placeholder:text-gray-700 text-sm">
-                                    </div>
-
-                                    <div class="grid grid-cols-2 gap-6">
-                                        <div class="space-y-2">
-                                            <label
-                                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Type</label>
-                                            <select name="type"
-                                                class="w-full bg-background/50 border border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="extension">Extension (Plugin)</option>
-                                                <option value="theme">Theme (Skin)</option>
-                                            </select>
-                                        </div>
-                                        <div class="space-y-2">
-                                            <label
-                                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Visibility</label>
-                                            <select name="visibility"
-                                                class="w-full bg-background/50 border border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary outline-none transition-all appearance-none cursor-pointer">
-                                                <option value="public">Public</option>
-                                                <option value="unlisted">Unlisted</option>
-                                            </select>
+                                            class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Full
+                                            Description</label>
+                                        <div
+                                            class="flex items-center gap-2 text-[10px] font-bold text-primary/50 uppercase tracking-widest">
+                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                                <path
+                                                    d="M20.56 18H3.44C2.65 18 2 17.37 2 16.59V7.41C2 6.63 2.65 6 3.44 6H20.56C21.35 6 22 6.63 22 7.41V16.59C22 17.37 21.35 18 20.56 18ZM3.44 7.41V16.59H20.56V7.41H3.44ZM6.89 14.7H5V11.23L5.94 13.06L6.89 11.23V14.7ZM8.78 14.7L7.83 12.87V14.7H5.94V9.3H7.83L8.78 11.13L9.72 9.3H11.61V14.7H9.72V12.87L8.78 14.7ZM14.92 11.63V9.3H16.81V11.63H18.69L15.86 14.7L13.03 11.63H14.92Z" />
+                                            </svg>
+                                            Markdown Supported
                                         </div>
                                     </div>
-                                </div>
-                        </div>
 
-                        <!-- Bottom Section: Markdown Description -->
-                        <div class="space-y-4">
-                            <div class="flex items-center justify-between px-1">
-                                <label class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Full
-                                    Description</label>
-                                <div
-                                    class="flex items-center gap-2 text-[10px] font-bold text-primary/50 uppercase tracking-widest">
-                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            d="M20.56 18H3.44C2.65 18 2 17.37 2 16.59V7.41C2 6.63 2.65 6 3.44 6H20.56C21.35 6 22 6.63 22 7.41V16.59C22 17.37 21.35 18 20.56 18ZM3.44 7.41V16.59H20.56V7.41H3.44ZM6.89 14.7H5V11.23L5.94 13.06L6.89 11.23V14.7ZM8.78 14.7L7.83 12.87V14.7H5.94V9.3H7.83L8.78 11.13L9.72 9.3H11.61V14.7H9.72V12.87L8.78 14.7ZM14.92 11.63V9.3H16.81V11.63H18.69L15.86 14.7L13.03 11.63H14.92Z" />
-                                    </svg>
-                                    Markdown Supported
-                                </div>
-                            </div>
+                                    <div class="bg-background/50 border border-white/5 rounded-[2rem] overflow-hidden">
+                                        <!-- Toolbar -->
+                                        <div
+                                            class="flex items-center gap-1 p-2 bg-white/5 border-b border-white/5 overflow-x-auto no-scrollbar">
+                                            <button type="button" onclick="insertMarkdown('bold')"
+                                                class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+                                                title="Bold"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2.5"
+                                                        d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6V4zm0 8h9a4 4 0 014 4 4 4 0 01-4 4H6V12z" />
+                                                </svg></button>
+                                            <button type="button" onclick="insertMarkdown('italic')"
+                                                class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+                                                title="Italic"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2.5" d="M10 20l4-16m-9 16h5m2-16h5" />
+                                                </svg></button>
+                                            <button type="button" onclick="insertMarkdown('strike')"
+                                                class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+                                                title="Strikethrough"><svg class="w-4 h-4" fill="none"
+                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2.5" d="M9 15l6-6M7 12h10m-3-9l-8 8m9-1l8 8" />
+                                                </svg></button>
+                                            <div class="w-px h-6 bg-white/5 mx-1"></div>
+                                            <button type="button" onclick="insertMarkdown('code')"
+                                                class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+                                                title="Code"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                                </svg></button>
+                                            <button type="button" onclick="insertMarkdown('link')"
+                                                class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+                                                title="Link"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2.5"
+                                                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                                </svg></button>
+                                            <div class="w-px h-6 bg-white/5 mx-1"></div>
+                                            <button type="button" onclick="insertMarkdown('h1')"
+                                                class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all font-black text-xs">H1</button>
+                                            <button type="button" onclick="insertMarkdown('list')"
+                                                class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+                                                title="List"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16" />
+                                                </svg></button>
+                                            <button type="button" onclick="insertMarkdown('quote')"
+                                                class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
+                                                title="Quote"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2.5"
+                                                        d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                                </svg></button>
+                                        </div>
 
-                            <div class="bg-background/50 border border-white/5 rounded-[2rem] overflow-hidden">
-                                <!-- Toolbar -->
-                                <div
-                                    class="flex items-center gap-1 p-2 bg-white/5 border-b border-white/5 overflow-x-auto no-scrollbar">
-                                    <button type="button" onclick="insertMarkdown('bold')"
-                                        class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
-                                        title="Bold"><svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                                d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6V4zm0 8h9a4 4 0 014 4 4 4 0 01-4 4H6V12z" />
-                                        </svg></button>
-                                    <button type="button" onclick="insertMarkdown('italic')"
-                                        class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
-                                        title="Italic"><svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                                d="M10 20l4-16m-9 16h5m2-16h5" />
-                                        </svg></button>
-                                    <button type="button" onclick="insertMarkdown('strike')"
-                                        class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
-                                        title="Strikethrough"><svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                                d="M9 15l6-6M7 12h10m-3-9l-8 8m9-1l8 8" />
-                                        </svg></button>
-                                    <div class="w-px h-6 bg-white/5 mx-1"></div>
-                                    <button type="button" onclick="insertMarkdown('code')"
-                                        class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
-                                        title="Code"><svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                                d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                                        </svg></button>
-                                    <button type="button" onclick="insertMarkdown('link')"
-                                        class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
-                                        title="Link"><svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                        </svg></button>
-                                    <div class="w-px h-6 bg-white/5 mx-1"></div>
-                                    <button type="button" onclick="insertMarkdown('h1')"
-                                        class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all font-black text-xs">H1</button>
-                                    <button type="button" onclick="insertMarkdown('list')"
-                                        class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
-                                        title="List"><svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                                d="M4 6h16M4 12h16M4 18h16" />
-                                        </svg></button>
-                                    <button type="button" onclick="insertMarkdown('quote')"
-                                        class="editor-btn p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all"
-                                        title="Quote"><svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                                d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                                        </svg></button>
-                                </div>
+                                        <!-- Split View -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2">
+                                            <textarea id="markdown-editor" name="description" required
+                                                class="w-full h-80 bg-transparent p-6 text-white focus:outline-none border-b md:border-b-0 md:border-r border-white/5 resize-none font-mono text-sm leading-relaxed"
+                                                placeholder="Describe your extension..."></textarea>
 
-                                <!-- Split View -->
-                                <div class="grid grid-cols-1 md:grid-cols-2">
-                                    <textarea id="markdown-editor" name="description" required
-                                        class="w-full h-80 bg-transparent p-6 text-white focus:outline-none border-b md:border-b-0 md:border-r border-white/5 resize-none font-mono text-sm leading-relaxed"
-                                        placeholder="Describe your extension..."></textarea>
-
-                                    <div id="markdown-preview"
-                                        class="w-full h-80 p-6 overflow-y-auto prose prose-invert prose-primary max-w-none text-sm leading-relaxed bg-primary/[0.02]">
-                                        <div class="text-gray-600 italic">Preview will appear here...</div>
+                                            <div id="markdown-preview"
+                                                class="w-full h-80 p-6 overflow-y-auto prose prose-invert prose-primary max-w-none text-sm leading-relaxed bg-primary/[0.02]">
+                                                <div class="text-gray-600 italic">Preview will appear here...</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div class="pt-4 flex items-center justify-between">
-                            <button type="button"
-                                onclick="document.getElementById('upload-section').classList.add('hidden')"
-                                class="text-xs font-bold text-gray-500 hover:text-white transition-colors uppercase tracking-widest">Cancel</button>
-                            <button type="submit"
-                                class="bg-primary hover:bg-primary-dark text-black px-12 py-4 rounded-[1.5rem] font-black transition-all shadow-primary-glow flex items-center gap-3">
-                                SUBMIT FOR REVIEW
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                        d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                </svg>
-                            </button>
-                        </div>
-                        </form>
-                    </div>
-
-                    <!-- Panel: Versions -->
-                    <div id="panel-versions" class="hidden relative z-10">
-                        <!-- New Version Upload -->
-                        <div class="bg-black/20 rounded-2xl p-6 mb-8 border border-white/5">
-                            <h3 class="text-lg font-bold text-white mb-4">Upload New Version</h3>
-                            <form id="versionForm" class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
-                                <div class="md:col-span-2">
-                                    <label
-                                        class="text-[10px] uppercase font-black text-gray-500 mb-1 block">Version</label>
-                                    <input type="text" name="newVersion" placeholder="1.1.0" required
-                                        class="w-full bg-background/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none">
-                                </div>
-                                <div class="md:col-span-4">
-                                    <label class="text-[10px] uppercase font-black text-gray-500 mb-1 block">File
-                                        (.zip)</label>
-                                    <input type="file" name="newFile" required accept=".zip,.mclcextension"
-                                        class="w-full text-xs text-gray-400 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-white/10 file:text-white hover:file:bg-primary hover:file:text-black transition-all border border-white/10 p-1.5 rounded-xl bg-background/50">
-                                </div>
-                                <div class="md:col-span-4">
-                                    <label
-                                        class="text-[10px] uppercase font-black text-gray-500 mb-1 block">Changelog</label>
-                                    <input type="text" name="changelog" placeholder="What's new?" required
-                                        class="w-full bg-background/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none">
-                                </div>
-                                <div class="md:col-span-2">
+                                <div class="pt-4 flex items-center justify-end">
                                     <button type="submit"
-                                        class="w-full bg-primary hover:bg-primary-dark text-black font-bold py-3 rounded-xl transition-all">
-                                        Upload
+                                        class="bg-primary hover:bg-primary-dark text-black px-12 py-4 rounded-[1.5rem] font-black transition-all shadow-primary-glow flex items-center gap-3">
+                                        SUBMIT FOR REVIEW
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                                d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
                                     </button>
                                 </div>
                             </form>
                         </div>
 
-                        <!-- Versions List -->
-                        <h3 class="text-lg font-bold text-white mb-4">Version History</h3>
-                        <div class="overflow-hidden bg-surface/30 border border-white/5 rounded-2xl">
-                            <table class="w-full text-left border-collapse">
-                                <thead class="bg-white/5 text-[10px] uppercase font-black text-gray-500">
-                                    <tr>
-                                        <th class="p-4">Version</th>
-                                        <th class="p-4">Date</th>
-                                        <th class="p-4">Status</th>
-                                        <th class="p-4">Downloads</th>
-                                        <th class="p-4 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="versions-table-body" class="text-sm divide-y divide-white/5">
-                                    <!-- Loaded via JS -->
-                                </tbody>
-                            </table>
+                        <!-- Panel: Versions -->
+                        <div id="panel-versions" class="hidden relative z-10">
+                            <!-- New Version Upload -->
+                            <div class="bg-black/20 rounded-2xl p-6 mb-8 border border-white/5">
+                                <h3 class="text-lg font-bold text-white mb-4">Upload New Version</h3>
+                                <form id="versionForm" class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                                    <div class="md:col-span-2">
+                                        <label
+                                            class="text-[10px] uppercase font-black text-gray-500 mb-1 block">Version</label>
+                                        <input type="text" name="newVersion" placeholder="1.1.0" required
+                                            class="w-full bg-background/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none">
+                                    </div>
+                                    <div class="md:col-span-4">
+                                        <label class="text-[10px] uppercase font-black text-gray-500 mb-1 block">File
+                                            (.zip)</label>
+                                        <input type="file" name="newFile" required accept=".zip,.mclcextension"
+                                            class="w-full text-xs text-gray-400 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-white/10 file:text-white hover:file:bg-primary hover:file:text-black transition-all border border-white/10 p-1.5 rounded-xl bg-background/50">
+                                    </div>
+                                    <div class="md:col-span-4">
+                                        <label
+                                            class="text-[10px] uppercase font-black text-gray-500 mb-1 block">Changelog</label>
+                                        <input type="text" name="changelog" placeholder="What's new?" required
+                                            class="w-full bg-background/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <button type="submit"
+                                            class="w-full bg-primary hover:bg-primary-dark text-black font-bold py-3 rounded-xl transition-all">
+                                            Upload
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Versions List -->
+                            <h3 class="text-lg font-bold text-white mb-4">Version History</h3>
+                            <div class="overflow-hidden bg-surface/30 border border-white/5 rounded-2xl">
+                                <table class="w-full text-left border-collapse">
+                                    <thead class="bg-white/5 text-[10px] uppercase font-black text-gray-500">
+                                        <tr>
+                                            <th class="p-4">Version</th>
+                                            <th class="p-4">Date</th>
+                                            <th class="p-4">Status</th>
+                                            <th class="p-4">Downloads</th>
+                                            <th class="p-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="versions-table-body" class="text-sm divide-y divide-white/5">
+                                        <!-- Loaded via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
-    </div>
 
-    <!-- My Extensions List -->
-    <div id="my-extensions-list">
-        <!-- Loaded via JS -->
-    </div>
-    </section>
-
-    <!-- Tab: User Management (Admin Only) -->
-    <section id="tab-users" class="tab-content hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
-            <div>
-                <h2 class="text-4xl font-black text-white tracking-tight">Staff Panel</h2>
-                <p class="text-gray-500 mt-2">Moderate users and manage the community.</p>
-            </div>
-        </div>
-
-        <div class="bg-surface/50 border border-white/5 rounded-[2.5rem] p-8 mb-10">
-            <div class="relative w-full max-w-md">
-                <input type="text" id="user-search" oninput="filterUsers()" placeholder="Search by name, email or IP..."
-                    class="w-full bg-background border border-white/5 rounded-2xl px-12 py-4 text-white focus:border-primary outline-none transition-all">
-                <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" fill="none"
-                    stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </div>
-        </div>
-
-        <div class="overflow-hidden bg-surface/30 border border-white/5 rounded-[2.5rem] backdrop-blur-md">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="border-b border-white/5">
-                        <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest">User</th>
-                        <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest">Contact &
-                            Network</th>
-                        <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest">Activity
-                        </th>
-                        <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest">Status
-                        </th>
-                        <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest text-right">
-                            Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="users-list-body">
+                <!-- My Extensions List -->
+                <div id="my-extensions-list">
                     <!-- Loaded via JS -->
-                </tbody>
-            </table>
-        </div>
-    </section>
+                </div>
+            </section>
 
-    </main>
+            <!-- Tab: User Management (Admin Only) -->
+            <section id="tab-users" class="tab-content hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+                    <div>
+                        <h2 class="text-4xl font-black text-white tracking-tight">Staff Panel</h2>
+                        <p class="text-gray-500 mt-2">Moderate users and manage the community.</p>
+                    </div>
+                </div>
+
+                <div class="bg-surface/50 border border-white/5 rounded-[2.5rem] p-8 mb-10">
+                    <div class="relative w-full max-w-md">
+                        <input type="text" id="user-search" oninput="filterUsers()"
+                            placeholder="Search by name, email or IP..."
+                            class="w-full bg-background border border-white/5 rounded-2xl px-12 py-4 text-white focus:border-primary outline-none transition-all">
+                        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="overflow-hidden bg-surface/30 border border-white/5 rounded-[2.5rem] backdrop-blur-md">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-white/5">
+                                <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest">User</th>
+                                <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest">Contact &
+                                    Network</th>
+                                <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest">Activity
+                                </th>
+                                <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest">Status
+                                </th>
+                                <th
+                                    class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest text-right">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-list-body">
+                            <!-- Loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Deletion Confirmation Modal -->
+        <div id="delete-modal"
+            class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+            <div
+                class="bg-surface/90 border border-white/10 p-10 rounded-[2.5rem] shadow-2xl max-w-lg w-full relative animate-in zoom-in-95 duration-300">
+                <h2 class="text-2xl font-black text-white mb-4">Confirm Deletion</h2>
+                <p class="text-gray-400 text-sm mb-6 leading-relaxed">
+                    This action is permanent. To confirm, please type <span id="delete-confirm-string"
+                        class="text-red-500 font-mono font-bold"></span> below.
+                </p>
+
+                <input type="text" id="delete-confirm-input"
+                    class="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-red-500/50 outline-none transition-all placeholder:text-gray-700 font-mono text-sm mb-6"
+                    placeholder="username/project-name">
+
+                <div class="flex gap-4">
+                    <button type="button" onclick="closeDeleteModal()"
+                        class="flex-1 px-6 py-4 rounded-2xl bg-white/5 text-gray-400 hover:text-white font-bold transition-all">Cancel</button>
+                    <button type="button" id="delete-confirm-btn" disabled onclick="executeDelete()"
+                        class="flex-1 px-6 py-4 rounded-2xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                        Delete Project
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="main.js"></script>
+    <script src="main.js?v=4"></script>
     <script>
         let currentUser = null;
         let myExtensions = [];
@@ -716,15 +772,23 @@
                     return;
                 }
 
-                list.innerHTML = notifications.map(n => `
+                list.innerHTML = notifications.map(n => {
+                    let colorClass = 'text-gray-400';
+                    if (n.type === 'success') colorClass = 'text-primary';
+                    else if (n.type === 'error') colorClass = 'text-red-400';
+                    else if (n.type === 'warning') colorClass = 'text-yellow-500';
+                    else if (n.type === 'info') colorClass = 'text-blue-400';
+
+                    return `
                     <div class="p-4 rounded-xl ${n.is_read ? 'bg-white/5 opacity-50' : 'bg-primary/10 border border-primary/20'} transition-all cursor-pointer hover:bg-white/10" onclick="markAsRead(${n.id})">
                         <div class="flex justify-between items-start mb-1">
-                            <span class="text-[10px] font-black uppercase tracking-widest ${n.type === 'success' ? 'text-primary' : 'text-red-400'}">${n.type}</span>
+                            <span class="text-[10px] font-black uppercase tracking-widest ${colorClass}">${n.type}</span>
                             <span class="text-[10px] text-gray-500">${new Date(n.created_at).toLocaleDateString()}</span>
                         </div>
                         <p class="text-xs text-white leading-relaxed">${n.message}</p>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             } catch (err) { }
         }
 
@@ -829,15 +893,24 @@
 
         async function loadMyExtensions() {
             const list = document.getElementById('my-extensions-list');
+            if (!list) return;
             list.className = 'grid grid-cols-1 md:grid-cols-2 gap-8';
             try {
                 const res = await fetch('/api/user/extensions');
-                myExtensions = await res.json();
+                if (!res.ok) {
+                    list.className = '';
+                    list.innerHTML = `<div class="bg-red-500/10 border border-red-500/20 p-12 rounded-[2.5rem] text-center text-red-500 font-bold">Failed to load extensions (Status: ${res.status})</div>`;
+                    return;
+                }
+                const data = await res.json();
+                myExtensions = Array.isArray(data) ? data : [];
 
                 // Stats
                 document.getElementById('stat-extensions').textContent = myExtensions.length;
                 document.getElementById('stat-approved').textContent = myExtensions.filter(e => e.status === 'approved').length;
                 document.getElementById('stat-pending').textContent = myExtensions.filter(e => e.status === 'pending').length;
+
+                renderAnalyticsCharts(myExtensions);
 
                 if (myExtensions.length === 0) {
                     list.className = '';
@@ -849,15 +922,18 @@
                     const bannerUrl = fixPath(ext.banner_path);
                     const typeLabel = ext.type === 'theme' ? 'Theme' : 'Extension';
 
+                    const isRejected = ext.status === 'rejected';
+                    const statusLabel = ext.status === 'action_required' ? 'Action Required' : ext.status;
+
                     return `
-                    <div class="bg-surface/40 backdrop-blur-md border border-white/5 rounded-[2rem] overflow-hidden group hover:border-white/10 transition-all flex flex-col h-full relative">
+                    <div class="bg-surface/40 backdrop-blur-md border border-white/5 rounded-[2rem] overflow-hidden group hover:border-white/10 transition-all flex flex-col h-full relative ${isRejected ? 'opacity-75 grayscale-[0.5]' : ''}">
                         <div class="relative w-full aspect-[21/9] overflow-hidden bg-black/40">
                             <img src="${bannerUrl}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-80">
                             <div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
                             
                             <div class="absolute top-4 left-4 flex gap-2">
                                 <span class="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${getStatusStyle(ext.status)}">
-                                    ${ext.status}
+                                    ${statusLabel}
                                 </span>
                             </div>
                         </div>
@@ -871,19 +947,25 @@
                             <p class="text-gray-500 text-sm line-clamp-2 mb-6 flex-grow">${ext.summary || ext.description || 'No description provided.'}</p>
                             
                                     <div class="pt-6 border-t border-white/5 flex items-center justify-between">
-                                        <div class="text-left">
-                                            <div class="text-[10px] text-gray-600 font-black uppercase tracking-tighter mb-0.5">Updated</div>
-                                            <div class="text-xs font-bold text-gray-400">${new Date(ext.updated_at || ext.created_at).toLocaleDateString()}</div>
+                                        <div class="flex items-center gap-3">
+                                            <button onclick="startEdit(${ext.id}, 'versions')" 
+                                                ${isRejected ? 'disabled' : ''}
+                                                class="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-black rounded-xl font-bold transition-all text-[10px] border border-primary/20 whitespace-nowrap disabled:opacity-30 disabled:cursor-not-allowed" title="Version History">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                                Version History
+                                            </button>
+                                            <button onclick="startEdit(${ext.id}, 'details')" 
+                                                ${isRejected ? 'disabled' : ''}
+                                                class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold transition-all text-[10px] border border-white/10 whitespace-nowrap disabled:opacity-30 disabled:cursor-not-allowed" title="Update Extension">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                Update Extension
+                                            </button>
                                         </div>
-                                        <div class="flex items-center gap-2">
-                                <button onclick="startEdit(${ext.id}, 'versions')" class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors" title="Upload Update">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                                </button>
-                                <button onclick="startEdit(${ext.id})" class="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors" title="Edit Extension">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                </button>
-                            </div>
-                        </div>
+                                        <button onclick="openDeleteModal(${ext.id}, '${ext.identifier}')" class="p-2.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all" title="Delete Project">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
                                     </div>
                         </div>
                     </div>
@@ -897,7 +979,8 @@
         function getStatusStyle(status) {
             if (status === 'approved') return 'bg-primary/20 text-primary border border-primary/20';
             if (status === 'rejected') return 'bg-red-500/20 text-red-400 border border-red-500/20';
-            return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/20';
+            if (status === 'action_required') return 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/20';
+            return 'bg-blue-500/20 text-blue-400 border border-blue-500/20';
         }
 
         // Banner Preview Logic
@@ -982,7 +1065,8 @@
                     document.getElementById('upload-section').classList.add('hidden');
                     loadMyExtensions();
                 } else {
-                    alert('Error: ' + result.error);
+                    alert('Error: ' + (result.error || 'Server error occurred.'));
+                    console.error('[MCLC] Upload result error:', result);
                 }
             } catch (err) {
                 alert('An error occurred during process.');
@@ -1021,11 +1105,26 @@
         // Admin User Logic
         let allUsers = [];
         async function loadAdminUsers() {
+            const list = document.getElementById('users-list-body');
+            if (!list) return;
+
             try {
                 const res = await fetch('/api/admin/users');
+                if (!res.ok) {
+                    list.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500 bg-red-500/5 rounded-xl font-bold">Failed to load users (Status: ${res.status})</td></tr>`;
+                    return;
+                }
                 allUsers = await res.json();
+                console.log('[MCLC] Admin users raw data:', allUsers);
+                if (!Array.isArray(allUsers) || allUsers.length === 0) {
+                    list.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500 bg-white/5 rounded-xl font-bold">No users in database or access denied.</td></tr>`;
+                    return;
+                }
                 renderUsers(allUsers);
-            } catch (err) { }
+            } catch (err) {
+                console.error('[MCLC] Error loading users:', err);
+                list.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-red-500 bg-red-500/5 rounded-xl font-bold">Network error loading users.</td></tr>';
+            }
         }
 
         function renderUsers(users) {
@@ -1045,7 +1144,6 @@
                     </td>
                     <td class="p-6">
                         <div class="text-xs text-gray-400 font-mono blur-sm hover:blur-none transition-all cursor-help" title="Sensitive data">${u.email}</div>
-                        <div class="text-[10px] text-gray-600 font-mono blur-sm hover:blur-none transition-all cursor-help mt-1" title="Sensitive data">${u.ip_address || 'Unknown'}</div>
                     </td>
                     <td class="p-6">
                         <div class="text-xs text-gray-400">${u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'}</div>
@@ -1072,8 +1170,7 @@
             const q = document.getElementById('user-search').value.toLowerCase();
             const filtered = allUsers.filter(u =>
                 u.username.toLowerCase().includes(q) ||
-                (u.email && u.email.toLowerCase().includes(q)) ||
-                (u.ip_address && u.ip_address.includes(q))
+                (u.email && u.email.toLowerCase().includes(q))
             );
             renderUsers(filtered);
         }
@@ -1137,8 +1234,11 @@
         }
 
         function startEdit(id, tab = 'details') {
-            const ext = myExtensions.find(e => e.id === id);
-            if (!ext) return;
+            const ext = myExtensions.find(e => Number(e.id) === Number(id));
+            if (!ext) {
+                console.warn('[MCLC] Extension not found for editing:', id);
+                return;
+            }
 
             currentExtensionId = ext.id;
             const section = document.getElementById('upload-section');
@@ -1203,11 +1303,17 @@
 
         async function loadVersions(extId) {
             const tbody = document.getElementById('versions-table-body');
-            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Loading...</td></tr>';
+            if (!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Loading versions...</td></tr>';
             try {
                 const res = await fetch(`/api/extensions/${extId}/versions`);
+                if (!res.ok) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500 bg-red-500/5 rounded-xl font-bold">Failed to load versions (Status: ${res.status})</td></tr>`;
+                    return;
+                }
                 const versions = await res.json();
-                if (versions.length === 0) {
+                if (!Array.isArray(versions) || versions.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500 bg-white/5 rounded-xl">No previous versions found. Upload one above!</td></tr>';
                     return;
                 }
@@ -1225,6 +1331,7 @@
                     </tr>
                 `).join('');
             } catch (err) {
+                console.error('[MCLC] Error loading versions:', err);
                 tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-500">Failed to load versions.</td></tr>';
             }
         }
@@ -1241,6 +1348,56 @@
                 }
             } catch (err) {
                 alert('Error deleting version');
+            }
+        }
+
+        // Project Deletion Flow
+        let deleteId = null;
+        let expectedDeleteString = "";
+
+        function openDeleteModal(id, identifier) {
+            deleteId = id;
+            expectedDeleteString = `${currentUser.username}/${identifier}`;
+            document.getElementById('delete-confirm-string').textContent = expectedDeleteString;
+            document.getElementById('delete-confirm-input').value = "";
+            document.getElementById('delete-confirm-btn').disabled = true;
+            document.getElementById('delete-modal').classList.remove('hidden');
+
+            // Input Listener
+            const input = document.getElementById('delete-confirm-input');
+            input.oninput = () => {
+                document.getElementById('delete-confirm-btn').disabled = input.value !== expectedDeleteString;
+            };
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.add('hidden');
+            deleteId = null;
+        }
+
+        async function executeDelete() {
+            if (!deleteId) return;
+            const btn = document.getElementById('delete-confirm-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Deleting...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/api/extensions/${deleteId}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (result.success) {
+                    closeDeleteModal();
+                    loadMyExtensions();
+                    if (currentExtensionId === deleteId) {
+                        document.getElementById('upload-section').classList.add('hidden');
+                    }
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (err) {
+                alert('An error occurred during deletion.');
+            } finally {
+                btn.innerHTML = originalText;
             }
         }
 
@@ -1265,9 +1422,11 @@
                 });
                 const data = await res.json();
                 if (data.success) {
+                    alert('Success! New version submitted.');
                     e.target.reset();
+                    document.getElementById('upload-section').classList.add('hidden');
+                    loadMyExtensions();
                     loadVersions(currentExtensionId);
-                    // Switch to pending status visually if needed, functionality is there
                 } else {
                     alert(data.error || 'Upload failed');
                 }
@@ -1330,6 +1489,108 @@
             editor.setSelectionRange(newPos, newPos);
 
             updatePreview();
+        }
+
+        let downloadsChartInstance = null;
+        let statusChartInstance = null;
+
+        function renderAnalyticsCharts(extensions) {
+            // Destroy existing charts if they exist
+            if (downloadsChartInstance) downloadsChartInstance.destroy();
+            if (statusChartInstance) statusChartInstance.destroy();
+
+            if (!extensions || extensions.length === 0) return;
+
+            // 1. Downloads Bar Chart Data
+            // Only take the top 10 extensions by downloads to keep the chart readable
+            const topExtensions = [...extensions].sort((a, b) => b.downloads - a.downloads).slice(0, 10);
+
+            const labels = topExtensions.map(e => e.name);
+            const data = topExtensions.map(e => e.downloads);
+
+            // 2. Status Doughnut Chart Data
+            const counts = { approved: 0, pending: 0, rejected: 0, action_required: 0 };
+            extensions.forEach(e => {
+                if (counts[e.status] !== undefined) {
+                    counts[e.status]++;
+                }
+            });
+
+            // Set default font color for Chart.js
+            Chart.defaults.color = '#a0aec0';
+            Chart.defaults.font.family = 'Outfit, sans-serif';
+
+            // Render Downloads Chart
+            const ctxDownloads = document.getElementById('downloadsChart').getContext('2d');
+            downloadsChartInstance = new Chart(ctxDownloads, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Downloads',
+                        data: data,
+                        backgroundColor: 'rgba(27, 217, 106, 0.7)',
+                        borderColor: '#1bd96a',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Render Status Chart
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            statusChartInstance = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Approved', 'Pending Review', 'Action Req.', 'Rejected'],
+                    datasets: [{
+                        data: [counts.approved, counts.pending, counts.action_required, counts.rejected],
+                        backgroundColor: [
+                            '#3b82f6', // blue-500
+                            '#eab308', // yellow-500
+                            '#f97316', // orange-500
+                            '#ef4444'  // red-500
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // Init

@@ -98,7 +98,7 @@ const installModInternal = async (win, { instanceName, projectId, versionId, fil
                                     game_versions: JSON.stringify([version])
                                 },
                                 headers: {
-                                    'User-Agent': 'Antigravity/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)'
+                                    'User-Agent': 'MCLCAGENT/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)'
                                 }
                             });
 
@@ -216,7 +216,7 @@ module.exports = (ipcMain, win) => {
 
             const response = await axios.get(`${MODRINTH_API}/search`, {
                 params,
-                headers: { 'User-Agent': 'Antigravity/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)' }
+                headers: { 'User-Agent': 'MCLCAGENT/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)' }
             });
             return {
                 success: true,

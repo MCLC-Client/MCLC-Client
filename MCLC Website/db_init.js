@@ -38,7 +38,7 @@ const createTables = async () => {
                 type ENUM('extension', 'theme') DEFAULT 'extension',
                 visibility ENUM('public', 'unlisted') DEFAULT 'public',
                 banner_path VARCHAR(255),
-                status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+                status ENUM('pending', 'approved', 'rejected', 'action_required') DEFAULT 'pending',
                 downloads INT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -56,7 +56,7 @@ const createTables = async () => {
                 changelog TEXT,
                 file_path VARCHAR(255) NOT NULL,
                 downloads INT DEFAULT 0,
-                status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+                status ENUM('pending', 'approved', 'rejected', 'action_required') DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (extension_id) REFERENCES extensions(id) ON DELETE CASCADE
             )
@@ -72,7 +72,7 @@ const createTables = async () => {
                 summary VARCHAR(255),
                 description TEXT,
                 banner_path VARCHAR(255),
-                status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+                status ENUM('pending', 'approved', 'rejected', 'action_required') DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (extension_id) REFERENCES extensions(id) ON DELETE CASCADE
             )
@@ -121,11 +121,29 @@ const createTables = async () => {
         await ensureColumn('extensions', 'updated_at', "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at");
         await ensureColumn('extensions', 'identifier', "VARCHAR(100) UNIQUE AFTER name");
         await ensureColumn('extensions', 'summary', "VARCHAR(255) AFTER identifier");
-        await ensureColumn('extensions', 'status', "ENUM('pending', 'approved', 'rejected') DEFAULT 'pending' AFTER banner_path");
+        await ensureColumn('extensions', 'status', "ENUM('pending', 'approved', 'rejected', 'action_required') DEFAULT 'pending' AFTER banner_path");
         await ensureColumn('extensions', 'type', "ENUM('extension', 'theme') DEFAULT 'extension' AFTER description");
         await ensureColumn('extensions', 'visibility', "ENUM('public', 'unlisted') DEFAULT 'public' AFTER type");
         await ensureColumn('extensions', 'banner_path', "VARCHAR(255) AFTER file_path");
         await ensureColumn('extensions', 'downloads', "INT DEFAULT 0 AFTER status");
+
+        // Status ENUM Expansion Migrations (Ensures existing tables get the new value)
+        const upgradeStatusEnum = async (table) => {
+            try {
+                // Check current ENUM values
+                const [cols] = await connection.query(`SHOW COLUMNS FROM ${table} LIKE 'status'`);
+                if (cols.length > 0 && !cols[0].Type.includes('action_required')) {
+                    console.log(`[Database] Migrating: Upgrading status ENUM for ${table}...`);
+                    await connection.query(`ALTER TABLE ${table} MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'action_required') DEFAULT 'pending'`);
+                }
+            } catch (err) {
+                console.error(`[Database] Failed to upgrade status ENUM for ${table}:`, err.message);
+            }
+        };
+
+        await upgradeStatusEnum('extensions');
+        await upgradeStatusEnum('extension_versions');
+        await upgradeStatusEnum('extension_metadata_drafts');
 
         // Data Migration: Move file_path to extension_versions if extensions still has file_path
         try {
