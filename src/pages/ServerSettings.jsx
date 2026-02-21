@@ -88,7 +88,7 @@ function ServerSettings() {
                                     value={settings.serverPath}
                                     onChange={(e) => handleChange('serverPath', e.target.value)}
                                     className="flex-1 bg-background border border-white/10 rounded-xl px-4 py-2 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                                    placeholder="C:\Users\janni\AppData\Roaming\MCLC\servers"
+                                    placeholder="%appdata%\MCLC\servers"
                                 />
                                 <button
                                     onClick={() => selectFolder('serverPath')}
