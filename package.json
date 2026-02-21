@@ -2,7 +2,10 @@
   "productName": "MCLC",
   "name": "mclc",
   "description": "Lightweight, open-source Minecraft launcher (Electron + React) - features profile & modpack management, skin preview, Discord Rich Presence, and a modern UI for easy installs and updates.",
-  "author": "Fernsehheft",
+  "author": {
+    "name": "MCLC Team",
+    "email": "mclc@pluginhub.de"
+  },
   "version": "1.5.2",
   "main": "electron/main.js",
   "scripts": {
@@ -50,7 +53,6 @@
     },
     "linux": {
       "target": [
-        "AppImage",
         "tar.gz",
         "deb"
       ],
