@@ -4,21 +4,23 @@ const Store = require('electron-store');
 const { app, shell, BrowserWindow } = require('electron');
 const path = require('path');
 
+require('dotenv').config();
+
 const store = new Store();
 
 const PROVIDERS = {
     GOOGLE_DRIVE: {
         name: 'Google Drive',
-        clientId: '1002457962092-07245fh0gf5phjpsbklvl6s7ktl7m8r5.apps.googleusercontent.com',
-        clientSecret: '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',
+        clientId: process.env.GOOGLE_DRIVE_ID,
+        clientSecret: process.env.GOOGLE_DRIVE_SECRET,
         authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
         tokenUrl: 'https://oauth2.googleapis.com/token',
         scope: 'https://www.googleapis.com/auth/drive.file openid profile email'
     },
     DROPBOX: {
         name: 'Dropbox',
-        clientId: '44ruvawolz1o7jo',
-        clientSecret: 'k86b6d63o14k8ku',
+        clientId: process.env.DROPBOX_ID,
+        clientSecret: process.env.DROPBOX_SECRET,
         authUrl: 'https://www.dropbox.com/oauth2/authorize',
         tokenUrl: 'https://api.dropboxapi.com/oauth2/token',
         scope: ''
@@ -60,12 +62,12 @@ class CloudBackupHandler {
         });
         const { app } = require('electron');
         app.on('backup:created', async ({ providerId, filePath, instanceName }) => {
-            console.log(`[CloudBackup] 📥 Event received: backup:created for ${instanceName} to ${providerId}`);
-            console.log(`[CloudBackup] 📂 Path: ${filePath}`);
+            console.log(`[CloudBackup] Event received: backup:created for ${instanceName} to ${providerId}`);
+            console.log(`[CloudBackup] Path: ${filePath}`);
             try {
                 const result = await this.uploadBackup(providerId, filePath, instanceName);
                 if (result.success) {
-                    console.log(`[CloudBackup] ✅ Upload successful: ${instanceName}`);
+                    console.log(`[CloudBackup] Upload successful: ${instanceName}`);
 
                     try {
                         await fs.remove(filePath);
@@ -74,10 +76,10 @@ class CloudBackupHandler {
                         console.error(`[CloudBackup] Failed to delete temporary local backup:`, cleanupErr.message);
                     }
                 } else {
-                    console.error(`[CloudBackup] ❌ Upload failed: ${result.error}`);
+                    console.error(`[CloudBackup] Upload failed: ${result.error}`);
                 }
             } catch (err) {
-                console.error(`[CloudBackup] ❌ Critical error during upload:`, err.message);
+                console.error(`[CloudBackup] Critical error during upload:`, err.message);
             }
         });
     }
