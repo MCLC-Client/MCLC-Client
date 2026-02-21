@@ -1,8 +1,8 @@
 const { app, BrowserWindow, ipcMain, protocol, net, Menu } = require('electron');
-console.log('☢️ NUCLEAR STARTUP CHECK: main.js is running!');
+console.log('NUCLEAR STARTUP CHECK: main.js is running!');
 
 ipcMain.handle('ping', () => {
-    console.log('📥 Ping received!');
+    console.log('Ping received!');
     return 'pong';
 });
 
@@ -39,7 +39,7 @@ function createWindow() {
         frame: false,
         icon: path.join(__dirname, '../resources/icon.png'),
         backgroundColor: '#121212',
-        show: false, // Start hidden for splash transition
+        show: false,
         webPreferences: {
             preload: path.join(__dirname, '../backend/preload.js'),
             nodeIntegration: false,
@@ -67,7 +67,7 @@ function createWindow() {
         console.error('Message:', e.message);
         console.error('Stack:', e.stack);
         if (process.env.NODE_ENV === 'development') {
-            process.exit(1); // Fail fast in development
+            process.exit(1);
         }
     }
     console.log('[Main] Registering launcher handler...');

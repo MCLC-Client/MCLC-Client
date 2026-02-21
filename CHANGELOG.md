@@ -10,7 +10,6 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 ### Added
 
-- Instance configuration sharing
 - Focus mode
 - Server-side mod validation
 - Mod compatibility overview
@@ -19,7 +18,6 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 - Client-side quick join mod
 - Script support (extensions in work, are similar)
 - Log analysis utility
-- Cloud synchronization for worlds and configurations (e.g., Google Drive, Dropbox, OneDrive)
 - Mod dependency validation (partially implemented)
 - Mobile application for the administration panel
 
@@ -27,7 +25,6 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 #### Features in Progress
 
-- [ ] System for sharing instance configurations
 - [ ] Focus mode
 - [ ] Server-side mod validation
 - [ ] Mod compatibility overview
@@ -39,7 +36,6 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 - [ ] Script support (Partially implemented through Extensions)
 - [ ] Logging analysis utility
-- [ ] Cloud synchronization for worlds and configurations (e.g., Google Drive, Dropbox, OneDrive)
 - [ ] Mod dependency validation
 - [ ] Mobile application for the administration panel
 - [ ] Cross-Platform UI Polishing: Mac-specific window controls + Linux system tray integration
