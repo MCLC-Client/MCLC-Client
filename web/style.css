@@ -340,3 +340,17 @@ button.primary:hover {
     color: black;
     box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
 }
+
+#mobile-menu {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    pointer-events: none;
+}
+
+#mobile-menu.open {
+    max-height: 500px;
+    opacity: 1;
+    pointer-events: auto;
+}

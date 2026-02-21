@@ -138,7 +138,6 @@ function toggleMenu() {
     const menu = document.getElementById('mobile-menu');
     const btn = document.getElementById('mobile-menu-btn');
     if (menu) {
-        menu.classList.toggle('hidden');
         menu.classList.toggle('open');
     }
 }
