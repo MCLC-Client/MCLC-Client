@@ -1537,8 +1537,6 @@ module.exports = (ipcMain, win) => {
 
         ipcMain.handle('instance:restore-local-backup', async (_, instanceName, backupFileName) => {
             try {
-                // If backupFileName is a full path (starting with C:\ etc), use it directly.
-                // Otherwise assume it's relative to the instance backups dir.
                 const backupPath = path.isAbsolute(backupFileName)
                     ? backupFileName
                     : path.join(globalBackupsDir, instanceName, backupFileName);

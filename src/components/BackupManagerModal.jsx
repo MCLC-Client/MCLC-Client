@@ -73,7 +73,6 @@ const BackupManagerModal = ({ instance, onClose, worlds, onBackupStatusChange })
                     const res = await window.electronAPI.backupWorld(instance.name, worldFolder, type === 'cloud');
                     if (res.success) {
                         successCount++;
-                        // Cleanup is now handled by the backend in cloudBackup.js to avoid race conditions
                     }
                 }
                 addNotification(`Successfully backed up ${successCount} world(s)`, 'success');

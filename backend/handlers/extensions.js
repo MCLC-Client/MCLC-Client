@@ -31,7 +31,7 @@ module.exports = (ipcMain, mainWindow) => {
             }
         },
         launcher: {
-            // We could add more specific backend-only launcher hooks here
+
         },
         app,
         id
@@ -65,10 +65,6 @@ module.exports = (ipcMain, mainWindow) => {
                 if (typeof active.module.deactivate === 'function') {
                     await active.module.deactivate();
                 }
-                // Cleanup IPC handlers
-                // Note: ipcMain.removeHandler doesn't exist in older Electron, 
-                // but we should attempt to remove if possible.
-                // In modern Electron: ipcMain.removeHandler(`ext:${id}:...`)
             } catch (e) {
                 console.error(`[Extensions] Failed to deactivate backend for ${id}:`, e);
             }
