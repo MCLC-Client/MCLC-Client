@@ -12,6 +12,13 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+neoforge_profile.json
+check_syntax.js
+debug_forge_profile.js
+delete_lines.js
+starter-extension-reference.js
+test_instances_syntax.js
+test-load.js
 
 # testfiles
 *.bat
