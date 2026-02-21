@@ -342,6 +342,22 @@ async function installNeoForgeLoader(instanceDir, mcVersion, loaderVersion, onPr
     }
 }
 
+function sanitizeInstanceConfig(config) {
+    if (!config || typeof config !== 'object') return {};
+    const allowedKeys = [
+        'name', 'version', 'loader', 'loaderVersion', 'versionId', 'icon',
+        'created', 'playtime', 'lastPlayed', 'status', 'imported',
+        'javaPath', 'minMemory', 'maxMemory', 'resolutionWidth', 'resolutionHeight'
+    ];
+    const cleanConfig = {};
+    for (const key of allowedKeys) {
+        if (config[key] !== undefined) {
+            cleanConfig[key] = config[key];
+        }
+    }
+    return cleanConfig;
+}
+
 module.exports = (ipcMain, win) => {
     try {
 
@@ -1065,7 +1081,8 @@ module.exports = (ipcMain, win) => {
                     return await installMrPack(packPath);
                 } else if (ext === '.mcpack' || zip.getEntry('instance.json')) {
                     const instanceJsonEntry = zip.getEntry('instance.json');
-                    const instanceConfig = JSON.parse(instanceJsonEntry.getData().toString('utf8'));
+                    const rawInstanceConfig = JSON.parse(instanceJsonEntry.getData().toString('utf8'));
+                    const instanceConfig = sanitizeInstanceConfig(rawInstanceConfig);
                     let instanceName = instanceConfig.name || path.basename(packPath, path.extname(packPath));
                     let targetDir = path.join(instancesDir, instanceName);
                     let counter = 1;
@@ -1835,7 +1852,8 @@ module.exports = (ipcMain, win) => {
                 const configPath = path.join(instancesDir, instanceName, 'instance.json');
                 if (await fs.pathExists(configPath)) {
                     const current = await fs.readJson(configPath);
-                    const updated = { ...current, ...newConfig };
+                    const safeNewConfig = sanitizeInstanceConfig(newConfig);
+                    const updated = { ...current, ...safeNewConfig };
                     await fs.writeJson(configPath, updated, { spaces: 4 });
                     return { success: true };
                 }
@@ -1894,7 +1912,8 @@ module.exports = (ipcMain, win) => {
                 await fs.copy(sourcePath, destPath);
                 const configPath = path.join(destPath, 'instance.json');
                 if (await fs.pathExists(configPath)) {
-                    const config = await fs.readJson(configPath);
+                    const rawConfig = await fs.readJson(configPath);
+                    const config = sanitizeInstanceConfig(rawConfig);
                     config.name = newName;
                     config.created = Date.now();
                     config.playtime = 0;
@@ -2240,7 +2259,8 @@ module.exports = (ipcMain, win) => {
                 if (!await fs.pathExists(configPath)) throw new Error('Instance not found');
 
                 const currentConfig = await fs.readJson(configPath);
-                const finalConfig = { ...currentConfig, ...newConfig, status: 'installing' };
+                const safeNewConfig = sanitizeInstanceConfig(newConfig);
+                const finalConfig = { ...currentConfig, ...safeNewConfig, status: 'installing' };
                 await fs.writeJson(configPath, finalConfig, { spaces: 4 });
                 startBackgroundInstall(instanceName, finalConfig, false, true);
 
