@@ -82,7 +82,7 @@ Virus Total Scan (v1.5.0): [https://www.virustotal.com/gui/file/2e66aea575559808
 
 ## 📸 Screenshots
 
-*(Coming soon! Full gallery showcasing the glassmorphism UI and high-quality skin viewer.)*
+*(Coming soon)*
 
 ---
 
