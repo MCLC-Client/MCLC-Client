@@ -57,7 +57,7 @@ class BackupManager {
 
             output.on('close', async () => {
                 console.log(`[BackupManager] Backup created: ${fileName} (${archive.pointer()} bytes)`);
-                
+
                 // Track last backup time in instance.json
                 try {
                     const configPath = path.join(instanceDir, 'instance.json');
@@ -71,6 +71,25 @@ class BackupManager {
                 }
 
                 await this.cleanupBackups(instanceName);
+
+                // Cloud Upload Logic
+                try {
+                    const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+                    if (await fs.pathExists(settingsPath)) {
+                        const settings = await fs.readJson(settingsPath);
+                        if (settings.cloudBackupSettings?.enabled && settings.cloudBackupSettings?.provider) {
+                            console.log(`[BackupManager] Triggering cloud upload for ${instanceName} to ${settings.cloudBackupSettings.provider}`);
+                            // We need to access the cloud backup handler. 
+                            // Since it's an Electron handler, we might want to emit an event or call it directly if shared.
+                            // For simplicity, let's assume we can require it or use a global.
+                            // Better: Have the cloudBackup handler listen for 'backup:created' events.
+                            app.emit('backup:created', { providerId: settings.cloudBackupSettings.provider, filePath, instanceName });
+                        }
+                    }
+                } catch (e) {
+                    console.error('[BackupManager] Cloud upload trigger failed:', e);
+                }
+
                 resolve({ success: true, path: filePath, name: fileName });
             });
 

@@ -102,6 +102,14 @@ function createWindow() {
         console.error('[Main] Failed to register extensions handler:', e);
     }
 
+    console.log('[Main] Registering cloud backup handler...');
+    try {
+        require('../backend/handlers/cloudBackup')(ipcMain, mainWindow);
+        console.log('[Main] Cloud backup handler registered successfully.');
+    } catch (e) {
+        console.error('[Main] Failed to register cloud backup handler:', e);
+    }
+
     require('../backend/handlers/java')(ipcMain);
     const discord = require('../backend/handlers/discord');
     discord.initRPC();

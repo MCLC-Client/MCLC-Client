@@ -54,6 +54,29 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 ---
 
+## [1.5.0] - 2026-02-21
+
+### Added
+- **Unified Backup Manager**: A powerful new interface for managing world backups and restorations.
+  - Choose between Local Storage and Cloud Storage (Google Drive, Dropbox).
+  - Multi-world selection for batch backup operations.
+  - Search and filter functionality for worlds and existing backups.
+  - Automatic download and restoration flow for cloud backups.
+- **UI/UX Enhancement**: Integrated `@heroicons/react` for a more professional and modern look across the Backup Manager.
+- **Cloud Stability**:
+  - Automatic token refresh/retry logic for all cloud operations (Upload, Download, List, Folder Management).
+  - **Automatic Re-authentication**: Seamlessly triggers the login flow if a session expires and cannot be refreshed.
+- **Standardized Storage**: Local backups are now stored in a centralized directory at `AppData/Roaming/MCLC/backups/<instanceName>`.
+
+### Fixed
+- **World Restoration Structure**: World backups now properly preserve their folder names, ensuring they extract correctly into the `saves` directory.
+- **ReferenceError fix**: Removed legacy cloud code from `InstanceDetails.jsx` that caused component crashes.
+- **Cloud Cleanup Race Condition**: Moved file cleanup to the backend to ensure local zips are only deleted *after* successful cloud uploads.
+- **Dropbox Authentication**: Fixed "Invalid redirect_uri" error by correctly encoding the authentication URL.
+- **401 Unauthorized errors**: Implemented missing token refresh retry logic in cloud folder management.
+
+---
+
 ## [1.4.0] - 2026-02-16
 
 ### Added

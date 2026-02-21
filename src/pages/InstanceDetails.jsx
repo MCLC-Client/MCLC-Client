@@ -6,6 +6,7 @@ import { useNotification } from '../context/NotificationContext';
 import { Analytics } from '../services/Analytics';
 import ToggleBox from '../components/ToggleBox';
 import ExtensionSlot from '../components/Extensions/ExtensionSlot';
+import BackupManagerModal from '../components/BackupManagerModal';
 
 
 function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate }) {
@@ -60,6 +61,8 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
     const [previewProject, setPreviewProject] = useState(null);
     const [lightboxIndex, setLightboxIndex] = useState(-1);
     const [worldToDelete, setWorldToDelete] = useState(null);
+    const [showBackupManager, setShowBackupManager] = useState(false);
+    const [isBackingUp, setIsBackingUp] = useState(false);
 
     const handleNextImage = (e) => {
         e.stopPropagation();
@@ -114,13 +117,16 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
     };
 
     useEffect(() => {
+        loadWorlds(); // Load worlds initially for backup modal support
         if (activeTab === 'content') {
             if (contentView === 'mods') loadMods();
             if (contentView === 'resourcepacks') loadResourcePacks();
             if (contentView === 'shaders') loadShaders();
             if (contentView === 'search' && searchResults.length === 0) handleSearch(null, true);
         }
-        if (activeTab === 'worlds') loadWorlds();
+        if (activeTab === 'worlds') {
+            loadWorlds();
+        }
         if (activeTab === 'logs') {
             loadLogFiles();
             loadLog();
@@ -141,7 +147,10 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
         if (activeTab === 'content' && contentView === 'search') {
             handleSearch();
         }
-    }, [sortMethod, searchOffset]);
+        if (activeTab === 'worlds') {
+            // loadCloudBackups removed as per migration to BackupManagerModal
+        }
+    }, [sortMethod, searchOffset, activeTab]);
     useEffect(() => {
         if (autoScroll && logContainerRef.current) {
             logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
@@ -218,6 +227,11 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
         } else {
             addNotification('Error deleting world: ' + res.error, 'error');
         }
+    };
+
+    const handleWorldBackupManager = (world) => {
+        // Option to focus on a specific world if needed later
+        setShowBackupManager(true);
     };
 
     const handleExportWorld = async (world) => {
@@ -821,6 +835,18 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                 </button>
                                 <button
                                     onClick={() => {
+                                        setShowMenu(false);
+                                        setShowBackupManager(true);
+                                    }}
+                                    className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-primary"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0l-4-4m4-4v12" />
+                                    </svg>
+                                    Backup Manager
+                                </button>
+                                <button
+                                    onClick={() => {
                                         window.electronAPI.reinstallInstance(instance.name);
                                         setShowMenu(false);
                                     }}
@@ -1299,111 +1325,122 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                 }
                 {
                     activeTab === 'worlds' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">
-                            {worlds.length === 0 ? (
-                                <div className="col-span-full text-center text-gray-500 py-20 flex flex-col items-center">
-                                    <div className="text-4xl mb-4">🌍</div>
-                                    <p>No worlds found.</p>
+                        <div className="flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">
+                            {/* Local Worlds Section */}
+                            <div className="space-y-4">
+                                <h2 className="text-white font-bold text-sm uppercase tracking-widest opacity-50 flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                    Local Worlds
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {worlds.length === 0 ? (
+                                        <div className="col-span-full text-center text-gray-500 py-10 bg-white/5 rounded-2xl border border-white/5 border-dashed">
+                                            <p>No local worlds found.</p>
+                                        </div>
+                                    ) : (
+                                        worlds.map(world => (
+                                            <div key={world.folderName} className="bg-surface/40 rounded-2xl border border-white/5 hover:border-white/10 transition-all flex flex-col group overflow-hidden shadow-lg hover:shadow-primary/5">
+                                                {/* World Image/Icon */}
+                                                <div className="relative h-32 bg-background-dark/50 overflow-hidden shrink-0">
+                                                    {world.hasIcon ? (
+                                                        <img src={world.iconData} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-green-900/20 to-blue-900/20 text-white/10 group-hover:text-white/20 transition-colors">
+                                                            🌍
+                                                        </div>
+                                                    )}
+                                                    {/* Game Mode Badge */}
+                                                    <div className="absolute top-3 left-3 flex gap-2">
+                                                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-lg ${world.gameMode === 'Creative' ? 'bg-purple-500/80 text-white' :
+                                                            world.gameMode === 'Survival' ? 'bg-red-500/80 text-white' :
+                                                                world.gameMode === 'Adventure' ? 'bg-orange-500/80 text-white' :
+                                                                    'bg-gray-500/80 text-white'
+                                                            }`}>
+                                                            {world.gameMode || 'Unknown'}
+                                                        </span>
+                                                        {world.hardcore && (
+                                                            <span className="bg-black/80 text-red-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-lg border border-red-500/30">
+                                                                Hardcore
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {/* Version Badge */}
+                                                    <div className="absolute bottom-3 right-3">
+                                                        <span className="bg-black/60 backdrop-blur-md text-white/70 px-2 py-0.5 rounded-md text-[10px] font-bold border border-white/5">
+                                                            {world.version || 'Unknown'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* World info */}
+                                                <div className="p-4 flex-1 flex flex-col">
+                                                    <h3 className="text-white font-bold text-lg truncate group-hover:text-primary transition-colors mb-1" title={world.name}>
+                                                        {world.name}
+                                                    </h3>
+
+                                                    <div className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-white/5">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Last Played</span>
+                                                            <span className="text-xs text-gray-300 truncate" title={formatWorldDate(world.lastPlayed)}>
+                                                                {formatWorldDate(world.lastPlayed)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Size</span>
+                                                            <span className="text-xs text-gray-300">
+                                                                {formatSize(world.size)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Quick Actions */}
+                                                    <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5">
+                                                        <button
+                                                            onClick={() => handleOpenWorldFolder(world)}
+                                                            className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
+                                                            title="Open Folder"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleWorldBackupManager(world)}
+                                                            className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
+                                                            title="Backup Manager"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0l-4-4m4-4v12" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleExportWorld(world)}
+                                                            className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
+                                                            title="Export World (.zip)"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setWorldToDelete(world)}
+                                                            className="p-2 bg-red-500/5 hover:bg-red-500/20 text-red-500/70 hover:text-red-500 rounded-lg transition-all flex items-center justify-center group/btn"
+                                                            title="Delete World"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
-                            ) : (
-                                worlds.map(world => (
-                                    <div key={world.folderName} className="bg-surface/40 rounded-2xl border border-white/5 hover:border-white/10 transition-all flex flex-col group overflow-hidden shadow-lg hover:shadow-primary/5">
-                                        {/* World Image/Icon */}
-                                        <div className="relative h-32 bg-background-dark/50 overflow-hidden shrink-0">
-                                            {world.hasIcon ? (
-                                                <img src={world.iconData} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-green-900/20 to-blue-900/20 text-white/10 group-hover:text-white/20 transition-colors">
-                                                    🌍
-                                                </div>
-                                            )}
-                                            {/* Game Mode Badge */}
-                                            <div className="absolute top-3 left-3 flex gap-2">
-                                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-lg ${world.gameMode === 'Creative' ? 'bg-purple-500/80 text-white' :
-                                                        world.gameMode === 'Survival' ? 'bg-red-500/80 text-white' :
-                                                            world.gameMode === 'Adventure' ? 'bg-orange-500/80 text-white' :
-                                                                'bg-gray-500/80 text-white'
-                                                    }`}>
-                                                    {world.gameMode || 'Unknown'}
-                                                </span>
-                                                {world.hardcore && (
-                                                    <span className="bg-black/80 text-red-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-lg border border-red-500/30">
-                                                        Hardcore
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {/* Version Badge */}
-                                            <div className="absolute bottom-3 right-3">
-                                                <span className="bg-black/60 backdrop-blur-md text-white/70 px-2 py-0.5 rounded-md text-[10px] font-bold border border-white/5">
-                                                    {world.version || 'Unknown'}
-                                                </span>
-                                            </div>
-                                        </div>
+                            </div>
 
-                                        {/* World info */}
-                                        <div className="p-4 flex-1 flex flex-col">
-                                            <h3 className="text-white font-bold text-lg truncate group-hover:text-primary transition-colors mb-1" title={world.name}>
-                                                {world.name}
-                                            </h3>
-
-                                            <div className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-white/5">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Last Played</span>
-                                                    <span className="text-xs text-gray-300 truncate" title={formatWorldDate(world.lastPlayed)}>
-                                                        {formatWorldDate(world.lastPlayed)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Size</span>
-                                                    <span className="text-xs text-gray-300">
-                                                        {formatSize(world.size)}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* Quick Actions */}
-                                            <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5">
-                                                <button
-                                                    onClick={() => handleOpenWorldFolder(world)}
-                                                    className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
-                                                    title="Open Folder"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleBackupWorld(world)}
-                                                    className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
-                                                    title="Create Backup"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0l-4 4m4-4v12" />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleExportWorld(world)}
-                                                    className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
-                                                    title="Export World (.zip)"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    onClick={() => setWorldToDelete(world)}
-                                                    className="p-2 bg-red-500/5 hover:bg-red-500/20 text-red-500/70 hover:text-red-500 rounded-lg transition-all flex items-center justify-center group/btn"
-                                                    title="Delete World"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
                         </div>
                     )
                 }
@@ -1491,18 +1528,20 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
             }
 
             { }
-            {showCodeModal && (
-                <ModpackCodeModal
-                    isOpen={showCodeModal}
-                    onClose={() => setShowCodeModal(false)}
-                    mode={codeModalMode}
-                    instanceData={instance}
-                    mods={mods}
-                    resourcePacks={resourcePacks}
-                    shaders={shaders}
-                    onImportComplete={handleCodeImportComplete}
-                />
-            )}
+            {
+                showCodeModal && (
+                    <ModpackCodeModal
+                        isOpen={showCodeModal}
+                        onClose={() => setShowCodeModal(false)}
+                        mode={codeModalMode}
+                        instanceData={instance}
+                        mods={mods}
+                        resourcePacks={resourcePacks}
+                        shaders={shaders}
+                        onImportComplete={handleCodeImportComplete}
+                    />
+                )
+            }
 
             { }
             {
@@ -1636,7 +1675,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                 </button>
                                 <button
                                     onClick={() => {
-                                        setShowPreviewModal(false);
+                                        archive.directory(worldPath, folderName);
                                         handleInstall(previewProject);
                                     }}
                                     disabled={installationStatus[previewProject.project_id] === 'installing' || installationStatus[previewProject.project_id] === 'success'}
@@ -1718,60 +1757,51 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
 
             { }
             {/* World Delete Modal */}
-            {worldToDelete && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-surface border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-2xl flex items-center justify-center text-3xl mb-4 mx-auto">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                        </div>
-                        <h3 className="text-xl font-bold text-white text-center mb-2">Delete World?</h3>
-                        <p className="text-gray-400 text-center mb-6">
-                            Are you sure you want to delete <span className="text-white font-bold">"{worldToDelete.name}"</span>?
-                            <br />
-                            <span className="text-red-500/80 text-sm mt-2 block">This action cannot be undone.</span>
-                        </p>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setWorldToDelete(null)}
-                                className="flex-1 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold transition-all"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleDeleteWorld}
-                                className="flex-1 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all shadow-lg shadow-red-500/20"
-                            >
-                                Delete World
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {
-                modToDelete && (
-                    <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-surface-dark border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-                            <h3 className="text-xl font-bold mb-2">Delete Mod?</h3>
-                            <p className="text-gray-400 text-sm mb-6">Are you sure you want to delete <span className="text-white font-mono">{modToDelete.name}</span>? This action cannot be undone.</p>
-                            <div className="flex gap-3 justify-end">
+                worldToDelete && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                        <div className="bg-surface border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+                            <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-2xl flex items-center justify-center text-3xl mb-4 mx-auto">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-bold text-white text-center mb-2">Delete World?</h3>
+                            <p className="text-gray-400 text-center mb-6">
+                                Are you sure you want to delete <span className="text-white font-bold">"{worldToDelete.name}"</span>?
+                                <br />
+                                <span className="text-red-500/80 text-sm mt-2 block">This action cannot be undone.</span>
+                            </p>
+                            <div className="flex gap-3">
                                 <button
-                                    onClick={() => setModToDelete(null)}
-                                    className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 font-bold transition-colors"
+                                    onClick={() => setWorldToDelete(null)}
+                                    className="flex-1 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold transition-all"
                                 >
                                     Cancel
                                 </button>
                                 <button
-                                    onClick={confirmDeleteMod}
-                                    className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-400 text-white font-bold transition-colors shadow-lg shadow-red-500/20"
+                                    onClick={handleDeleteWorld}
+                                    className="flex-1 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all shadow-lg shadow-red-500/20"
                                 >
-                                    Delete Mod
+                                    Delete World
                                 </button>
                             </div>
                         </div>
                     </div>
+                )
+            }
+
+            {/* Backup Manager Modal */}
+            {
+                showBackupManager && (
+                    <BackupManagerModal
+                        instance={instance}
+                        worlds={worlds}
+                        onClose={() => {
+                            setShowBackupManager(false);
+                            loadWorlds();
+                        }}
+                    />
                 )
             }
         </div >

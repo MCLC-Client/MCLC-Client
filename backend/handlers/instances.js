@@ -16,9 +16,10 @@ const archiver = require('archiver');
 const { spawn } = require('child_process');
 const nbt = require('prismarine-nbt');
 
-// Initialize these lazily when the handler is registered (app is ready)
+// Initialize these lazily when the handler is registered
 let appData;
 let instancesDir;
+let globalBackupsDir;
 
 async function calculateSha1(filePath) {
     return new Promise((resolve, reject) => {
@@ -349,7 +350,8 @@ module.exports = (ipcMain, win) => {
         if (!appData) {
             appData = app.getPath('userData');
             instancesDir = path.join(appData, 'instances');
-            console.log('[Instances] Initialized paths:', { appData, instancesDir });
+            globalBackupsDir = path.join(appData, 'backups');
+            console.log('[Instances] Initialized paths:', { appData, instancesDir, globalBackupsDir });
         }
 
         console.log('--- INSTANCES HANDLER INIT START ---');
@@ -1050,7 +1052,7 @@ module.exports = (ipcMain, win) => {
         // Move this to the top to ensure it's registered
         console.log('[Instances] Stage 2: Registering instance:unified-import-v3...');
         ipcMain.handle('instance:unified-import-v3', async (_) => {
-            console.log('[Backend] 📥 IPC Received: instance:unified-import-v3');
+            console.log('[Backend] IPC Received: instance:unified-import-v3');
             try {
                 const { filePaths } = await dialog.showOpenDialog({
                     title: 'Import Modpack',
@@ -1098,10 +1100,10 @@ module.exports = (ipcMain, win) => {
                 return { success: false, error: e.message };
             }
         });
-        console.log('[Instances] ✅ Checkpoint 1: Import handler registered');
+        console.log('[Instances]  Checkpoint 1: Import handler registered');
 
         const DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'%3E%3C/path%3E%3Cpolyline points='3.27 6.96 12 12.01 20.73 6.96'%3E%3C/polyline%3E%3Cline x1='12' y1='22.08' x2='12' y2='12'%3E%3C/line%3E%3C/svg%3E";
-        console.log('[Instances] ✅ Checkpoint 2: About to register get-resourcepacks');
+        console.log('[Instances]  Checkpoint 2: About to register get-resourcepacks');
 
         ipcMain.handle('instance:get-resourcepacks', async (_, instanceName) => {
             console.log(`[Instances:RP] Getting resource packs for: ${instanceName}`);
@@ -1296,7 +1298,7 @@ module.exports = (ipcMain, win) => {
 
         // Function moved to top
 
-        console.log('[Instances] ✅ Checkpoint 3: About to register instance:get-all');
+        console.log('[Instances] Checkpoint 3: About to register instance:get-all');
 
         ipcMain.handle('instance:get-all', async () => {
             try {
@@ -1442,10 +1444,10 @@ module.exports = (ipcMain, win) => {
             }
         });
 
-        ipcMain.handle('instance:backup-world', async (_, instanceName, folderName) => {
+        ipcMain.handle('instance:backup-world', async (_, instanceName, folderName, forceCloud = false) => {
             try {
                 const worldPath = path.join(instancesDir, instanceName, 'saves', folderName);
-                const backupsDir = path.join(instancesDir, instanceName, 'backups');
+                const backupsDir = path.join(globalBackupsDir, instanceName);
                 await fs.ensureDir(backupsDir);
 
                 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -1455,10 +1457,35 @@ module.exports = (ipcMain, win) => {
                 const archive = archiver('zip');
 
                 return new Promise((resolve, reject) => {
-                    output.on('close', () => resolve({ success: true, backupFile }));
+                    output.on('close', async () => {
+                        console.log(`[Instances] World backup created: ${backupFile}`);
+
+                        // Trigger cloud upload if enabled
+                        try {
+                            const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+                            if (await fs.pathExists(settingsPath)) {
+                                const settings = await fs.readJson(settingsPath);
+                                if (forceCloud || (settings.cloudBackupSettings?.enabled && settings.cloudBackupSettings?.provider)) {
+                                    const providerId = forceCloud ? (settings.cloudBackupSettings?.provider || 'GOOGLE_DRIVE') : settings.cloudBackupSettings.provider;
+                                    console.log(`[Instances] Emitting backup:created for ${instanceName} to ${providerId} (forceCloud: ${forceCloud})`);
+                                    app.emit('backup:created', {
+                                        providerId: providerId,
+                                        filePath: backupFile,
+                                        instanceName: instanceName
+                                    });
+                                } else {
+                                    console.log(`[Instances] Cloud backup skipped: enabled=${settings.cloudBackupSettings?.enabled}, provider=${settings.cloudBackupSettings?.provider}, forceCloud=${forceCloud}`);
+                                }
+                            }
+                        } catch (e) {
+                            console.error('[Instances] Cloud upload trigger failed:', e);
+                        }
+
+                        resolve({ success: true, backupFile });
+                    });
                     archive.on('error', (err) => resolve({ success: false, error: err.message }));
                     archive.pipe(output);
-                    archive.directory(worldPath, false);
+                    archive.directory(worldPath, folderName);
                     archive.finalize();
                 });
             } catch (e) {
@@ -1474,6 +1501,68 @@ module.exports = (ipcMain, win) => {
                     return { success: true };
                 }
                 return { success: false, error: 'World folder not found' };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('instance:list-local-backups', async (_, instanceName) => {
+            try {
+                const backupsDir = path.join(globalBackupsDir, instanceName);
+                if (!await fs.pathExists(backupsDir)) return { success: true, backups: [] };
+
+                const files = await fs.readdir(backupsDir);
+                const backups = await Promise.all(files.filter(f => f.endsWith('.zip')).map(async (file) => {
+                    const filePath = path.join(backupsDir, file);
+                    const stats = await fs.stat(filePath);
+                    return {
+                        name: file,
+                        path: filePath,
+                        size: stats.size,
+                        date: stats.mtimeMs
+                    };
+                }));
+
+                return { success: true, backups: backups.sort((a, b) => b.date - a.date) };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('instance:get-backups-dir', async (_, instanceName) => {
+            const backupsDir = path.join(globalBackupsDir, instanceName);
+            await fs.ensureDir(backupsDir);
+            return backupsDir;
+        });
+
+        ipcMain.handle('instance:restore-local-backup', async (_, instanceName, backupFileName) => {
+            try {
+                // If backupFileName is a full path (starting with C:\ etc), use it directly.
+                // Otherwise assume it's relative to the instance backups dir.
+                const backupPath = path.isAbsolute(backupFileName)
+                    ? backupFileName
+                    : path.join(globalBackupsDir, instanceName, backupFileName);
+
+                const targetSavesDir = path.join(instancesDir, instanceName, 'saves');
+
+                if (!await fs.pathExists(backupPath)) throw new Error('Backup file not found');
+
+                const zip = new AdmZip(backupPath);
+                zip.extractAllTo(targetSavesDir, true);
+
+                return { success: true };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        });
+
+        ipcMain.handle('instance:remove-file', async (_, filePath) => {
+            try {
+                if (await fs.pathExists(filePath)) {
+                    await fs.remove(filePath);
+                    return { success: true };
+                }
+                return { success: false, error: 'File not found' };
             } catch (e) {
                 return { success: false, error: e.message };
             }

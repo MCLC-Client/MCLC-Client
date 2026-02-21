@@ -14,6 +14,7 @@ const electronAPI = {
     maximize: () => ipcRenderer.send('window-maximize'),
     close: () => ipcRenderer.send('window-close'),
     openFileDialog: (options) => ipcRenderer.invoke('dialog:open-file', options),
+    showSaveDialog: (options) => ipcRenderer.invoke('dialog:save-file', options),
     getSettings: () => ipcRenderer.invoke('settings:get'),
     saveSettings: (settings) => ipcRenderer.invoke('settings:save', settings),
     login: () => ipcRenderer.invoke('auth:login'),
@@ -42,7 +43,7 @@ const electronAPI = {
     deleteMod: (instanceName, fileName, type) => ipcRenderer.invoke('instance:delete-mod', instanceName, fileName, type),
     getWorlds: (instanceName) => ipcRenderer.invoke('instance:get-worlds', instanceName),
     openWorldFolder: (instanceName, folderName) => ipcRenderer.invoke('instance:open-world-folder', instanceName, folderName),
-    backupWorld: (instanceName, folderName) => ipcRenderer.invoke('instance:backup-world', instanceName, folderName),
+    backupWorld: (instanceName, folderName, forceCloud) => ipcRenderer.invoke('instance:backup-world', instanceName, folderName, forceCloud),
     deleteWorld: (instanceName, folderName) => ipcRenderer.invoke('instance:delete-world', instanceName, folderName),
     exportWorld: (instanceName, folderName) => ipcRenderer.invoke('instance:export-world', instanceName, folderName),
     getLogFiles: (instanceName) => ipcRenderer.invoke('instance:get-log-files', instanceName),
@@ -258,12 +259,25 @@ const electronAPI = {
         ipcRenderer.on(`ext:${extId}:${channel}`, subscription);
         return () => ipcRenderer.removeListener(`ext:${extId}:${channel}`, subscription);
     },
-    fetchMarketplace: () => ipcRenderer.invoke('extensions:fetch-marketplace')
+    fetchMarketplace: () => ipcRenderer.invoke('extensions:fetch-marketplace'),
+
+    // Cloud Backups
+    cloudLogin: (providerId) => ipcRenderer.invoke('cloud:login', providerId),
+    cloudLogout: (providerId) => ipcRenderer.invoke('cloud:logout', providerId),
+    cloudGetStatus: () => ipcRenderer.invoke('cloud:get-status'),
+    cloudListBackups: (providerId, instanceName) => ipcRenderer.invoke('cloud:list-backups', providerId, instanceName),
+    cloudUpload: (providerId, filePath, instanceName) => ipcRenderer.invoke('cloud:upload', providerId, filePath, instanceName),
+    cloudDownload: (providerId, fileId, targetPath) => ipcRenderer.invoke('cloud:download', providerId, fileId, targetPath),
+    backupInstance: (instanceName) => ipcRenderer.invoke('backup:manual', instanceName),
+    listLocalBackups: (instanceName) => ipcRenderer.invoke('instance:list-local-backups', instanceName),
+    getBackupsDir: (instanceName) => ipcRenderer.invoke('instance:get-backups-dir', instanceName),
+    restoreLocalBackup: (instanceName, backupFileName) => ipcRenderer.invoke('instance:restore-local-backup', instanceName, backupFileName),
+    removeFile: (filePath) => ipcRenderer.invoke('instance:remove-file', filePath)
 
 };
 try {
     contextBridge.exposeInMainWorld('electronAPI', electronAPI);
-    console.log('[Preload] ✅ electronAPI erfolgreich exposed');
+    console.log('[Preload] ElectronAPI erfolgreich exposed');
     console.log('[Preload] Verfügbare Methoden:', Object.keys(electronAPI));
     console.log('[Preload] Modpack-Methoden:', {
         exportModpackAsCode: typeof electronAPI.exportModpackAsCode === 'function',
@@ -271,5 +285,5 @@ try {
         getModpackCodes: typeof electronAPI.getModpackCodes === 'function'
     });
 } catch (error) {
-    console.error('[Preload] ❌ Fehler beim Exposen:', error);
+    console.error('[Preload] Fehler beim Exposen:', error);
 }

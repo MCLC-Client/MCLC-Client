@@ -121,4 +121,11 @@ module.exports = (ipcMain) => {
             return { success: false, error: error.message };
         }
     });
+
+    ipcMain.handle('dialog:save-file', async (_, options) => {
+        const { dialog } = require('electron');
+        const res = await dialog.showSaveDialog(options);
+        if (res.canceled) return null;
+        return res.filePath;
+    });
 };

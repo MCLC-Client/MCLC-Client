@@ -87,6 +87,8 @@ function createWindow() {
         require('./handlers/skins')(ipcMain, mainWindow);
         console.log('[Main] Registering extensions handler...');
         require('./handlers/extensions')(ipcMain, mainWindow);
+        console.log('[Main] Registering cloud backup handler...');
+        require('./handlers/cloudBackup')(ipcMain, mainWindow);
         console.log('[Main] Registering discord handler...');
         try {
             const discord = require('./handlers/discord');

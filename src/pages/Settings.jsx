@@ -24,7 +24,18 @@ function Settings() {
         showDisabledFeatures: false,
         optimization: true,
         enableAutoInstallMods: true,
-        autoInstallMods: []
+        autoInstallMods: [],
+        cloudBackupSettings: {
+            enabled: false,
+            provider: 'GOOGLE_DRIVE',
+            autoRestore: false
+        }
+    });
+
+    const [cloudStatus, setCloudStatus] = useState({
+        GOOGLE_DRIVE: { loggedIn: false, user: null },
+        DROPBOX: { loggedIn: false, user: null },
+        ONEDRIVE: { loggedIn: false, user: null }
     });
 
     const [showSoftResetModal, setShowSoftResetModal] = useState(false);
@@ -127,9 +138,52 @@ function Settings() {
     const loadSettings = async () => {
         const res = await window.electronAPI.getSettings();
         if (res.success) {
-            const loadedSettings = { ...settings, ...res.settings };
+            const loadedSettings = {
+                ...settings,
+                ...res.settings,
+                cloudBackupSettings: {
+                    ...settings.cloudBackupSettings,
+                    ...(res.settings.cloudBackupSettings || {})
+                }
+            };
             setSettings(loadedSettings);
             initialSettingsRef.current = loadedSettings;
+        }
+        loadCloudStatus();
+    };
+
+    const loadCloudStatus = async () => {
+        try {
+            const status = await window.electronAPI.cloudGetStatus();
+            setCloudStatus(status);
+        } catch (e) {
+            console.error("Failed to load cloud status", e);
+        }
+    };
+
+    const handleCloudLogin = async (providerId) => {
+        try {
+            const res = await window.electronAPI.cloudLogin(providerId);
+            if (res.success) {
+                addNotification(`Successfully logged into ${providerId.replace('_', ' ')}`, 'success');
+                loadCloudStatus();
+            } else {
+                addNotification(`Login failed: ${res.error}`, 'error');
+            }
+        } catch (e) {
+            addNotification(`Error: ${e.message}`, 'error');
+        }
+    };
+
+    const handleCloudLogout = async (providerId) => {
+        try {
+            const res = await window.electronAPI.cloudLogout(providerId);
+            if (res.success) {
+                addNotification(`Logged out from ${providerId.replace('_', ' ')}`, 'success');
+                loadCloudStatus();
+            }
+        } catch (e) {
+            addNotification(`Error: ${e.message}`, 'error');
         }
     };
 
@@ -687,6 +741,102 @@ function Settings() {
                         )}
                     </div>
                 )}
+
+                {/* Cloud Backup Section */}
+                <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                    <h2 className="text-lg font-bold mb-6 text-white flex items-center gap-2">
+                        <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                        </svg>
+                        Cloud Backup
+                    </h2>
+
+                    <p className="text-sm text-gray-400 mb-6">Backup your worlds and instances to your favorite cloud storage. Access them from anywhere and restore them easily if something goes wrong.</p>
+
+                    <div className="space-y-6">
+                        {/* Provider Selection */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {[
+                                { id: 'GOOGLE_DRIVE', name: 'Google Drive', icon: 'M12 2L2 20h20L12 2z' },
+                                { id: 'DROPBOX', name: 'Dropbox', icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5z' }
+                            ].map((provider) => (
+                                <div key={provider.id} className={`p-4 rounded-xl border transition-all ${cloudStatus[provider.id]?.loggedIn ? 'bg-primary/5 border-primary/20' : 'bg-black/20 border-white/5 hover:border-white/10'}`}>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                                                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={provider.icon} />
+                                                </svg>
+                                            </div>
+                                            <span className="font-bold text-sm">{provider.name}</span>
+                                        </div>
+                                        {cloudStatus[provider.id]?.loggedIn && (
+                                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                        )}
+                                    </div>
+
+                                    {cloudStatus[provider.id]?.loggedIn ? (
+                                        <div className="space-y-3">
+                                            <div className="text-xs text-gray-400">
+                                                <div className="font-medium text-white truncate">{cloudStatus[provider.id].user?.name}</div>
+                                                <div className="truncate">{cloudStatus[provider.id].user?.email}</div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleCloudLogout(provider.id)}
+                                                className="w-full py-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded border border-red-500/10 transition"
+                                            >
+                                                Logout
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleCloudLogin(provider.id)}
+                                            className="w-full py-2 text-xs bg-primary hover:bg-primary-hover text-white rounded font-medium transition"
+                                        >
+                                            Login
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Cloud Backup Settings */}
+                        <div className="pt-6 border-t border-white/5 space-y-4">
+                            <ToggleBox
+                                checked={settings.cloudBackupSettings?.enabled || false}
+                                onChange={(val) => handleChange('cloudBackupSettings', { ...settings.cloudBackupSettings, enabled: val })}
+                                label="Enable Cloud Backup"
+                                description="Automatically upload backups to the cloud after local creation."
+                            />
+
+                            {settings.cloudBackupSettings?.enabled && (
+                                <div className="ml-10 space-y-4 animate-slide-down">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="text-sm font-medium text-white">Default Provider</div>
+                                            <div className="text-xs text-gray-500">The cloud service used for automatic backups</div>
+                                        </div>
+                                        <select
+                                            value={settings.cloudBackupSettings?.provider || 'GOOGLE_DRIVE'}
+                                            onChange={(e) => handleChange('cloudBackupSettings', { ...settings.cloudBackupSettings, provider: e.target.value })}
+                                            className="bg-background border border-white/10 rounded-lg px-3 py-1.5 text-xs focus:border-primary outline-none text-gray-300 cursor-pointer"
+                                        >
+                                            <option value="GOOGLE_DRIVE">Google Drive</option>
+                                            <option value="DROPBOX">Dropbox</option>
+                                        </select>
+                                    </div>
+
+                                    <ToggleBox
+                                        checked={settings.cloudBackupSettings?.autoRestore || false}
+                                        onChange={(val) => handleChange('cloudBackupSettings', { ...settings.cloudBackupSettings, autoRestore: val })}
+                                        label="Auto-restore from Cloud"
+                                        description="Automatically check for and download missing backups from the cloud."
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Maintenance Section */}
