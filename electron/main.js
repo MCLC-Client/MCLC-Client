@@ -251,6 +251,27 @@ app.whenReady().then(() => {
     createWindow();
     handleDeepLink(process.argv);
 
+    const { autoUpdater } = require('electron-updater');
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    autoUpdater.on('update-available', () => {
+        console.log('[AutoUpdater] Update available. Downloading...');
+    });
+    autoUpdater.on('update-downloaded', () => {
+        console.log('[AutoUpdater] Update downloaded. Quitting to install...');
+        autoUpdater.quitAndInstall();
+    });
+    autoUpdater.on('error', (err) => {
+        console.error('[AutoUpdater] Error:', err);
+    });
+
+    if (app.isPackaged) {
+        autoUpdater.checkForUpdates().catch(err => {
+            console.error('[AutoUpdater] Check failed:', err);
+        });
+    }
+
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });

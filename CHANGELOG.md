@@ -36,10 +36,8 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 - [ ] Script support (Partially implemented through Extensions)
 - [ ] Logging analysis utility
-- [ ] Mod dependency validation
 - [ ] Mobile application for the administration panel
 - [ ] Cross-Platform UI Polishing: Mac-specific window controls + Linux system tray integration
-- [ ] Automated Backups: Scheduled backups for worlds/instances
 - [ ] Localization (i18n): Full multi-language support system
 
 #### Optional (Planned for Future)
@@ -49,6 +47,10 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 > Everything below is now correct and reflects actual released versions.
 
 ---
+## [1.5.2] - 2026-02-21
+- [ ] Mod dependency validation
+- [ ] Automated Backups: Scheduled backups for worlds/instances
+
 
 ## [1.5.0] - 2026-02-21
 
