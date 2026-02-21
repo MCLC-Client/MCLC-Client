@@ -28,10 +28,12 @@ passport.use(new GoogleStrategy({
     passReqToCallback: true
 },
     async (req, accessToken, refreshToken, profile, done) => {
+        console.log(`[Google OAuth] Callback received for user: ${profile.displayName} (${profile.id})`);
         try {
             let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
             if (ip && ip.includes(',')) ip = ip.split(',')[0].trim();
             const now = new Date();
+            console.log(`[Google OAuth] Querying database for google_id: ${profile.id}`);
             const [rows] = await pool.query('SELECT * FROM users WHERE google_id = ?', [profile.id]);
 
             if (rows.length > 0) {
@@ -67,10 +69,19 @@ passport.use(new GoogleStrategy({
                     [newUser.google_id, newUser.username, newUser.email, newUser.avatar, newUser.bio, newUser.role, newUser.last_login, newUser.ip_address]
                 );
                 newUser.id = result.insertId;
+                console.log(`[Google OAuth] New user created with ID: ${newUser.id}`);
                 return done(null, newUser);
             }
         } catch (err) {
-            console.error('Passport Error:', err);
+            console.error('[Google OAuth] Authorization Error:', err);
+            if (err.data) {
+                try {
+                    console.error('[Google OAuth] Error Data:', JSON.stringify(err.data, null, 2));
+                } catch (e) {
+                    console.error('[Google OAuth] Error Data (raw):', err.data);
+                }
+            }
+            console.error('[Google OAuth] Error Stack:', err.stack);
             return done(err, null);
         }
     }));

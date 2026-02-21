@@ -11,23 +11,23 @@ const store = new Store();
 const PROVIDERS = {
     GOOGLE_DRIVE: {
         name: 'Google Drive',
-        clientId: process.env.GOOGLE_DRIVE_ID,
-        clientSecret: process.env.GOOGLE_DRIVE_SECRET,
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
         tokenUrl: 'https://oauth2.googleapis.com/token',
         scope: 'https://www.googleapis.com/auth/drive.file openid profile email'
     },
     DROPBOX: {
         name: 'Dropbox',
-        clientId: process.env.DROPBOX_ID,
-        clientSecret: process.env.DROPBOX_SECRET,
+        clientId: process.env.DROPBOX_CLIENT_ID,
+        clientSecret: process.env.DROPBOX_CLIENT_SECRET,
         authUrl: 'https://www.dropbox.com/oauth2/authorize',
         tokenUrl: 'https://api.dropboxapi.com/oauth2/token',
         scope: ''
     }
 };
 
-const REDIRECT_URI = 'http://localhost/callback';
+const REDIRECT_URI = 'https://localhost/callback';
 
 class CloudBackupHandler {
     constructor(ipcMain, mainWindow) {

@@ -3,7 +3,7 @@
   "name": "mclc",
   "description": "Lightweight, open-source Minecraft launcher (Electron + React) - features profile & modpack management, skin preview, Discord Rich Presence, and a modern UI for easy installs and updates.",
   "author": "Fernsehheft",
-  "version": "1.5.2",
+  "version": "1.5.1",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"cross-env NODE_ENV=development electron .\"",

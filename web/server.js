@@ -3,6 +3,32 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+
+// --- LOGGING TO latest.log ---
+const logFile = path.join(__dirname, 'latest.log');
+const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+
+const originalLog = console.log;
+const originalError = console.error;
+
+function getTimestamp() {
+    return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+}
+
+console.log = function (...args) {
+    const message = `[${getTimestamp()}] [INFO] ${args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : a).join(' ')}\n`;
+    logStream.write(message);
+    originalLog.apply(console, args);
+};
+
+console.error = function (...args) {
+    const message = `[${getTimestamp()}] [ERROR] ${args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : a).join(' ')}\n`;
+    logStream.write(message);
+    originalError.apply(console, args);
+};
+
+console.log('--- Server Starting / Restarting ---');
+// -----------------------------
 const multer = require('multer');
 const session = require('express-session');
 const passport = require('passport');
@@ -11,8 +37,15 @@ require('dotenv').config();
 const pool = require('./database');
 const http = require('http');
 const { Server } = require("socket.io");
-require('./passport-setup');
 const codesSystem = require('./codes_system');
+require('./passport-setup'); // Ensure passport is configured
+
+console.log('[Main] ========== GOOGLE OAUTH CONFIG ==========');
+console.log('[Main] ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'MISSING');
+console.log('[Main] Secret:', process.env.GOOGLE_CLIENT_SECRET ? (process.env.GOOGLE_CLIENT_SECRET.substring(0, 10) + '...') : 'MISSING');
+console.log('[Main] Callback:', process.env.CALLBACK_URL);
+console.log('[Main] NODE_ENV:', process.env.NODE_ENV);
+console.log('[Main] =========================================');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -265,13 +298,28 @@ app.get('/auth/google', (req, res, next) => {
     next();
 }, passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }),
-    (req, res) => {
-        const returnTo = req.session.returnTo || '/';
-        delete req.session.returnTo;
-        res.redirect(returnTo);
-    }
-);
+app.get('/auth/google/callback', (req, res, next) => {
+    passport.authenticate('google', (err, user, info) => {
+        if (err) {
+            console.error('[Google OAuth] Callback Error Handler:', err);
+            return res.status(500).send(`Authentication failed: ${err.message}`);
+        }
+        if (!user) {
+            console.warn('[Google OAuth] No user returned:', info);
+            return res.redirect('/login?error=no_user');
+        }
+        req.logIn(user, (loginErr) => {
+            if (loginErr) {
+                console.error('[Google OAuth] Login Error:', loginErr);
+                return res.status(500).send(`Login failed: ${loginErr.message}`);
+            }
+            const returnTo = req.session.returnTo || '/';
+            delete req.session.returnTo;
+            console.log(`[Google OAuth] Login successful for: ${user.username}, redirecting to: ${returnTo}`);
+            res.redirect(returnTo);
+        });
+    })(req, res, next);
+});
 
 app.get('/auth/logout', (req, res) => {
     const returnTo = req.query.returnTo || '/';
