@@ -9,7 +9,7 @@ const createTables = async () => {
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 google_id VARCHAR(255) UNIQUE NOT NULL,
-                username VARCHAR(50) NOT NULL,
+                username VARCHAR(50) UNIQUE NOT NULL,
                 email VARCHAR(100),
                 avatar VARCHAR(255),
                 bio TEXT,
@@ -104,6 +104,18 @@ const createTables = async () => {
         await ensureColumn('users', 'ban_reason', "TEXT AFTER banned");
         await ensureColumn('users', 'ban_expires', "DATETIME NULL AFTER ban_reason");
         await ensureColumn('users', 'warn_count', "INT DEFAULT 0 AFTER ban_expires");
+
+        // Ensure username uniqueness on existing tables
+        try {
+            const [indexes] = await connection.query("SHOW INDEX FROM users WHERE Column_name = 'username'");
+            if (indexes.length === 0) {
+                console.log('[Database] Migrating: Adding UNIQUE index to username');
+                await connection.query('ALTER TABLE users ADD UNIQUE (username)');
+            }
+        } catch (err) {
+            console.error('[Database] Failed to add unique index to username:', err.message);
+        }
+
         await ensureColumn('extensions', 'updated_at', "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at");
         await ensureColumn('extensions', 'identifier', "VARCHAR(100) UNIQUE AFTER name");
         await ensureColumn('extensions', 'summary', "VARCHAR(255) AFTER identifier");

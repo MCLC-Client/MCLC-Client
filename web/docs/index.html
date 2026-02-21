@@ -34,29 +34,78 @@
 <body class="bg-background min-h-screen pt-14 pb-24 px-2 font-sans text-base selection:bg-primary/30">
 
   <nav
-    class="fixed top-0 left-0 right-0 z-[100] transition-all duration-300 bg-background/80 backdrop-blur border-b border-white/10"
+    class="fixed top-0 left-0 right-0 z-[100] transition-all duration-300 bg-background/80 backdrop-blur-xl border-b border-white/5"
     id="navbar">
-    <div class="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <img src="../resources/icon.png" alt="MCLC Logo" class="w-10 h-10 object-contain" />
-        <span class="text-2xl font-extrabold tracking-tighter text-white hidden sm:inline">MCLC</span>
+    <div class="max-w-7xl mx-auto px-6 lg:px-12">
+      <div class="flex items-center justify-between h-20 gap-4">
+        <a href="../index.html" class="flex items-center gap-3 group shrink-0">
+          <img src="../resources/icon.png?v=2" alt="MCLC Logo"
+            class="w-10 h-10 object-contain group-hover:scale-110 transition-transform duration-300" />
+          <span class="text-2xl font-extrabold tracking-tighter text-white hidden sm:inline">MCLC</span>
+        </a>
+        <div
+          class="hidden md:flex items-center gap-6 lg:gap-10 text-sm font-semibold tracking-wide uppercase text-gray-400">
+          <a href="../index.html#features" class="hover:text-primary transition-colors">Features</a>
+          <a href="https://pluginhub.de/discord.html" class="hover:text-primary transition-colors">Support</a>
+          <a href="index.html" class="text-primary transition-colors font-bold">Documentation</a>
+          <a href="../extensions.html"
+            class="text-gray-400 hover:text-primary transition-colors font-semibold">Extensions</a>
+          <a href="https://github.com/Fernsehheft/MCLC-Client" class="hover:text-primary transition-colors"
+            target="_blank">GitHub</a>
+        </div>
+        <div class="flex items-center gap-4" id="nav-right-group">
+          <div class="hidden md:block">
+            <a id="downloadNavBtn" href="../index.html#"
+              class="bg-primary hover:bg-primary-dark text-black px-6 py-2.5 rounded-xl font-bold transition-all shadow-primary-glow transform hover:scale-105 active:scale-95 shrink-0 whitespace-nowrap">
+              Download
+            </a>
+          </div>
+          <button id="mobile-menu-btn" onclick="toggleMenu()"
+            class="md:hidden text-gray-300 hover:text-primary focus:outline-none transition-colors p-2">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+        </div>
       </div>
-
-      <div class="hidden md:flex items-center gap-10 text-sm font-semibold tracking-wide uppercase text-gray-400">
-        <a href="../index.html" class="hover:text-primary transition-colors">Home</a>
-        <a href="../index.html#features" class="hover:text-primary transition-colors">Features</a>
-        <a href="../index.html#support" class="hover:text-primary transition-colors">Support</a>
-        <a href="../extensions.html" class="hover:text-primary transition-colors">Extensions</a>
-        <a href="./index.html" class="text-primary hover:text-white transition-colors font-bold">Documentation</a>
-        <a href="https://github.com/Fernsehheft/MCLC-Client" class="hover:text-primary transition-colors"
-          target="_blank">GitHub</a>
+    </div>
+    <div id="mobile-menu"
+      class="hidden md:hidden bg-surface/95 backdrop-blur-xl border-b border-white/5 overflow-hidden transition-all duration-300">
+      <div
+        class="px-6 py-6 space-y-4 flex flex-col items-center text-center font-semibold text-gray-300 uppercase tracking-wide">
+        <a href="../index.html#features"
+          class="block w-full py-2 hover:text-primary hover:bg-white/5 rounded-lg transition-all"
+          onclick="toggleMenu()">Features</a>
+        <a href="https://pluginhub.de/discord.html"
+          class="block w-full py-2 hover:text-primary hover:bg-white/5 rounded-lg transition-all"
+          onclick="toggleMenu()">Support</a>
+        <a href="index.html" class="block w-full py-2 text-primary font-bold hover:bg-white/5 rounded-lg transition-all"
+          onclick="toggleMenu()">Documentation</a>
+        <a href="../extensions.html"
+          class="block w-full py-2 text-gray-300 hover:text-primary hover:bg-white/5 rounded-lg transition-all"
+          onclick="toggleMenu()">Extensions</a>
+        <a href="https://github.com/Fernsehheft/MCLC-Client" target="_blank"
+          class="block w-full py-2 hover:text-primary hover:bg-white/5 rounded-lg transition-all"
+          onclick="toggleMenu()">GitHub</a>
+        <a id="downloadNavBtnMobile" href="../index.html#"
+          class="block w-full bg-primary text-black py-4 rounded-xl font-black mt-4 shadow-primary-glow active:scale-95 transition-all"
+          onclick="toggleMenu()">
+          Download Now
+        </a>
       </div>
-      <a id="downloadNavBtn" href="../index.html#"
-        class="bg-primary hover:bg-primary-dark text-black px-8 py-3 rounded-xl font-bold transition-all shadow-primary-glow transform hover:scale-105 active:scale-95">
-        Download
-      </a>
     </div>
   </nav>
+
+  <script>
+    function toggleMenu() {
+      const menu = document.getElementById('mobile-menu');
+      if (menu.classList.contains('hidden')) {
+        menu.classList.remove('hidden');
+      } else {
+        menu.classList.add('hidden');
+      }
+    }
+  </script>
 
   <header class="max-w-3xl mx-auto flex items-center gap-4 mb-12 mt-14">
     <img src="../resources/icon.png" alt="MCLC Logo" class="w-14 h-14 rounded-xl shadow-lg bg-surface/80" />
@@ -72,6 +121,23 @@
     <section class="mb-14">
       <h2 class="text-2xl md:text-3xl font-bold text-primary mb-8">All Documentation</h2>
       <div class="flex flex-col space-y-6">
+        <a href="./launcher/index.html"
+          class="block bg-surface/80 border border-white/10 rounded-2xl p-6 lg:p-8 hover:shadow-primary-glow hover:border-primary transition-all group">
+          <div class="flex items-center gap-4">
+            <span class="inline-flex items-center justify-center rounded-xl bg-primary/10 w-14 h-14">
+              <img src="../resources/icon.png" alt="MCLC" class="w-8 h-8 object-contain">
+            </span>
+            <div>
+              <h3 class="text-xl font-semibold text-white group-hover:text-primary transition-colors">
+                Launcher Documentation
+              </h3>
+              <p class="text-gray-400 text-sm mt-1">
+                Learn everything about the MCLC Launcher features, setup, and configuration.
+              </p>
+            </div>
+          </div>
+        </a>
+
         <a href="./extension/index.html"
           class="block bg-surface/80 border border-white/10 rounded-2xl p-6 lg:p-8 hover:shadow-primary-glow hover:border-primary transition-all group">
           <div class="flex items-center gap-4">

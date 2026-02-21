@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth bg-background text-gray-200 antialiased">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCLC Launcher - Wiki</title>
+    <link rel="icon" type="image/png" href="../../resources/icon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Poppins:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1bd96a",
+                        "primary-dark": "#14a34f",
+                        surface: "#121212",
+                        background: "#080808",
+                        "accent-dark": "#0f0f0f",
+                    },
+                    fontFamily: {
+                        sans: ["Outfit", "Poppins", "sans-serif"],
+                    },
+                    boxShadow: {
+                        "primary-glow": "0 0 30px rgba(27, 217, 106, 0.25)",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(27, 217, 106, 0.5);
+        }
+
+        .wiki-nav-link.active {
+            color: #1bd96a;
+            border-left: 2px solid #1bd96a;
+            padding-left: 14px;
+        }
+
+        .wiki-nav-link {
+            padding-left: 16px;
+            transition: all 0.2s;
+        }
+
+        .wiki-nav-link:hover {
+            color: white;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+
+<body class="bg-background min-h-screen text-gray-300 font-sans">
+    <nav class="fixed top-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-b border-white/5 h-20">
+        <div class="max-w-[1600px] mx-auto px-6 h-full flex items-center justify-between">
+            <a href="../../index.html" class="flex items-center gap-3">
+                <img src="../../resources/icon.png?v=2" alt="MCLC Logo" class="w-10 h-10 object-contain" />
+                <span class="text-2xl font-extrabold tracking-tighter text-white">MCLC</span>
+            </a>
+            <div class="hidden md:flex items-center gap-8 text-sm font-semibold tracking-wide uppercase text-gray-400">
+                <a href="../../index.html" class="hover:text-primary transition-colors">Information</a>
+                <a href="../../extensions.html" class="hover:text-primary transition-colors">Extensions</a>
+                <a href="../../privacy.html" class="hover:text-primary transition-colors">Privacy</a>
+            </div>
+            <div class="flex items-center gap-6">
+                <button class="p-2 text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+                <a href="https://github.com/Fernsehheft/MCLC-Client" target="_blank"
+                    class="text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-[1600px] mx-auto pt-24 flex min-h-screen">
+        <aside
+            class="w-72 fixed left-0 top-24 bottom-0 overflow-y-auto custom-scrollbar px-8 py-10 border-r border-white/5 bg-background hidden lg:block">
+            <div class="space-y-10">
+                <div>
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6">General</h3>
+                    <ul class="space-y-4 text-sm font-medium">
+                        <li><a href="#overview" class="wiki-nav-link block active">Overview</a></li>
+                        <li><a href="#faq" class="wiki-nav-link block">FAQ</a></li>
+                        <li><a href="#credits" class="wiki-nav-link block">Credits</a></li>
+                        <li><a href="#downloads" class="wiki-nav-link block">Downloads</a></li>
+                        <li><a href="#addons" class="wiki-nav-link block">Addons</a></li>
+                        <li><a href="https://pluginhub.de/discord.html"
+                                class="wiki-nav-link flex items-center justify-between">Discord <svg
+                                    class="w-3.5 h-3.5 rotate-[-45deg]" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg></a></li>
+                        <li><a href="https://github.com/Fernsehheft/MCLC-Client/issues"
+                                class="wiki-nav-link flex items-center justify-between">Issues <svg
+                                    class="w-3.5 h-3.5 rotate-[-45deg]" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg></a></li>
+                        <li><a href="https://github.com/Fernsehheft/MCLC-Client"
+                                class="wiki-nav-link flex items-center justify-between">GitHub <svg
+                                    class="w-3.5 h-3.5 rotate-[-45deg]" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg></a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-xs font-bold text-primary uppercase tracking-widest mb-6">Wiki</h3>
+                    <ul class="space-y-4 text-sm font-medium">
+                        <li><a href="#installation" class="wiki-nav-link block text-primary font-bold">Installation</a>
+                        </li>
+                        <li><a href="#accounts" class="wiki-nav-link block">Accounts</a></li>
+                        <li><a href="#instances" class="wiki-nav-link block">Instances</a>
+                            <ul class="ml-4 mt-4 space-y-3 border-l border-white/10">
+                                <li><a href="#create-instance" class="pl-4 wiki-nav-link block">Creating</a></li>
+                                <li><a href="#manage-mods" class="pl-4 wiki-nav-link block">Managing Mods</a></li>
+                            </ul>
+                        </li>
+                        <li><a href="#settings" class="wiki-nav-link block">Settings</a></li>
+                        <li><a href="#troubleshooting" class="wiki-nav-link block">Troubleshooting</a></li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-grow lg:ml-72 px-6 py-12 lg:px-16 max-w-5xl">
+            <article class="prose prose-invert max-w-none">
+                <section id="overview" class="mb-20">
+                    <h1 class="text-4xl font-extrabold text-white mb-8 flex items-center gap-4">
+                        <span class="text-primary">#</span> Overview
+                    </h1>
+                    <p class="text-lg text-gray-400 mb-6 leading-relaxed">
+                        MCLC is more than just a Minecraft launcher. It's a high-performance, modern platform designed
+                        for players who want a premium experience without the complexity of traditional modding tools.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                        <div class="bg-surface/30 p-6 rounded-2xl border border-white/5">
+                            <h4 class="text-white font-bold mb-2">High Performance</h4>
+                            <p class="text-xs text-gray-500">Optimized Java arguments and RAM management for maximum
+                                FPS.</p>
+                        </div>
+                        <div class="bg-surface/30 p-6 rounded-2xl border border-white/5">
+                            <h4 class="text-white font-bold mb-2">Modern UI</h4>
+                            <p class="text-xs text-gray-500">A sleek, glass-morphism interface that feels alive.</p>
+                        </div>
+                        <div class="bg-surface/30 p-6 rounded-2xl border border-white/5">
+                            <h4 class="text-white font-bold mb-2">Mod Hub</h4>
+                            <p class="text-xs text-gray-500">Integrated Modrinth and CurseForge support for easy
+                                installation.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="installation" class="mb-20">
+                    <h1 class="text-4xl font-extrabold text-white mb-8 flex items-center gap-4">
+                        <span class="text-primary">#</span> Installation
+                    </h1>
+                    <p class="text-lg text-gray-400 mb-6 leading-relaxed">
+                        To use MCLC Launcher, you need to download the installer for Windows. The launcher is designed
+                        to be lightweight and fast, providing a premium experience for Minecraft players.
+                    </p>
+                    <p class="text-gray-400 mb-10">
+                        It doesn't matter which mod/plugin loader you are using. All of them are cross compatible*.
+                    </p>
+
+                    <div class="bg-red-950/20 border-l-4 border-red-500/50 p-6 rounded-r-2xl mb-12">
+                        <h4 class="text-red-400 font-bold uppercase tracking-wider text-xs mb-2">Important</h4>
+                        <p class="text-red-200/70 text-sm">Don't contact official Minecraft support for help with MCLC!
+                            Use our Discord instead.</p>
+                    </div>
+
+                    <ul class="space-y-3 mb-16">
+                        <li class="flex items-center gap-3 text-primary font-semibold">
+                            <span class="w-1.5 h-1.5 bg-primary rounded-full"></span> Fabric
+                        </li>
+                        <li class="flex items-center gap-3 text-primary font-semibold">
+                            <span class="w-1.5 h-1.5 bg-primary rounded-full"></span> NeoForge
+                        </li>
+                        <li class="flex items-center gap-3 text-primary font-semibold">
+                            <span class="w-1.5 h-1.5 bg-primary rounded-full"></span> Forge
+                        </li>
+                        <li class="flex items-center gap-3 text-primary font-semibold">
+                            <span class="w-1.5 h-1.5 bg-primary rounded-full"></span> Spigot
+                        </li>
+                        <li class="flex items-center gap-3 text-primary font-semibold">
+                            <span class="w-1.5 h-1.5 bg-primary rounded-full"></span> Paper/Velocity
+                        </li>
+                        <li class="flex items-center gap-3 text-primary font-semibold">
+                            <span class="w-1.5 h-1.5 bg-primary rounded-full"></span> Quilt
+                        </li>
+                    </ul>
+
+                    <hr class="border-white/5 mb-16">
+
+                    <h2 class="text-3xl font-bold text-white mb-6">Fabric</h2>
+                    <p class="text-gray-400 mb-6 font-medium">
+                        For the Fabric version of the mod, you need to have the <span class="text-primary">Fabric
+                            Loader</span> installed on your client/server.
+                    </p>
+                    <p class="text-gray-400 mb-6 leading-relaxed">
+                        Then copy the <span class="text-primary">MCLC Core mod jar</span> to the mods folder. The mods
+                        folder is located in <code
+                            class="bg-white/5 px-2 py-1 rounded text-primary text-sm font-mono">/mods</code>.
+                    </p>
+                </section>
+
+                <section id="accounts" class="mb-20">
+                    <h1 class="text-4xl font-extrabold text-white mb-8 flex items-center gap-4">
+                        <span class="text-primary">#</span> Accounts
+                    </h1>
+                    <p class="text-lg text-gray-400 mb-6 leading-relaxed">
+                        MCLC requires a valid Minecraft account. You can add both Microsoft (Premium) and Offline
+                        accounts in the account manager.
+                    </p>
+                    <div class="bg-surface/50 border border-white/5 p-8 rounded-3xl mb-8">
+                        <h3 class="text-xl font-bold text-white mb-4">Adding a Microsoft Account</h3>
+                        <ol class="list-decimal pl-6 space-y-3 text-gray-400">
+                            <li>Click on the profile icon in the top right corner.</li>
+                            <li>Select <span class="text-white font-semibold">"Add Account"</span>.</li>
+                            <li>Choose <span class="text-primary font-bold">Microsoft Login</span>.</li>
+                            <li>Follow the instructions in the browser window to authorize MCLC.</li>
+                        </ol>
+                    </div>
+                </section>
+
+                <section id="instances" class="mb-20">
+                    <h1 class="text-4xl font-extrabold text-white mb-8 flex items-center gap-4">
+                        <span class="text-primary">#</span> Instances
+                    </h1>
+                    <p class="text-lg text-gray-400 mb-6 leading-relaxed">
+                        Instances are separate Minecraft installations. This allows you to have multiple versions or
+                        modpacks installed at the same time.
+                    </p>
+
+                    <div id="create-instance" class="mb-12">
+                        <h2 class="text-2xl font-bold text-white mb-6">Creating a new Instance</h2>
+                        <p class="text-gray-400 mb-6"> To create a new instance, click the <span
+                                class="text-primary font-bold">"+"</span> button in the sidebar.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-surface/30 p-6 rounded-2xl border border-white/5">
+                                <h4 class="text-white font-bold mb-2">Vanilla</h4>
+                                <p class="text-sm text-gray-500">Pure Minecraft experience without modifications.</p>
+                            </div>
+                            <div class="bg-surface/30 p-6 rounded-2xl border border-white/5">
+                                <h4 class="text-white font-bold mb-2">Modded</h4>
+                                <p class="text-sm text-gray-500">Support for Fabric, Forge, NeoForge and Quilt.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="manage-mods" class="mb-12">
+                        <h2 class="text-2xl font-bold text-white mb-6">Managing Mods</h2>
+                        <p class="text-gray-400 mb-6 font-medium">
+                            You can easily manage your mods directly within the launcher.
+                        </p>
+                        <ul class="space-y-4">
+                            <li class="flex gap-4">
+                                <div
+                                    class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">
+                                    1</div>
+                                <p class="text-gray-400">Right-click on an instance and select <span
+                                        class="text-white">"Manage Mods"</span>.</p>
+                            </li>
+                            <li class="flex gap-4">
+                                <div
+                                    class="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0">
+                                    2</div>
+                                <p class="text-gray-400">Use the built-in <span class="text-primary">Modrinth
+                                        browser</span> to find and install new mods.</p>
+                            </li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section id="settings" class="mb-20">
+                    <h1 class="text-4xl font-extrabold text-white mb-8 flex items-center gap-4">
+                        <span class="text-primary">#</span> Settings
+                    </h1>
+                    <p class="text-lg text-gray-400 mb-10 leading-relaxed">
+                        Configure MCLC to fit your needs and optimize performance for your hardware.
+                    </p>
+
+                    <div class="space-y-8">
+                        <div class="flex items-start gap-6 border-b border-white/5 pb-8">
+                            <div
+                                class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-white mb-2">Java & Memory</h3>
+                                <p class="text-gray-500 text-sm">Allocate more RAM to Minecraft for better performance,
+                                    especially with large modpacks.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-6 border-b border-white/5 pb-8">
+                            <div
+                                class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-white mb-2">Resolution</h3>
+                                <p class="text-gray-500 text-sm">Set the default window size or enable full-screen mode
+                                    by default.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="troubleshooting" class="mb-20">
+                    <h1 class="text-4xl font-extrabold text-white mb-8 flex items-center gap-4">
+                        <span class="text-primary">#</span> Troubleshooting
+                    </h1>
+                    <div class="bg-surface/30 border border-white/5 p-8 rounded-3xl">
+                        <h3 class="text-white font-bold mb-4">Common Issues</h3>
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="text-primary font-semibold mb-1">Game won't start</h4>
+                                <p class="text-sm text-gray-400">Ensure you have the correct Java version installed
+                                    (Java 17 for 1.18+, Java 8 for 1.12.2 and below).</p>
+                            </div>
+                            <div>
+                                <h4 class="text-primary font-semibold mb-1">Authentication Error</h4>
+                                <p class="text-sm text-gray-400">Try removing and re-adding your Microsoft account in
+                                    the account manager.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="faq" class="mb-20">
+                    <h1 class="text-4xl font-extrabold text-white mb-8 flex items-center gap-4">
+                        <span class="text-primary">#</span> FAQ
+                    </h1>
+                    <div class="space-y-6">
+                        <div class="bg-surface/50 p-6 rounded-2xl border border-white/5">
+                            <h4 class="text-white font-bold mb-2">Is MCLC free?</h4>
+                            <p class="text-gray-400 text-sm">Yes, MCLC is completely free to use. We believe in
+                                providing a premium experience for everyone.</p>
+                        </div>
+                        <div class="bg-surface/50 p-6 rounded-2xl border border-white/5">
+                            <h4 class="text-white font-bold mb-2">Can I use Offline accounts?</h4>
+                            <p class="text-gray-400 text-sm">Yes, you can add Offline accounts in the settings, although
+                                Microsoft accounts are recommended for skin support and multiplayer.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="credits" class="mb-20">
+                    <h1 class="text-4xl font-extrabold text-white mb-8 flex items-center gap-4">
+                        <span class="text-primary">#</span> Credits
+                    </h1>
+                    <p class="text-gray-400 mb-6">MCLC is developed and maintained by a dedicated team of developers and
+                        community contributors.</p>
+                    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <li class="bg-surface/40 p-4 rounded-xl border border-white/5 flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
+                                FH</div>
+                            <span class="text-white font-semibold">Fernsehheft</span>
+                        </li>
+                        <li class="bg-surface/40 p-4 rounded-xl border border-white/5 flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
+                                MS</div>
+                            <span class="text-white font-semibold">Mobilestars</span>
+                        </li>
+                        <li class="bg-surface/40 p-4 rounded-xl border border-white/5 flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
+                                IM</div>
+                            <span class="text-white font-semibold">ItzzMateo</span>
+                        </li>
+                    </ul>
+                </section>
+
+                <section id="downloads" class="mb-20">
+                    <h1 class="text-4xl font-extrabold text-white mb-8 flex items-center gap-4">
+                        <span class="text-primary">#</span> Downloads
+                    </h1>
+                    <p class="text-gray-400 mb-8">Download the latest version of MCLC Launcher from our main page.</p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="../../index.html"
+                            class="bg-primary text-black px-8 py-3 rounded-xl font-bold shadow-primary-glow flex items-center gap-2 transform hover:scale-105 active:scale-95 transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download for Windows
+                        </a>
+                    </div>
+                </section>
+
+                <section id="addons" class="mb-20">
+                    <h1 class="text-4xl font-extrabold text-white mb-8 flex items-center gap-4">
+                        <span class="text-primary">#</span> Addons
+                    </h1>
+                    <p class="text-gray-400 mb-6 font-medium">Customize your MCLC experience with our extension system.
+                    </p>
+                    <div class="bg-surface/50 p-8 rounded-3xl border border-white/5">
+                        <h4 class="text-white font-bold mb-4">Themes & Extensions</h4>
+                        <p class="text-sm text-gray-500 line-height-relaxed">
+                            MCLC supports custom themes and functionality extensions. Visit our <a
+                                href="../../extensions.html" class="text-primary hover:underline">Extension Store</a> to
+                            browse available addons or check out the <a href="../extension/index.html"
+                                class="text-primary hover:underline">Development Guide</a> to build your own.
+                        </p>
+                    </div>
+                </section>
+            </article>
+        </main>
+
+        <aside class="w-64 fixed right-0 top-24 bottom-0 p-10 hidden xl:block">
+            <h4 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6">On this page</h4>
+            <nav class="space-y-4 text-xs font-bold text-gray-500">
+                <a href="#overview" class="block hover:text-white transition-colors">Overview</a>
+                <a href="#faq" class="block hover:text-white transition-colors">FAQ</a>
+                <a href="#credits" class="block hover:text-white transition-colors">Credits</a>
+                <a href="#downloads" class="block hover:text-white transition-colors">Downloads</a>
+                <a href="#addons" class="block hover:text-white transition-colors">Addons</a>
+                <div class="border-t border-white/5 my-4 pt-4"></div>
+                <a href="#installation" class="block hover:text-white transition-colors">Installation</a>
+                <a href="#accounts" class="block hover:text-white transition-colors">Accounts</a>
+                <a href="#instances" class="block hover:text-white transition-colors">Instances</a>
+                <a href="#settings" class="block hover:text-white transition-colors">Settings</a>
+                <a href="#troubleshooting" class="block hover:text-white transition-colors">Troubleshooting</a>
+            </nav>
+        </aside>
+    </div>
+
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+            } else {
+                menu.classList.add('hidden');
+            }
+        }
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    e.preventDefault();
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+
+                    // Update active state in nav
+                    document.querySelectorAll('.wiki-nav-link').forEach(link => link.classList.remove('active', 'text-primary',
+                        'font-bold'));
+                    this.classList.add('active', 'text-primary', 'font-bold');
+                }
+            });
+        });
+
+        // Simple scroll spy to highlight active section
+        window.addEventListener('scroll', () => {
+            let current = "";
+            const sections = document.querySelectorAll('section');
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            document.querySelectorAll('.wiki-nav-link').forEach(link => {
+                link.classList.remove('active', 'text-primary', 'font-bold');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active', 'text-primary', 'font-bold');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

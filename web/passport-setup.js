@@ -53,9 +53,15 @@ passport.use(new GoogleStrategy({
                 return done(null, user);
             } else {
 
+                let username = profile.displayName;
+                const [existing] = await pool.query('SELECT id FROM users WHERE username = ?', [username]);
+                if (existing.length > 0) {
+                    username = `${profile.displayName}#${Math.floor(1000 + Math.random() * 9000)}`;
+                }
+
                 const newUser = {
                     google_id: profile.id,
-                    username: profile.displayName,
+                    username: username,
                     email: profile.emails && profile.emails.length > 0 ? profile.emails[0].value : null,
                     avatar: profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null,
                     bio: 'Project MCLC Member',
@@ -69,7 +75,7 @@ passport.use(new GoogleStrategy({
                     [newUser.google_id, newUser.username, newUser.email, newUser.avatar, newUser.bio, newUser.role, newUser.last_login, newUser.ip_address]
                 );
                 newUser.id = result.insertId;
-                console.log(`[Google OAuth] New user created with ID: ${newUser.id}`);
+                console.log(`[Google OAuth] New user created with ID: ${newUser.id} (username: ${newUser.username})`);
                 return done(null, newUser);
             }
         } catch (err) {

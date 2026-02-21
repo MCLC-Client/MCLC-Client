@@ -3,15 +3,15 @@
   "name": "mclc",
   "description": "Lightweight, open-source Minecraft launcher (Electron + React) - features profile & modpack management, skin preview, Discord Rich Presence, and a modern UI for easy installs and updates.",
   "author": "Fernsehheft",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"cross-env NODE_ENV=development electron .\"",
     "build": "vite build",
     "start": "electron .",
     "dist-clean": "concurrently \"rimraf dist\" \"rimraf release\"",
-    "dist": "concurrently \"npm run dist-clean\" \"npm run build\" \"electron-builder\"",
-    "dist-all": "concurrently \"npm run dist-clean\" \"npm run build\" \"electron-builder --wl\""
+    "dist": "npm run dist-clean && npm run build && electron-builder",
+    "dist-all": "npm run dist-clean && npm run build && electron-builder --wl"
   },
   "build": {
     "appId": "de.pluginhub.mclc",
@@ -21,6 +21,7 @@
       "dist/**/*",
       "electron/**/*",
       "backend/**/*",
+      "resources/**/*",
       "package.json"
     ],
     "directories": {
@@ -30,7 +31,7 @@
       "target": "nsis"
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true
     },

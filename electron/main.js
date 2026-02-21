@@ -117,10 +117,20 @@ function createWindow() {
     backupManager.init(ipcMain);
     const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
     if (isDev) {
+        console.log('[Main] Loading development URL...');
         mainWindow.loadURL('http://localhost:3000');
         mainWindow.webContents.openDevTools();
     } else {
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+        const indexPath = path.join(__dirname, '../dist/index.html');
+        console.log(`[Main] Loading production file: ${indexPath}`);
+
+        if (!fs.existsSync(indexPath)) {
+            console.error(`[Main] CRITICAL ERROR: Production index.html not found at ${indexPath}`);
+        }
+
+        mainWindow.loadFile(indexPath).catch(err => {
+            console.error('[Main] Failed to load production file:', err);
+        });
     }
     ipcMain.on('window-minimize', () => mainWindow.minimize());
     ipcMain.on('window-maximize', () => {

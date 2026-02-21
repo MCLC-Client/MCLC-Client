@@ -42,7 +42,11 @@
                 <span class="text-xl font-bold tracking-tighter text-white">MCLC <span
                         class="text-primary/50 text-xs ml-1 uppercase tracking-widest">Dashboard</span></span>
             </a>
-            <div class="flex items-center gap-4" id="nav-right-group">
+            <div class="flex items-center gap-6" id="nav-right-group">
+                <div
+                    class="hidden md:flex items-center gap-6 text-sm font-semibold tracking-wide uppercase text-gray-400">
+                    <a href="docs/index.html" class="hover:text-primary transition-colors">Documentation</a>
+                </div>
 
                 <div class="relative" id="notification-group">
                     <button onclick="toggleNotifications()" id="notification-btn"
@@ -276,15 +280,20 @@
                         <div class="text-5xl font-black text-yellow-500" id="stat-pending">0</div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                    <div class="bg-surface/30 border border-white/5 p-8 rounded-[2rem]">
-                        <h3 class="text-white font-bold mb-6 tracking-wide">Downloads per Extension</h3>
-                        <canvas id="downloadsChart" class="w-full h-64"></canvas>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
+                    <div class="bg-surface/30 border border-white/5 p-10 rounded-[2.5rem] flex flex-col min-h-[450px]">
+                        <h3 class="text-white font-black mb-8 tracking-widest uppercase text-xs opacity-50">Downloads
+                            per Extension</h3>
+                        <div class="flex-1 relative">
+                            <canvas id="downloadsChart"></canvas>
+                        </div>
                     </div>
-                    <div class="bg-surface/30 border border-white/5 p-8 rounded-[2rem] flex flex-col items-center">
-                        <h3 class="text-white font-bold mb-6 tracking-wide w-full text-left">Project Status Distribution
-                        </h3>
-                        <div class="w-full max-w-[250px] aspect-square">
+                    <div
+                        class="bg-surface/30 border border-white/5 p-10 rounded-[2.5rem] flex flex-col items-center min-h-[450px]">
+                        <h3
+                            class="text-white font-black mb-8 tracking-widest uppercase text-xs opacity-50 w-full text-left">
+                            Project Status Distribution</h3>
+                        <div class="w-full max-w-[280px] aspect-square flex items-center justify-center flex-1">
                             <canvas id="statusChart"></canvas>
                         </div>
                     </div>
@@ -948,13 +957,28 @@
             }
 
             try {
-                await fetch('/api/user/update', {
+                const res = await fetch('/api/user/update', {
                     method: 'POST',
                     body: formData
                 });
+
+                if (res.status === 409) {
+                    const result = await res.json();
+                    alert(result.error || 'Username already taken. Please choose another.');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
+                }
+
+                if (!res.ok) {
+                    throw new Error('Failed to update profile');
+                }
+
                 initDashboard();
+                alert('Profile updated successfully!');
             } catch (err) {
                 console.error(err);
+                alert('Error updating profile: ' + err.message);
             }
 
             btn.innerHTML = originalText;
@@ -1436,7 +1460,11 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                stepSize: 1,
+                                precision: 0
+                            }
                         },
                         x: {
                             grid: { display: false },

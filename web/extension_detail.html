@@ -152,7 +152,8 @@
                 <div
                     class="hidden md:flex items-center gap-10 text-sm font-semibold tracking-wide uppercase text-gray-400">
                     <a href="/index.html#features" class="hover:text-primary transition-colors">Features</a>
-                    <a href="/index.html#support" class="hover:text-primary transition-colors">Support</a>
+                    <a href="https://pluginhub.de/discord.html" class="hover:text-primary transition-colors">Support</a>
+                    <a href="/docs/index.html" class="hover:text-primary transition-colors">Documentation</a>
                     <a href="/extensions.html" class="hover:text-primary transition-colors">Extensions</a>
                     <a href="https://github.com/Fernsehheft/MCLC-Client" class="hover:text-primary transition-colors"
                         target="_blank">GitHub</a>
@@ -374,13 +375,26 @@
                     downloadBtn.href = fixPath(latestVersion.file_path);
                     downloadBtn.setAttribute('download', `${ext.identifier}-${latestVersion.version}.zip`);
                 } else if (ext.file_path) {
-
                     downloadBtn.href = fixPath(ext.file_path);
                 } else {
                     downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
                     downloadBtn.removeAttribute('href');
                     downloadBtn.textContent = 'Unavailable';
                 }
+
+                downloadBtn.addEventListener('click', async (e) => {
+                    if (!ext.id) return;
+                    try {
+                        await fetch(`/api/extensions/${ext.id}/download`, { method: 'POST' });
+                        const countEl = document.getElementById('downloads-count');
+                        if (countEl) {
+                            const newCount = (ext.downloads || 0) + 1;
+                            countEl.textContent = newCount.toLocaleString();
+                        }
+                    } catch (err) {
+                        console.error('[MCLC] Download tracking failed:', err);
+                    }
+                });
                 const historyList = document.getElementById('version-history-list');
                 if (historyList) {
                     if (versions.length === 0 && !ext.file_path) {

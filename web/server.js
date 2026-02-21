@@ -62,6 +62,7 @@ const PORT = process.env.PORT || 3001;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 const NEWS_FILE = path.join(__dirname, 'news.json');
 const ANALYTICS_FILE = path.join(__dirname, 'analytics.json');
+const downloadCooldowns = new Map();
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -582,18 +583,56 @@ app.delete('/api/extensions/:id', ensureAuthenticated, async (req, res) => {
 
 app.get('/api/user/extensions', ensureAuthenticated, async (req, res) => {
     try {
-        const isAdmin = req.user && req.user.role === 'admin';
-        const query = isAdmin
-            ? 'SELECT * FROM extensions ORDER BY created_at DESC'
-            : 'SELECT * FROM extensions WHERE user_id = ? ORDER BY created_at DESC';
-
-        const params = isAdmin ? [] : [req.user.id];
-
-        const [rows] = await pool.query(query, params);
+        const query = 'SELECT * FROM extensions WHERE user_id = ? ORDER BY created_at DESC';
+        const [rows] = await pool.query(query, [req.user.id]);
         res.json(rows);
     } catch (err) {
         console.error('[API Error] /api/user/extensions failed:', err);
         res.status(500).json({ error: 'Database error', details: err.message });
+    }
+});
+
+app.post('/api/extensions/:id/download', async (req, res) => {
+    const { id } = req.params;
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const cooldownKey = `${ip}-${id}`;
+    const now = Date.now();
+
+    // 10 minute cooldown per IP per extension
+    if (downloadCooldowns.has(cooldownKey)) {
+        const lastDownload = downloadCooldowns.get(cooldownKey);
+        if (now - lastDownload < 10 * 60 * 1000) {
+            return res.json({ success: true, message: 'Cooldown active' });
+        }
+    }
+
+    try {
+        const [ext] = await pool.query('SELECT name, type FROM extensions WHERE id = ?', [id]);
+        if (ext.length === 0) return res.status(404).json({ error: 'Extension not found' });
+
+        downloadCooldowns.set(cooldownKey, now);
+
+        await pool.query('UPDATE extensions SET downloads = downloads + 1 WHERE id = ?', [id]);
+        await pool.query('UPDATE extension_versions SET downloads = downloads + 1 WHERE extension_id = ? AND status = "approved" ORDER BY created_at DESC LIMIT 1', [id]);
+
+        const type = ext[0].type || 'mod';
+        const name = ext[0].name || 'unknown';
+
+        if (!stats.downloads[type]) stats.downloads[type] = {};
+        stats.downloads[type][name] = (stats.downloads[type][name] || 0) + 1;
+
+        saveAnalytics();
+
+        io.to('admin').emit('new-download', { type, name, username: 'Web Guest' });
+        io.to('admin').emit('live-update', {
+            live: getLiveStats(),
+            persistent: stats
+        });
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[API Error] Track download failed:', err);
+        res.status(500).json({ error: 'Database error' });
     }
 });
 
@@ -636,12 +675,21 @@ app.post('/api/user/update', ensureAuthenticated, upload.single('avatarFile'), a
     }
 
     try {
+        // Check if username is already taken by someone else
+        if (username) {
+            const [existing] = await pool.query('SELECT id FROM users WHERE username = ? AND id != ?', [username, req.user.id]);
+            if (existing.length > 0) {
+                return res.status(409).json({ error: 'Username already taken' });
+            }
+        }
+
         await pool.query(
             'UPDATE users SET username = ?, bio = ?, avatar = ? WHERE id = ?',
             [username, bio, finalAvatar, req.user.id]
         );
         res.json({ success: true });
     } catch (err) {
+        console.error('[API Error] /api/user/update failed:', err);
         res.status(500).json({ error: 'Failed to update profile' });
     }
 });
@@ -662,7 +710,7 @@ app.get('/api/users/p/:username', async (req, res) => {
 
 app.get('/api/admin/users', ensureAdmin, async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT id, username, email, ip_address, role, last_login, banned, warn_count, created_at FROM users ORDER BY created_at DESC');
+        const [rows] = await pool.query('SELECT id, username, email, avatar, ip_address, role, last_login, banned, warn_count, created_at FROM users ORDER BY created_at DESC');
         res.json(rows);
     } catch (err) {
         res.status(500).json({ error: 'Database error' });
@@ -879,6 +927,7 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
 });
 
 app.get('/news.json', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     res.json(getNews());
 });
 
@@ -946,7 +995,16 @@ const staticOptions = {
 app.use(express.static(websitePath, staticOptions));
 app.use(express.static(adminPublicPath, staticOptions));
 
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+const uploadPath = path.resolve(__dirname, 'public/uploads');
+console.log(`[Static] Serving uploads from: ${uploadPath}`);
+app.use('/uploads', express.static(uploadPath, {
+    maxAge: '1d',
+    setHeaders: (res, path) => {
+        if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+        }
+    }
+}));
 
 app.get('/extensions/:identifier', (req, res) => {
     res.sendFile(path.join(__dirname, 'extension_detail.html'), { headers: { 'Cache-Control': 'no-cache, must-revalidate' } });
