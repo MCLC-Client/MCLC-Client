@@ -1,31 +1,38 @@
-<p align="center">
-  <img src="resources/icon.png" alt="MCLC Logo" width="128">
-</p>
+<div align="center">
 
-<p align="center">
-  MCLC is a Minecraft launcher built with <strong>Electron</strong>, <strong>React</strong>, and <strong>Tailwind CSS</strong> for managing instances, skins, and modpacks.
-</p>
+  <img src="resources/icon.png" alt="MCLC Logo" width="128" />
 
-<p align="center">
-  <a>
-    <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-appimage.yml?branch=main&label=AppImage&logo=linux&logoColor=white&style=flat-square" alt="AppImage Linux Build" />
-  </a>
-  <a>
-    <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-deb.yml?branch=main&label=DEB&logo=debian&logoColor=white&style=flat-square" alt="DEB Debian Build" />
-  </a>
-  <a>
-    <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-rpm.yml?branch=main&label=RPM&logo=redhat&logoColor=white&style=flat-square" alt="RPM RedHat Build" />
-  </a>
-  <a>
-    <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-win.yml?branch=main&label=Windows&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTAgMGgxMS40djExLjRIMHptMTIuNiAwaDExLjR2MTEuNEgxMi42ek0wIDEyLjZoMTEuNFYyNEgwem0xMi42IDBoMTEuNFYyNEgxMi42eiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=&logoColor=white&style=flat-square" alt="Windows Build" />
-  </a>
-  <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/scan.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/scan.yml?branch=main&label=VirusTotal&logo=virustotal&logoColor=white&style=flat-square" alt="VirusTotal Scan" />
-  </a>
-  <a>
-    <img src="https://img.shields.io/github/v/release/MCLC-Client/MCLC-Client?include_prereleases&label=Release&style=flat-square" />
-  </a>
-</p>
+  <h1><strong>MCLC</strong></h1>
+  
+  <p>
+    <em>
+      A modern Minecraft launcher, built with <b>Electron</b>, <b>React</b>, and <b>Tailwind CSS</b>.<br />
+      Manage instances, skins, and modpacks with style.
+    </em>
+  </p>
+  
+  <div>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/build-appimage.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-appimage.yml?branch=main&label=AppImage&logo=linux&logoColor=white&style=for-the-badge" alt="AppImage Linux Build" />
+    </a>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/build-deb.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-deb.yml?branch=main&label=DEB&logo=debian&logoColor=white&style=for-the-badge" alt="DEB Debian Build" />
+    </a>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/build-rpm.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-rpm.yml?branch=main&label=RPM&logo=redhat&logoColor=white&style=for-the-badge" alt="RPM RedHat Build" />
+    </a>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/build-win.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-win.yml?branch=main&label=Windows&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTAgMGgxMS40djExLjRIMHptMTIuNiAwaDExLjR2MTEuNEgxMi42ek0wIDEyLjZoMTEuNFYyNEgwem0xMi42IDBoMTEuNFYyNEgxMi42eiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=&logoColor=white&style=for-the-badge" alt="Windows Build" />
+    </a>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/scan.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/scan.yml?branch=main&label=VirusTotal&logo=virustotal&logoColor=white&style=for-the-badge" alt="VirusTotal Scan" />
+    </a>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/releases">
+      <img src="https://img.shields.io/github/v/release/MCLC-Client/MCLC-Client?include_prereleases&label=Release&style=for-the-badge" alt="Release" />
+    </a>
+  </div>
+
+</div>
 
 ## Features
 
