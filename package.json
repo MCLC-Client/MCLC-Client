@@ -51,8 +51,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "compression": "lzma"
+      "createDesktopShortcut": true
     },
     "mac": {
       "target": [
