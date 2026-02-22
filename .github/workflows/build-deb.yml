@@ -1,4 +1,4 @@
-name: CI
+name: Build DEB
 
 on:
   push:
@@ -16,21 +16,12 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: build-deb-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            builder_args: --linux
-          - os: windows-latest
-            builder_args: --win
-
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -58,15 +49,10 @@ jobs:
       - name: Set Electron cache dirs
         shell: bash
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "ELECTRON_CACHE_DIR=$LOCALAPPDATA\\electron\\Cache" >> "$GITHUB_ENV"
-            echo "ELECTRON_BUILDER_CACHE_DIR=$LOCALAPPDATA\\electron-builder\\Cache" >> "$GITHUB_ENV"
-          else
-            echo "ELECTRON_CACHE_DIR=$HOME/.cache/electron" >> "$GITHUB_ENV"
-            echo "ELECTRON_BUILDER_CACHE_DIR=$HOME/.cache/electron-builder" >> "$GITHUB_ENV"
-          fi
+          echo "ELECTRON_CACHE_DIR=$HOME/.cache/electron" >> "$GITHUB_ENV"
+          echo "ELECTRON_BUILDER_CACHE_DIR=$HOME/.cache/electron-builder" >> "$GITHUB_ENV"
 
-      - name: Cache Electron downloads (electron + electron-builder)
+      - name: Cache Electron downloads
         uses: actions/cache@v4
         with:
           path: |
@@ -84,12 +70,12 @@ jobs:
 
       - name: Package
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: npx electron-builder ${{ matrix.builder_args }} --publish never
+        run: npx electron-builder --linux deb --publish never
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Add SHA to release filenames (Linux)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && runner.os == 'Linux'
+      - name: Add SHA to release filenames
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           shopt -s nullglob
@@ -104,17 +90,6 @@ jobs:
               mv -n "$f" "release/${filename}-${SHORT_SHA}"
             fi
           done
-
-      - name: Add SHA to release filenames (Windows)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          if (Test-Path "release") {
-            Get-ChildItem -Path "release" -File | ForEach-Object {
-              $newName = "$($_.BaseName)-$env:SHORT_SHA$($_.Extension)"
-              Rename-Item -Path $_.FullName -NewName $newName -Force
-            }
-          }
 
       - name: Check release artifacts exist
         id: relcheck
@@ -131,7 +106,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.relcheck.outputs.has_release == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.os }}-${{ env.SHORT_SHA }}
+          name: release-deb-${{ env.SHORT_SHA }}
           path: release/
           if-no-files-found: error
           compression-level: 0
@@ -154,7 +129,7 @@ jobs:
         if: ${{ (github.event_name != 'push' || github.ref != 'refs/heads/main') && steps.outcheck.outputs.has_output == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: build-${{ matrix.os }}-${{ env.SHORT_SHA }}
+          name: build-deb-${{ env.SHORT_SHA }}
           path: |
             dist/
             build/
