@@ -1019,6 +1019,15 @@ app.use('/uploads', express.static(uploadPath, {
     }
 }));
 
+app.get('/install', (req, res) => {
+    const ua = req.headers['user-agent'] || '';
+    if (ua.includes('Windows')) {
+        res.redirect('/install.ps1');
+    } else {
+        res.redirect('/install.sh');
+    }
+});
+
 app.get('/extensions/:identifier', (req, res) => {
     res.sendFile(path.join(__dirname, 'extension_detail.html'), { headers: { 'Cache-Control': 'no-cache, must-revalidate' } });
 });

@@ -61,13 +61,23 @@
 
 ### For Users
 
+#### Quick Install (CLI)
+
+Open your terminal and run the following command:
+
+**Linux & macOS:**
+```bash
+curl -sSL https://mclc.pluginhub.de/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+iwr https://mclc.pluginhub.de/install.ps1 | iex
+```
+
+#### Manual Installation
+
 1. **Download** the latest installer for your operating system from the [official website](https://mclc.pluginhub.de). Choose between:
-   - `.appimage` (Linux)
-   - `.deb` (Debian/Ubuntu)
-   - `.rpm` (Fedora/RedHat)
-   - `.exe` (Windows)
-2. **Install**: Open the downloaded file and follow the provided installation steps.
-3. **Launch MCLC**: Start the launcher from your desktop, applications menu, or Start menu.
 
 ### For Developers
 
