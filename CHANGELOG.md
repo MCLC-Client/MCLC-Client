@@ -9,43 +9,21 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 ## [Unreleased]
 
 ### Added
-
 - Focus mode
 - Server-side mod validation
 - Mod compatibility overview
 - Minimal mode (system tray integration, configurable in settings)
-- Quick server join (partially implemented)
+- Quick server join *(in progress)*
 - Client-side quick join mod
-- Script support (extensions in work, are similar)
+- Script support (partially implemented via Extensions)
 - Log analysis utility
-- Mod dependency validation (partially implemented)
+- Mod dependency validation
 - Mobile application for the administration panel
 - Add Alex and Steve Skin Preview for Selection Buttons
+- Cross-Platform UI Polishing: Mac-specific window controls + Linux system tray integration
+- Command line support
 
-### To Do
-
-#### Features in Progress
-
-- [ ] Focus mode
-- [ ] Server-side mod validation
-- [ ] Mod compatibility overview
-- [ ] Minimal mode (system tray integration, configurable in settings)
-- [ ] Quick server join (partially implemented)
-- [ ] Client-side quick join mod
-
-#### Possible Future Features
-
-- [ ] Script support (Partially implemented through Extensions)
-- [ ] Logging analysis utility
-- [ ] Mobile application for the administration panel
-- [ ] Cross-Platform UI Polishing: Mac-specific window controls + Linux system tray integration
-- [ ] Localization (i18n): Full multi-language support system
-
-#### Optional (Planned for Future)
-
-- [ ] Command line support
-
-> Everything below is now correct and reflects actual released versions.
+> Everything below is not correct and needs an update.
 
 ---
 ## [1.5.2] - 2026-02-21
