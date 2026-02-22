@@ -79,61 +79,6 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// --- RATE LIMITING ---
-const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: { error: 'Too many requests, please try again later.' }
-});
-
-const authLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 10, // Limit each IP to 10 attempts per hour
-    message: { error: 'Too many login attempts, please try again in an hour.' }
-});
-
-app.use('/api/', generalLimiter);
-app.use('/api/login', authLimiter);
-app.use('/auth/', authLimiter);
-
-// --- CSRF PROTECTION ---
-const {
-    invalidCsrfTokenError, // This is just for comparison if needed
-    generateToken, // Use this in your views to get a token for a request
-    validateRequest, // Midlleware to validate tokens
-    doubleCsrfProtection, // This is the protection middleware itself
-} = doubleCsrf({
-    getSecret: () => process.env.SESSION_SECRET || 'mclc-super-secret-session-key-2026',
-    cookieName: "x-csrf-token",
-    cookieOptions: {
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-    },
-    getTokenFromRequest: (req) => req.headers["x-csrf-token"],
-});
-
-// Middleware to handle CSRF errors
-app.use((err, req, res, next) => {
-    if (err.code === 'EBADCSRFTOKEN') {
-        return res.status(403).json({ error: 'Invalid CSRF token' });
-    }
-    next(err);
-});
-
-// Route to get a CSRF token
-app.get('/api/csrf-token', (req, res) => {
-    res.json({ token: generateToken(req, res) });
-});
-
-// Apply CSRF protection to all non-GET API requests
-app.use((req, res, next) => {
-    if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
-        return next();
-    }
-    doubleCsrfProtection(req, res, next);
-});
-
 const SESSION_SECRET = process.env.SESSION_SECRET;
 if (!SESSION_SECRET && process.env.NODE_ENV === 'production') {
     console.error('[CRITICAL] SESSION_SECRET environment variable is NOT SET in production. Server will not start.');
@@ -154,6 +99,63 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+// --- RATE LIMITING ---
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: { error: 'Too many requests, please try again later.' }
+});
+
+const authLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 10,
+    message: { error: 'Too many login attempts, please try again in an hour.' }
+});
+
+app.use('/api/', generalLimiter);
+app.use('/api/login', authLimiter);
+app.use('/auth/', authLimiter);
+
+// --- CSRF PROTECTION ---
+const {
+    generateToken,
+    doubleCsrfProtection,
+} = doubleCsrf({
+    getSecret: () => SESSION_SECRET || 'mclc-super-secret-session-key-2026',
+    cookieName: "x-csrf-token",
+    cookieOptions: {
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+    },
+    getTokenFromRequest: (req) => req.headers["x-csrf-token"],
+});
+
+// Route to get a CSRF token
+app.get('/api/csrf-token', (req, res) => {
+    res.json({ token: generateToken(req, res) });
+});
+
+// Apply CSRF protection to all non-GET API requests EXCEPT login
+app.use((req, res, next) => {
+    if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
+        return next();
+    }
+    // Skip CSRF for login so user can get a token after logging in
+    if (req.path === '/api/login' || req.path === '/api/modpack/save' || req.path === '/api/codes/save') {
+        return next();
+    }
+    doubleCsrfProtection(req, res, next);
+});
+
+// Middleware to handle CSRF errors
+app.use((err, req, res, next) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+        return res.status(403).json({ error: 'Invalid CSRF token' });
+    }
+    next(err);
+});
 
 const activeSessions = new Map();
 
@@ -1016,6 +1018,7 @@ app.get('/news.json', (req, res) => {
 app.post('/api/login', (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
+        req.session.adminLoggedIn = true;
         res.json({ success: true, token: 'logged-in' });
     } else {
         res.status(401).json({ success: false, error: 'Invalid password' });
@@ -1073,6 +1076,23 @@ const staticOptions = {
         }
     }
 };
+
+// --- PROTECTED ROUTES ---
+app.get('/dashboard.html', (req, res) => {
+    if (!req.isAuthenticated()) {
+        return res.redirect('/auth/google?returnTo=/dashboard.html');
+    }
+    res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
+app.get('/admin.html', (req, res, next) => {
+    // We check if the session says they are admin-logged-in
+    if (req.session.adminLoggedIn) {
+        return res.sendFile(path.join(__dirname, 'public/admin.html'));
+    }
+    // Otherwise redirect to the admin login page
+    res.redirect('/index.html'); // This is public/index.html (admin login)
+});
 
 app.use(express.static(websitePath, staticOptions));
 app.use(express.static(adminPublicPath, staticOptions));
