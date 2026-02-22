@@ -2,10 +2,16 @@ const { app, BrowserWindow, ipcMain, protocol, net, Menu } = require('electron')
 
 // Force WebGL/GPU acceleration on Linux/unsupported systems
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('disable-gpu-driver-bug-workarounds');
+app.commandLine.appendSwitch('disable-software-rasterizer');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
+
 if (process.platform === 'linux') {
-    app.commandLine.appendSwitch('use-gl', 'desktop');
+    // Sometimes necessary for WebGL on certain Linux drivers/sandboxes
+    app.commandLine.appendSwitch('disable-gpu-sandbox');
+    // Try 'desktop' or 'egl'. Letting it auto-detect might be safer if desktop fails.
+    // app.commandLine.appendSwitch('use-gl', 'desktop'); 
 }
 app.commandLine.appendSwitch('enable-webgl-draft-extensions');
 
