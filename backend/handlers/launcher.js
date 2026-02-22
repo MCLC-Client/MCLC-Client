@@ -579,7 +579,7 @@ Add-Type -TypeDefinition $code -Language CSharp
 
                 try {
                     const discord = require('./discord');
-                    discord.setActivity('In Launcher', 'Idle', 'minecraft', 'Minecraft');
+                    discord.setActivity('In Launcher', 'Idle', 'mclc_icon', 'MCLC');
                 } catch (e) { /* ignore */ }
 
                 // Stop Scheduler

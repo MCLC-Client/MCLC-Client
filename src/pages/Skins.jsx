@@ -119,30 +119,55 @@ function Skins({ onLogout, onProfileUpdate }) {
     const [capes, setCapes] = useState([]);
     const [activeCapeId, setActiveCapeId] = useState(null);
     const [showCapeModal, setShowCapeModal] = useState(false);
+    const [webglError, setWebglError] = useState(false);
+
+    const isWebGLSupported = () => {
+        try {
+            const canvas = document.createElement('canvas');
+            return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+        } catch (e) {
+            return false;
+        }
+    };
+
     useEffect(() => {
         if (!canvasRef.current) return;
 
-        const viewer = new SkinViewer({
-            canvas: canvasRef.current,
-            width: 300,
-            height: 400,
-            skin: null
-        });
-
-        viewer.fov = 70;
-        viewer.zoom = 0.9;
-        viewer.animation = new WalkingAnimation();
-        viewer.autoRotate = false;
-        viewer.autoRotateSpeed = 0.5;
-        if (canvasRef.current) {
-            canvasRef.current.style.imageRendering = "pixelated";
+        if (!isWebGLSupported()) {
+            console.error("WebGL is not supported or context could not be created.");
+            setWebglError(true);
+            return;
         }
-        viewer.renderer.setPixelRatio(window.devicePixelRatio);
 
-        skinViewerRef.current = viewer;
+        let viewer;
+        try {
+            viewer = new SkinViewer({
+                canvas: canvasRef.current,
+                width: 300,
+                height: 400,
+                skin: null
+            });
+
+            viewer.fov = 70;
+            viewer.zoom = 0.9;
+            viewer.animation = new WalkingAnimation();
+            viewer.autoRotate = false;
+            viewer.autoRotateSpeed = 0.5;
+            if (canvasRef.current) {
+                canvasRef.current.style.imageRendering = "pixelated";
+            }
+            viewer.renderer.setPixelRatio(window.devicePixelRatio);
+
+            skinViewerRef.current = viewer;
+        } catch (e) {
+            console.error("Failed to initialize SkinViewer:", e);
+            setWebglError(true);
+        }
 
         return () => {
-            viewer.dispose();
+            if (viewer) {
+                viewer.dispose();
+            }
         };
     }, []);
     useEffect(() => {
@@ -424,12 +449,26 @@ function Skins({ onLogout, onProfileUpdate }) {
                     {userProfile?.name || t('skins.guest')}
                 </h2>
 
-                <div className={`relative w-full h-[400px] flex items-center justify-center transition-opacity duration-300 ${isSkinLoaded ? 'opacity-100' : 'opacity-0'}`}>
-                    <canvas ref={canvasRef} className="cursor-move outline-none" />
+                <div className={`relative w-full h-[400px] flex items-center justify-center transition-opacity duration-300 ${isSkinLoaded || webglError ? 'opacity-100' : 'opacity-0'}`}>
+                    {webglError ? (
+                        <div className="flex flex-col items-center justify-center p-6 text-center">
+                            <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-2">{t('common.error_title')}</h3>
+                            <p className="text-sm text-gray-400">
+                                {t('skins.webgl_error') || "3D Preview is not available on your system. You can still manage your skins using the 2D previews below."}
+                            </p>
+                        </div>
+                    ) : (
+                        <canvas ref={canvasRef} className="cursor-move outline-none" />
+                    )}
                 </div>
 
                 { }
-                {!isSkinLoaded && (
+                {!isSkinLoaded && !webglError && (
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                     </div>
