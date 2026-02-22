@@ -111,7 +111,27 @@ function Search({ initialCategory, onCategoryConsumed }) {
             });
 
             if (res.success) {
-                setResults(res.results);
+                let finalResults = res.results;
+
+                // Promote G-Craft if on first page of Modpacks
+                if (projectType === 'modpack' && offset === 0 && !query) {
+                    try {
+                        const gCraftRes = await window.electronAPI.getModrinthProject('oMskb4v5');
+                        if (gCraftRes.success) {
+                            const gCraft = {
+                                ...gCraftRes.project,
+                                project_id: gCraftRes.project.id,
+                                project_type: 'modpack'
+                            };
+                            // Avoid duplicates and pin to top
+                            finalResults = [gCraft, ...finalResults.filter(r => r.project_id !== 'oMskb4v5')];
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch promoted modpack:", err);
+                    }
+                }
+
+                setResults(finalResults);
                 setTotalHits(res.total_hits);
             } else {
                 addNotification(t('search.search_failed', { error: res.error }), 'error');
@@ -412,8 +432,15 @@ function Search({ initialCategory, onCategoryConsumed }) {
                                         <img src={mod.icon_url || 'https://cdn.modrinth.com/placeholder.svg'} alt="" className="w-full h-full object-cover" onError={(e) => e.target.src = 'https://cdn.modrinth.com/placeholder.svg'} />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <h3 className="font-bold text-lg text-white truncate" title={mod.title}>{mod.title}</h3>
-                                        <p className="text-xs text-gray-500 mt-1">{mod.author}</p>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-bold text-lg text-white truncate" title={mod.title}>{mod.title}</h3>
+                                            {mod.project_id === 'oMskb4v5' && (
+                                                <span className="shrink-0 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-md border border-primary/30 font-bold uppercase tracking-tight">
+                                                    Made by us
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-0.5">{mod.author}</p>
                                         <div className="flex flex-wrap gap-2 mt-2">
                                             <span className="text-[10px] bg-white/5 px-2 py-1 rounded text-gray-400 capitalize border border-white/5">{mod.project_type}</span>
                                             <span className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded border border-primary/20 flex items-center gap-1">

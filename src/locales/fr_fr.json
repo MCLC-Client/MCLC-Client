@@ -2,7 +2,7 @@
     "instance": {
         "delete_world_title": "Supprimer le monde ?",
         "delete_world_confirm": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ?",
-        "undone_warning": "Cette action ne peut pas être annulée.",
+        "undone_warning": "Cette action est irréversible.",
         "delete_world_btn": "Supprimer le monde",
         "delete_mod_title": "Supprimer le mod ?",
         "delete_shader_title": "Supprimer le shader ?",
@@ -233,7 +233,7 @@
     },
     "styling": {
         "title": "Personnalisation du Launcher",
-        "desc": "Concevez votre espace de travail exactement comme vous le souhaitez.",
+        "desc": "Concevez votre espace de jeux exactement comme vous le souhaitez.",
         "accent_base": "Accent et Base",
         "accent_color": "Couleur d'accentuation",
         "background": "Arrière-plan",
@@ -267,7 +267,7 @@
         "microsoft_sign_in": "Connectez-vous avec votre compte Microsoft",
         "sign_in_button": "Se connecter avec Microsoft",
         "logging_in": "Connexion en cours...",
-        "failed": "La connexion a échoué"
+        "failed": "La connexion a échoué, si vous vener d'acheter Minecraft il vous faudra d'abord installer le launcher officiel"
     },
     "settings": {
         "title": "Paramètres",
