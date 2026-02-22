@@ -20,6 +20,7 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 - Log analysis utility
 - Mod dependency validation (partially implemented)
 - Mobile application for the administration panel
+- Add Alex and Steve Skin Preview for Selection Buttons
 
 ### To Do
 
