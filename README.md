@@ -1,31 +1,38 @@
-<p align="center">
-  <img src="resources/icon.png" alt="MCLC Logo" width="128">
-</p>
+<div align="center">
 
-<p align="center">
-  MCLC is a Minecraft launcher built with <strong>Electron</strong>, <strong>React</strong>, and <strong>Tailwind CSS</strong> for managing instances, skins, and modpacks.
-</p>
+  <img src="resources/icon.png" alt="MCLC Logo" width="128" />
 
-<p align="center">
-  <a>
-    <img src="https://img.shields.io/badge/AppImage-Linux-0e75b6?logo=linux&logoColor=white&style=flat-square" alt="AppImage Linux Build" />
-  </a>
-  <a>
-    <img src="https://img.shields.io/badge/DEB-Debian-ff4757?logo=debian&logoColor=white&style=flat-square" alt="DEB Debian Build" />
-  </a>
-  <a>
-    <img src="https://img.shields.io/badge/RPM-Red%20Hat-ea262a?logo=redhat&logoColor=white&style=flat-square" alt="RPM RedHat Build" />
-  </a>
-  <a>
-    <img src="https://img.shields.io/badge/Windows-Build-0078d6?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTAgMGgxMS40djExLjRIMHptMTIuNiAwaDExLjR2MTEuNEgxMi42ek0wIDEyLjZoMTEuNFYyNEgwem0xMi42IDBoMTEuNFYyNEgxMi42eiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=&style=flat-square" alt="Windows Build" />
-  </a>
-  <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/scan.yml">
-    <img src="https://img.shields.io/badge/VirusTotal-Scan-3776ab?logo=virustotal&logoColor=white&style=flat-square" alt="VirusTotal Scan" />
-  </a>
-  <a>
-    <img src="https://img.shields.io/github/v/release/MCLC-Client/MCLC-Client?include_prereleases&label=Release&style=flat-square" />
-  </a>
-</p>
+  <h1><strong>MCLC</strong></h1>
+  
+  <p>
+    <em>
+      A modern Minecraft launcher, built with <b>Electron</b>, <b>React</b>, and <b>Tailwind CSS</b>.<br />
+      Manage instances, skins, and modpacks with style.
+    </em>
+  </p>
+  
+  <div>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/build-appimage.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-appimage.yml?branch=main&label=AppImage&logo=linux&logoColor=white&style=for-the-badge" alt="AppImage Linux Build" />
+    </a>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/build-deb.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-deb.yml?branch=main&label=DEB&logo=debian&logoColor=white&style=for-the-badge" alt="DEB Debian Build" />
+    </a>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/build-rpm.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-rpm.yml?branch=main&label=RPM&logo=redhat&logoColor=white&style=for-the-badge" alt="RPM RedHat Build" />
+    </a>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/build-win.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/build-win.yml?branch=main&label=Windows&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTAgMGgxMS40djExLjRIMHptMTIuNiAwaDExLjR2MTEuNEgxMi42ek0wIDEyLjZoMTEuNFYyNEgwem0xMi42IDBoMTEuNFYyNEgxMi42eiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=&logoColor=white&style=for-the-badge" alt="Windows Build" />
+    </a>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/actions/workflows/scan.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/MCLC-Client/MCLC-Client/scan.yml?branch=main&label=VirusTotal&logo=virustotal&logoColor=white&style=for-the-badge" alt="VirusTotal Scan" />
+    </a>
+    <a href="https://github.com/MCLC-Client/MCLC-Client/releases">
+      <img src="https://img.shields.io/github/v/release/MCLC-Client/MCLC-Client?include_prereleases&label=Release&style=for-the-badge" alt="Release" />
+    </a>
+  </div>
+
+</div>
 
 ## Features
 
@@ -54,64 +61,127 @@
 
 ### For Users
 
-1. Download the latest `.exe` installer from the [Releases](https://github.com/MCLC-Client/MCLC-Client/releases) page.
-2. Run the installer and follow the on-screen instructions.
-3. Launch **MCLC** from your desktop or start menu.
+1. **Download** the latest installer for your operating system from the [official website](https://mclc.pluginhub.de). Choose between:
+   - `.appimage` (Linux)
+   - `.deb` (Debian/Ubuntu)
+   - `.rpm` (Fedora/RedHat)
+   - `.exe` (Windows)
+2. **Install**: Open the downloaded file and follow the provided installation steps.
+3. **Launch MCLC**: Start the launcher from your desktop, applications menu, or Start menu.
 
 ### For Developers
 
 #### Prerequisites
 
-- [Node.js](https://nodejs.org/) (Latest LTS recommended)
-- npm or yarn
+- [Node.js](https://nodejs.org/) (Latest LTS version is recommended)
+- Package manager: [npm](https://www.npmjs.com/) (comes with Node.js) or [yarn](https://yarnpkg.com/)
 
-#### Installation
+#### Getting Started
 
-1. **Clone the repository**
+1. **Clone the Repository**
 
    ```bash
    git clone https://github.com/MCLC-Client/MCLC-Client.git
    cd MCLC-Client
    ```
 
-2. **Install dependencies**
+2. **Install Dependencies**
+
+   Using npm:
 
    ```bash
    npm install
    ```
 
-3. **Run in development mode**
+   Or, if you prefer yarn:
+
+   ```bash
+   yarn install
+   ```
+
+3. **Start the Development Server**
+
+   Run the app in development mode for live reloading:
+
+   Using npm:
 
    ```bash
    npm run dev
    ```
 
-4. **Build for production**
+   Using yarn:
+
+   ```bash
+   yarn dev
+   ```
+
+4. **Build for Production**
+
+   Create optimized builds for production release:
+
+   Using npm:
 
    ```bash
    npm run dist
    ```
 
+   Using yarn:
+
+   ```bash
+   yarn dist
+   ```
+
+5. **Additional Scripts**
+
+   - **Lint the codebase**  
+
+     ```bash
+     npm run lint
+     ```
+
+   - **Test locally**  
+
+     ```bash
+     npm run dev
+     ```
+
+6. **Useful Tips**
+
+   - If you encounter issues with native modules (e.g., `node-gyp`), ensure your Node version matches the Electron version used.
+   - The project uses [Vite](https://vitejs.dev/) for fast refresh and build times.
+
+---
+
+Feel free to open an issue or discussion if you run into setup problems!
+
 ---
 
 ## Tech Stack
 
-- **Core**: [Electron](https://www.electronjs.org/)
-- **Frontend**: [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Minecraft Core**: [minecraft-launcher-core](https://github.com/Pierce01/Minecraft-Launcher-Core)
-- **3D Rendering**: [skinview3d](https://github.com/bs-community/skinview3d)
-- **State Management**: React Hooks & Context API
+- **Electron** – Cross-platform desktop application runtime ([electronjs.org](https://www.electronjs.org/))
+- **React** – Modern component-based UI library ([reactjs.org](https://reactjs.org/))
+- **Vite** – Lightning-fast development/build tooling ([vitejs.dev](https://vitejs.dev/))
+- **Tailwind CSS** – Utility-first CSS framework for rapid UI development ([tailwindcss.com](https://tailwindcss.com/))
+- **Minecraft Integration**:
+  - [skinview3d](https://github.com/bs-community/skinview3d) (real-time 3D skin/model previews)
+- **State Management**: React Context API & Hooks (efficient and scalable local state handling)
+- **Other**:
+  - JavaScript
+  - ESLint & Prettier (code quality and formatting)
+
+*The stack is designed for performance, extensibility, and visually rich Minecraft integrations.*
 
 ---
 
 ## Screenshots
 
-> Coming soon!
+Below are example screenshots showcasing MCLC's interface and features.
+
+> Screenshots will be posted soon! Stay updated for a visual walkthrough of the latest version.
 
 ---
 
-## License & Credits
+## Contributors
 
-- Developed by **Fernsehheft, Mobilestars, ItzzMateo**
-- Icons by [Heroicons](https://heroicons.com/)
+- Core team: **Fernsehheft, Mobilestars, ItzzMateo**
+- Contributors to the latest version: **Tamino112, Foxof7207, blaxk**

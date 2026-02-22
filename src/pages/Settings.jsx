@@ -326,145 +326,50 @@ function Settings() {
         }
     };
 
-    const BentoTile = ({ children, title, subtitle, className = '', icon, span = "col-span-1" }) => (
-        <div className={`bg-surface/50 backdrop-blur-md rounded-2xl border border-white/5 p-6 hover:border-primary/20 hover:scale-[1.02] transition-all duration-300 group flex flex-col ${span} ${className}`}>
-            {(title || icon) && (
-                <div className="flex items-center gap-3 mb-4">
-                    {icon && <div className="p-2 rounded-lg bg-primary/10 text-primary">{icon}</div>}
-                    <div>
-                        {title && <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors">{title}</h3>}
-                        {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
-                    </div>
-                </div>
-            )}
-            <div className="flex-1">
-                {children}
-            </div>
-        </div>
-    );
-
     return (
         <div className="p-10 text-white h-full overflow-y-auto custom-scrollbar">
-            <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <h1 className="text-4xl font-extrabold tracking-tight mb-2">{t('settings.title')}</h1>
-                    <p className="text-gray-400 max-w-lg">{t('settings.desc')}</p>
-                </div>
+            <h1 className="text-3xl font-bold mb-2">{t('settings.title')}</h1>
+            <p className="text-gray-400 mb-10">{t('settings.desc')}</p>
+
+            { }
+            <div className="max-w-3xl mb-6 flex justify-end">
                 <button
                     onClick={handleManualSave}
-                    className="group px-8 py-3 bg-primary hover:bg-primary-hover text-black rounded-xl text-sm font-bold transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3 shadow-lg hover:shadow-primary/20"
+                    className="px-6 py-2 bg-primary hover:bg-primary-hover rounded-lg text-sm font-medium transition flex items-center gap-2"
                 >
-                    <svg className="w-5 h-5 transition-transform group-hover:-translate-y-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
                     <span>{t('settings.save_btn')}</span>
                 </button>
-            </header>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-fr">
-                {/* Memory Allocation - 2x2 */}
-                <BentoTile
-                    title={t('settings.memory.title')}
-                    span="md:col-span-2 md:row-span-2"
-                    icon={<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>}
-                >
-                    <div className="flex flex-col h-full justify-between py-4">
-                        <div className="grid grid-cols-2 gap-4 mb-8">
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-500 uppercase tracking-wider font-bold">{t('settings.memory.min')}</label>
-                                <input
-                                    type="number"
-                                    value={settings.minMemory}
-                                    onChange={(e) => handleChange('minMemory', parseInt(e.target.value) || 0)}
-                                    className="w-full bg-black/30 border border-white/5 rounded-lg p-3 text-lg focus:border-primary outline-none font-mono"
-                                />
+            <div className="space-y-6 max-w-3xl">
+                { }
+                <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.general.title')}</h2>
+
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="font-medium text-white">{t('settings.general.startup_page')}</div>
+                                <div className="text-sm text-gray-500 mt-1">{t('settings.general.startup_page_desc')}</div>
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-gray-500 uppercase tracking-wider font-bold">{t('settings.memory.max')}</label>
-                                <input
-                                    type="number"
-                                    value={settings.maxMemory}
-                                    onChange={(e) => handleChange('maxMemory', parseInt(e.target.value) || 0)}
-                                    className="w-full bg-black/30 border border-white/5 rounded-lg p-3 text-lg focus:border-primary outline-none font-mono"
-                                />
+                            <select
+                                value={settings.startPage || 'dashboard'}
+                                onChange={(e) => handleChange('startPage', e.target.value)}
+                                className="bg-background border border-white/10 rounded-xl px-4 pr-10 py-2.5 text-sm focus:border-primary outline-none text-gray-300 cursor-pointer min-w-[180px]"
+                            >
+                                <option value="dashboard">{t('common.dashboard')}</option>
+                                <option value="library">{t('common.library')}</option>
+                            </select>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                            <div>
+                                <div className="font-medium text-white">{t('settings.general.language')}</div>
+                                <div className="text-sm text-gray-500 mt-1">{t('settings.general.language_desc')}</div>
                             </div>
-                        </div>
-                        <div className="space-y-6">
-                            <input
-                                type="range"
-                                min="512"
-                                max="16384"
-                                step="512"
-                                value={settings.maxMemory}
-                                onChange={(e) => handleChange('maxMemory', parseInt(e.target.value))}
-                                className="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer accent-primary"
-                            />
-                            <div className="flex justify-between items-center bg-black/20 p-4 rounded-xl border border-white/5">
-                                <span className="text-sm text-gray-400">Total Allocation</span>
-                                <span className="text-2xl font-black text-primary font-mono">{Math.floor(settings.maxMemory / 1024 * 10) / 10} GB</span>
-                            </div>
-                        </div>
-                    </div>
-                </BentoTile>
-
-                {/* Java Path - 2x1 */}
-                <BentoTile
-                    title={t('settings.java.title')}
-                    span="md:col-span-2"
-                    icon={<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>}
-                >
-                    <div className="space-y-4">
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={settings.javaPath || ''}
-                                readOnly
-                                placeholder={t('settings.java.detecting')}
-                                className="flex-1 bg-black/20 border border-white/5 rounded-lg px-4 py-2 text-sm text-gray-400 truncate"
-                            />
-                            <button onClick={handleBrowseJava} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold transition border border-white/5">
-                                {t('settings.java.browse')}
-                            </button>
-                        </div>
-                        <button
-                            onClick={() => setShowJavaModal(true)}
-                            disabled={isInstallingJava}
-                            className="w-full py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-black rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 border border-primary/20"
-                        >
-                            {isInstallingJava ? <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /> : <span>{t('settings.java.install')}</span>}
-                        </button>
-                    </div>
-                </BentoTile>
-
-                {/* Resolution - 1x1 */}
-                <BentoTile
-                    title={t('settings.resolution.title')}
-                    icon={<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>}
-                >
-                    <div className="grid grid-cols-2 gap-2">
-                        <input
-                            type="number"
-                            value={settings.resolutionWidth}
-                            onChange={(e) => handleChange('resolutionWidth', parseInt(e.target.value) || 0)}
-                            className="w-full bg-black/20 border border-white/5 rounded-lg p-2 text-sm text-center font-mono"
-                        />
-                        <input
-                            type="number"
-                            value={settings.resolutionHeight}
-                            onChange={(e) => handleChange('resolutionHeight', parseInt(e.target.value) || 0)}
-                            className="w-full bg-black/20 border border-white/5 rounded-lg p-2 text-sm text-center font-mono"
-                        />
-                    </div>
-                </BentoTile>
-
-                {/* General Settings - 1x1 */}
-                <BentoTile
-                    title={t('settings.general.title')}
-                    icon={<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>}
-                >
-                    <div className="space-y-4">
-                        <div className="space-y-1">
-                            <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold ml-1">{t('settings.general.language')}</label>
                             <select
                                 value={settings.language || 'en_us'}
                                 onChange={(e) => {
@@ -472,7 +377,7 @@ function Settings() {
                                     handleChange('language', newLang);
                                     i18n.changeLanguage(newLang);
                                 }}
-                                className="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs focus:border-primary outline-none"
+                                className="bg-background border border-white/10 rounded-xl px-4 pr-10 py-2.5 text-sm focus:border-primary outline-none text-gray-300 cursor-pointer min-w-[180px]"
                             >
                                 <option value="en_us">{t('settings.general.english')}</option>
                                 <option value="en_uk">{t('settings.general.english_uk')}</option>
@@ -491,213 +396,555 @@ function Settings() {
                                 <option value="sv_se">{t('settings.general.swedish')}</option>
                             </select>
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold ml-1">{t('settings.general.startup_page')}</label>
-                            <select
-                                value={settings.startPage || 'dashboard'}
-                                onChange={(e) => handleChange('startPage', e.target.value)}
-                                className="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs focus:border-primary outline-none"
+                    </div>
+                </div>
+
+                { }
+                {showJavaModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                        <div className="bg-[#151515] p-6 rounded-2xl border border-white/10 w-96 shadow-2xl animate-scale-in">
+                            <h3 className="text-xl font-bold mb-4">{t('settings.java.install')}</h3>
+                            <p className="text-gray-400 mb-6 text-sm">{t('settings.java.install_desc')}</p>
+
+                            <div className="space-y-3">
+                                {[8, 17, 21].map(v => (
+                                    <button
+                                        key={v}
+                                        onClick={() => handleInstallJava(v)}
+                                        className="w-full p-4 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/20 transition flex items-center justify-between group"
+                                    >
+                                        <span className="font-medium">Java {v} (LTS)</span>
+                                        <span className="text-primary opacity-0 group-hover:opacity-100 transition">{t('settings.java.install')} &rarr;</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => setShowJavaModal(false)}
+                                className="mt-6 w-full py-2 text-sm text-gray-400 hover:text-white transition"
                             >
-                                <option value="dashboard">{t('common.dashboard')}</option>
-                                <option value="library">{t('common.library')}</option>
-                            </select>
+                                {t('common.cancel')}
+                            </button>
                         </div>
                     </div>
-                </BentoTile>
+                )}
 
-                {/* Instance Creation - 2x1 */}
-                <BentoTile
-                    title={t('settings.instance.title')}
-                    span="md:col-span-2"
-                    icon={<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>}
-                >
-                    <div className="space-y-4">
-                        <ToggleBox
-                            checked={settings.copySettingsEnabled || false}
-                            onChange={(val) => handleChange('copySettingsEnabled', val)}
-                            label={t('settings.instance.copy_settings')}
+                { }
+                <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.java.title')}</h2>
+
+                    <div className="mb-4">
+                        <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.java.path')}</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={settings.javaPath || ''}
+                                readOnly
+                                placeholder={t('settings.java.detecting')}
+                                className="flex-1 bg-black/20 border border-white/5 rounded-lg px-4 py-2 text-sm text-gray-300 focus:outline-none focus:border-primary/50"
+                            />
+                            <button
+                                onClick={handleBrowseJava}
+                                className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-medium transition border border-white/5"
+                            >
+                                {t('settings.java.browse')}
+                            </button>
+                            <button
+                                onClick={() => setShowJavaModal(true)}
+                                disabled={isInstallingJava}
+                                className={`px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg text-sm font-medium transition flex items-center gap-2 ${isInstallingJava ? 'opacity-50 cursor-wait' : ''}`}
+                            >
+                                {isInstallingJava ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <span>{javaInstallProgress ? `${Math.round(javaInstallProgress.progress)}%` : t('settings.java.installing')}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        <span>{t('settings.java.install')}</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                        {isInstallingJava && javaInstallProgress && (
+                            <div className="mt-2 text-xs text-primary/80 animate-pulse">
+                                {javaInstallProgress.step}
+                            </div>
+                        )}
+                        <p className="text-xs text-gray-500 mt-2 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {t('settings.java.recommended')}
+                        </p>
+                    </div>
+
+                    { }
+                    {installedRuntimes.length > 0 && (
+                        <div className="mt-6 border-t border-white/5 pt-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-sm font-bold text-gray-300">{t('settings.java.installed_versions')}</h3>
+                                <button
+                                    onClick={() => window.electronAPI.openJavaFolder()}
+                                    className="text-xs text-primary hover:text-primary-hover transition"
+                                >
+                                    {t('settings.java.open_folder')}
+                                </button>
+                            </div>
+
+                            <div className="space-y-2">
+                                {installedRuntimes.map((runtime) => (
+                                    <div key={runtime.dirPath} className="flex items-center justify-between bg-black/20 p-3 rounded-lg border border-white/5 group hover:border-white/10 transition">
+                                        <div className="flex-1 min-w-0 mr-4">
+                                            <div className="text-sm font-medium text-gray-200 truncate">{runtime.name}</div>
+                                            <div className="text-xs text-gray-500 truncate font-mono mt-0.5">{runtime.path}</div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {settings.javaPath === runtime.path ? (
+                                                <span className="px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded border border-green-500/20">{t('settings.java.active')}</span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleChange('javaPath', runtime.path)}
+                                                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-xs rounded transition border border-white/5 hover:border-white/10"
+                                                >
+                                                    {t('settings.java.select')}
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => handleDeleteRuntime(runtime.dirPath)}
+                                                className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded transition"
+                                                title={t('settings.java.delete_runtime')}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                { }
+                <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.memory.title')}</h2>
+
+                    <div className="grid grid-cols-2 gap-8 mb-6">
+                        <div>
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.memory.min')}</label>
+                            <input
+                                type="number"
+                                value={settings.minMemory}
+                                onChange={(e) => handleChange('minMemory', parseInt(e.target.value) || 0)}
+                                className="w-full bg-background border border-white/10 rounded-xl p-3 text-sm focus:border-primary outline-none font-mono"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.memory.max')}</label>
+                            <input
+                                type="number"
+                                value={settings.maxMemory}
+                                onChange={(e) => handleChange('maxMemory', parseInt(e.target.value) || 0)}
+                                className="w-full bg-background border border-white/10 rounded-xl p-3 text-sm focus:border-primary outline-none font-mono"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <input
+                            type="range"
+                            min="512"
+                            max="16384"
+                            step="512"
+                            value={settings.maxMemory}
+                            onChange={(e) => handleChange('maxMemory', parseInt(e.target.value))}
+                            className="w-full h-1.5 bg-background-dark rounded-lg appearance-none cursor-pointer accent-primary"
                         />
-                        {settings.copySettingsEnabled && (
+                        <div className="flex justify-between text-xs text-gray-500 mt-2 font-mono">
+                            <span>512 MB</span>
+                            <span className="text-primary font-bold">{Math.floor(settings.maxMemory / 1024 * 10) / 10} GB</span>
+                            <span>16 GB</span>
+                        </div>
+                    </div>
+                </div>
+
+                { }
+                <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.resolution.title')}</h2>
+
+                    <div className="grid grid-cols-2 gap-8">
+                        <div>
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.resolution.width')}</label>
+                            <input
+                                type="number"
+                                value={settings.resolutionWidth}
+                                onChange={(e) => handleChange('resolutionWidth', parseInt(e.target.value) || 0)}
+                                className="w-full bg-background border border-white/10 rounded-xl p-3 text-sm focus:border-primary outline-none font-mono"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.resolution.height')}</label>
+                            <input
+                                type="number"
+                                value={settings.resolutionHeight}
+                                onChange={(e) => handleChange('resolutionHeight', parseInt(e.target.value) || 0)}
+                                className="w-full bg-background border border-white/10 rounded-xl p-3 text-sm focus:border-primary outline-none font-mono"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                { }
+                <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.instance.title')}</h2>
+
+                    <ToggleBox
+                        checked={settings.copySettingsEnabled || false}
+                        onChange={(val) => handleChange('copySettingsEnabled', val)}
+                        label={t('settings.instance.copy_settings')}
+                        description={t('settings.instance.copy_settings_desc')}
+                    />
+
+                    {settings.copySettingsEnabled && (
+                        <div>
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.instance.source_instance')}</label>
                             <select
                                 value={settings.copySettingsSourceInstance || ''}
                                 onChange={(e) => handleChange('copySettingsSourceInstance', e.target.value)}
-                                className="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs focus:border-primary outline-none"
+                                className="w-full bg-background border border-white/10 rounded-xl p-3 text-sm focus:border-primary outline-none font-mono text-gray-300"
                             >
-                                <option value="">{t('settings.instance.source_instance')}</option>
-                                {instances.map(inst => (
+                                <option value="">Select an instance...</option>
+                                {instances.map((inst) => (
                                     <option key={inst.name} value={inst.name}>{inst.name}</option>
                                 ))}
                             </select>
-                        )}
-                    </div>
-                </BentoTile>
-
-                {/* Cloud & Backup - 2x1 */}
-                <BentoTile
-                    title={t('settings.cloud.title')}
-                    span="md:col-span-2"
-                    icon={<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>}
-                >
-                    <div className="grid grid-cols-2 gap-4 h-full items-center">
-                        {['GOOGLE_DRIVE', 'DROPBOX'].map(id => (
-                            <button
-                                key={id}
-                                onClick={() => cloudStatus[id]?.loggedIn ? handleCloudLogout(id) : handleCloudLogin(id)}
-                                className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${cloudStatus[id]?.loggedIn ? 'bg-primary/20 border-primary/40' : 'bg-black/20 border-white/5 hover:border-white/20'}`}
-                            >
-                                <div className={`w-2 h-2 rounded-full ${cloudStatus[id]?.loggedIn ? 'bg-green-400' : 'bg-gray-600'}`} />
-                                <span className="text-xs font-bold">{id.replace('_', ' ')}</span>
-                            </button>
-                        ))}
-                    </div>
-                </BentoTile>
-
-                {/* Quick Toggles - 2x2 Grid */}
-                <div className="md:col-span-2 md:row-span-2 grid grid-cols-1 gap-4">
-                    <BentoTile className="flex-1" title={t('styling.interactive_effects')}>
-                        <div className="space-y-4">
-                            <ToggleBox
-                                checked={settings.enableDiscordRPC}
-                                onChange={(val) => handleChange('enableDiscordRPC', val)}
-                                label={t('settings.integration.discord_rpc')}
-                            />
-                            <ToggleBox
-                                checked={settings.optimization || false}
-                                onChange={(val) => handleChange('optimization', val)}
-                                label={t('settings.integration.optimization')}
-                            />
-                            <ToggleBox
-                                checked={settings.animationsExaggerated || false}
-                                onChange={(val) => handleChange('animationsExaggerated', val)}
-                                label={t('settings.integration.animations_exaggerated')}
-                            />
-                            <ToggleBox
-                                checked={settings.showDisabledFeatures || false}
-                                onChange={(val) => handleChange('showDisabledFeatures', val)}
-                                label={t('settings.integration.disabled_features')}
-                            />
                         </div>
-                    </BentoTile>
-                    <BentoTile className="flex-1" title={t('settings.integration.title')}>
-                        <div className="space-y-4">
-                            <ToggleBox
-                                checked={settings.enableAutoInstallMods || false}
-                                onChange={(val) => handleChange('enableAutoInstallMods', val)}
-                                label={t('settings.integration.auto_mod_install')}
-                            />
-                            <ToggleBox
-                                checked={settings.autoUploadLogs || false}
-                                onChange={(val) => handleChange('autoUploadLogs', val)}
-                                label={t('settings.integration.auto_logs')}
-                            />
-                            <ToggleBox
-                                checked={settings.minimizeOnLaunch || false}
-                                onChange={(val) => handleChange('minimizeOnLaunch', val)}
-                                label={t('settings.integration.minimize_on_launch')}
-                            />
-                            <ToggleBox
-                                checked={settings.quitOnGameExit || false}
-                                onChange={(val) => handleChange('quitOnGameExit', val)}
-                                label={t('settings.integration.quit_on_game_exit')}
-                            />
-                        </div>
-                    </BentoTile>
+                    )}
                 </div>
 
-                {/* Mod Management - 2x2 */}
+                { }
+                <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.integration.title')}</h2>
+
+                    <ToggleBox
+                        checked={settings.enableDiscordRPC}
+                        onChange={(val) => handleChange('enableDiscordRPC', val)}
+                        label={t('settings.integration.discord_rpc')}
+                        description={t('settings.integration.discord_rpc_desc')}
+                    />
+                    <ToggleBox
+                        className="mt-4 pt-4 border-t border-white/5"
+                        checked={settings.autoUploadLogs || false}
+                        onChange={(val) => handleChange('autoUploadLogs', val)}
+                        label={t('settings.integration.auto_logs')}
+                        description={t('settings.integration.auto_logs_desc')}
+                    />
+                    <ToggleBox
+                        className="mt-6 pt-6 border-t border-white/5"
+                        checked={settings.showDisabledFeatures || false}
+                        onChange={(val) => handleChange('showDisabledFeatures', val)}
+                        label={t('settings.integration.disabled_features')}
+                        description={t('settings.integration.disabled_features_desc')}
+                    />
+                    <ToggleBox
+                        className="mt-4 pt-4 border-t border-white/5"
+                        checked={settings.optimization || false}
+                        onChange={(val) => handleChange('optimization', val)}
+                        label={t('settings.integration.optimization')}
+                        description={t('settings.integration.optimization_desc')}
+                    />
+                    <ToggleBox
+                        className="mt-4 pt-4 border-t border-white/5"
+                        checked={settings.enableAutoInstallMods || false}
+                        onChange={(val) => handleChange('enableAutoInstallMods', val)}
+                        label={t('settings.integration.auto_mod_install')}
+                        description={t('settings.integration.auto_mod_install_desc')}
+                    />
+                </div>
+
+                { }
                 {settings.enableAutoInstallMods && (
-                    <BentoTile
-                        title="Mod Management"
-                        span="md:col-span-2 md:row-span-2"
-                        icon={<svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
-                    >
-                        <div className="flex flex-col h-full gap-4">
-                            <div className="relative">
+                    <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors mt-6">
+                        <h2 className="text-lg font-bold mb-6 text-white">{t('settings.auto_install.management_title')}</h2>
+                        <p className="text-sm text-gray-400 mb-4">{t('settings.auto_install.management_desc')}</p>
+
+                        <div className="mb-6">
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.auto_install.add_label')}</label>
+                            <div className="flex gap-2 mb-3">
                                 <input
                                     type="text"
                                     value={autoInstallModsInput}
                                     onChange={(e) => {
                                         setAutoInstallModsInput(e.target.value);
-                                        if (e.target.value.trim()) searchModrinthMod(e.target.value);
-                                        else setAutoInstallModsSearchResults([]);
+                                        if (e.target.value.trim()) {
+                                            searchModrinthMod(e.target.value);
+                                        } else {
+                                            setAutoInstallModsSearchResults([]);
+                                        }
                                     }}
-                                    placeholder="Add mod by ID..."
-                                    className="w-full bg-black/20 border border-white/5 rounded-lg px-4 py-2 text-sm"
+                                    placeholder={t('settings.auto_install.input_placeholder')}
+                                    className="flex-1 bg-black/20 border border-white/5 rounded-lg px-4 py-2.5 text-sm text-gray-300 focus:outline-none focus:border-primary/50"
+                                    onKeyPress={(e) => e.key === 'Enter' && addAutoInstallMod()}
                                 />
-                                {autoInstallModsSearchResults.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-white/10 rounded-lg shadow-2xl z-20 max-h-40 overflow-y-auto">
-                                        {autoInstallModsSearchResults.map(mod => (
-                                            <button key={mod.project_id} onClick={() => { setAutoInstallModsInput(mod.project_id); setAutoInstallModsSearchResults([]); }} className="w-full text-left px-4 py-2 hover:bg-white/5 text-xs border-b border-white/5">
-                                                {mod.title}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+                                <button
+                                    onClick={addAutoInstallMod}
+                                    className="px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg text-sm font-medium transition"
+                                >
+                                    {t('settings.auto_install.btn_add')}
+                                </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 max-h-[200px]">
-                                {settings.autoInstallMods?.map(mod => (
-                                    <div key={mod} className="flex justify-between items-center bg-black/20 p-2 rounded-lg text-xs">
-                                        <span className="truncate pr-2">{autoInstallModsMetadata[mod] || mod}</span>
-                                        <button onClick={() => removeAutoInstallMod(mod)} className="text-red-400 hover:text-red-300">×</button>
-                                    </div>
-                                ))}
-                            </div>
+
+                            { }
+                            {autoInstallModsSearchResults.length > 0 && (
+                                <div className="bg-black/20 border border-white/10 rounded-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                                    {autoInstallModsSearchResults.map((mod) => (
+                                        <button
+                                            key={mod.project_id}
+                                            onClick={() => {
+                                                setAutoInstallModsInput(mod.project_id);
+                                                setAutoInstallModsSearchResults([]);
+                                            }}
+                                            className="w-full text-left px-4 py-2 hover:bg-white/10 transition border-b border-white/5 last:border-b-0"
+                                        >
+                                            <div className="font-medium text-sm text-white">{mod.title}</div>
+                                            <div className="text-xs text-gray-500 truncate">{mod.project_id}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    </BentoTile>
+
+                        { }
+                        {(settings.autoInstallMods || []).length > 0 ? (
+                            <div>
+                                <div className="flex items-center justify-between mb-3">
+                                    <label className="block text-gray-400 text-sm font-medium">{t('settings.auto_install.count_label', { count: settings.autoInstallMods.length })}</label>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={autoInstallModsListSearch}
+                                    onChange={(e) => setAutoInstallModsListSearch(e.target.value)}
+                                    placeholder={t('settings.auto_install.list_search_placeholder')}
+                                    className="w-full mb-3 bg-black/20 border border-white/5 rounded-lg px-4 py-2.5 text-sm text-gray-300 focus:outline-none focus:border-primary/50"
+                                />
+                                <div className="space-y-2">
+                                    {(settings.autoInstallMods || []).filter((mod) => {
+                                        const modName = autoInstallModsMetadata[mod] || mod;
+                                        const searchQuery = autoInstallModsListSearch.toLowerCase();
+                                        return modName.toLowerCase().includes(searchQuery) || mod.toLowerCase().includes(searchQuery);
+                                    }).map((mod) => (
+                                        <div key={mod} className="flex items-center justify-between bg-black/20 border border-white/5 rounded-lg px-4 py-3">
+                                            <div>
+                                                <div className="text-sm text-white font-medium">{autoInstallModsMetadata[mod] || mod}</div>
+                                                <code className="text-xs text-gray-500 font-mono">{mod}</code>
+                                            </div>
+                                            <button
+                                                onClick={() => removeAutoInstallMod(mod)}
+                                                className="px-3 py-1 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded border border-red-500/20 transition"
+                                            >
+                                                {t('settings.auto_install.remove_btn')}
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {autoInstallModsListSearch && (settings.autoInstallMods || []).filter((mod) => {
+                                        const modName = autoInstallModsMetadata[mod] || mod;
+                                        const searchQuery = autoInstallModsListSearch.toLowerCase();
+                                        return modName.toLowerCase().includes(searchQuery) || mod.toLowerCase().includes(searchQuery);
+                                    }).length === 0 && (
+                                            <div className="text-center py-4 text-gray-500 text-sm">{t('settings.auto_install.no_matches')}</div>
+                                        )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-6 bg-black/20 border border-white/5 rounded-lg">
+                                <p className="text-gray-500 text-sm">{t('settings.auto_install.no_mods')}</p>
+                            </div>
+                        )}
+                    </div>
                 )}
 
-                {/* Reset Actions - 2x1 */}
-                <BentoTile title="Reset Zone" span="md:col-span-2">
-                    <div className="grid grid-cols-2 gap-4">
-                        <button onClick={() => setShowSoftResetModal(true)} className="py-2.5 bg-yellow-500/10 hover:bg-yellow-500 text-yellow-500 hover:text-black rounded-lg text-xs font-bold transition-all border border-yellow-500/20">
-                            Soft Reset
-                        </button>
-                        <button onClick={() => setShowFactoryResetModal(true)} className="py-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-black rounded-lg text-xs font-bold transition-all border border-red-500/20">
-                            Factory Reset
-                        </button>
-                    </div>
-                </BentoTile>
-            </div>
+                { }
+                <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                    <h2 className="text-lg font-bold mb-6 text-white flex items-center gap-2">
+                        <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                        </svg>
+                        {t('settings.cloud.title')}
+                    </h2>
 
-            {/* Modals and Overlays */}
-            {showSoftResetModal && (
-                <ConfirmationModal
-                    title="Soft Reset"
-                    message="This will clear temporary cache but keep your settings and instances. Continue?"
-                    onConfirm={() => { handleSoftReset(); setShowSoftResetModal(false); }}
-                    onCancel={() => setShowSoftResetModal(false)}
-                />
-            )}
-            {showFactoryResetModal && (
-                <ConfirmationModal
-                    title="Factory Reset"
-                    message="WARNING: This will delete ALL data, instances, and settings. This cannot be undone."
-                    onConfirm={() => { handleFactoryReset(); setShowFactoryReset(false); }}
-                    onCancel={() => setShowFactoryResetModal(false)}
-                    isDangerous={true}
-                />
-            )}
-            {/* Java Install Modal */}
-            {showJavaModal && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-md">
-                    <div className="bg-surface border border-white/10 p-8 rounded-3xl w-full max-w-sm shadow-2xl animate-scale-in">
-                        <h3 className="text-2xl font-black mb-2">{t('settings.java.install')}</h3>
-                        <p className="text-gray-400 mb-8 text-sm leading-relaxed">{t('settings.java.install_desc')}</p>
-                        <div className="space-y-3">
-                            {[8, 17, 21].map(v => (
-                                <button key={v} onClick={() => handleInstallJava(v)} className="w-full p-4 rounded-xl bg-primary/10 hover:bg-primary text-primary hover:text-black border border-primary/20 transition-all font-bold text-left flex justify-between items-center group">
-                                    <span>Java {v} (LTS)</span>
-                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                                </button>
+                    <p className="text-sm text-gray-400 mb-6">{t('settings.cloud.desc')}</p>
+
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {[
+                                { id: 'GOOGLE_DRIVE', name: 'Google Drive', icon: 'M12 2L2 20h20L12 2z' },
+                                { id: 'DROPBOX', name: 'Dropbox', icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5z' }
+                            ].map((provider) => (
+                                <div key={provider.id} className={`p-4 rounded-xl border transition-all ${cloudStatus[provider.id]?.loggedIn ? 'bg-primary/5 border-primary/20' : 'bg-black/20 border-white/5 hover:border-white/10'}`}>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                                                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={provider.icon} />
+                                                </svg>
+                                            </div>
+                                            <span className="font-bold text-sm">{provider.name}</span>
+                                        </div>
+                                        {cloudStatus[provider.id]?.loggedIn && (
+                                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                        )}
+                                    </div>
+
+                                    {cloudStatus[provider.id]?.loggedIn ? (
+                                        <div className="space-y-3">
+                                            <div className="text-xs text-gray-400">
+                                                <div className="font-medium text-white truncate">{cloudStatus[provider.id].user?.name}</div>
+                                                <div className="truncate">{cloudStatus[provider.id].user?.email}</div>
+                                            </div>
+                                            <button
+                                                onClick={() => handleCloudLogout(provider.id)}
+                                                className="w-full py-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded border border-red-500/10 transition"
+                                            >
+                                                {t('settings.cloud.logout')}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleCloudLogin(provider.id)}
+                                            className="w-full py-2 text-xs bg-primary hover:bg-primary-hover text-white rounded font-medium transition"
+                                        >
+                                            {t('settings.cloud.login_btn')}
+                                        </button>
+                                    )}
+                                </div>
                             ))}
                         </div>
-                        <button onClick={() => setShowJavaModal(false)} className="mt-8 w-full text-center text-gray-500 hover:text-white transition-colors text-sm font-bold uppercase tracking-widest">
-                            {t('common.cancel')}
-                        </button>
+
+                        { }
+                        <div className="pt-6 border-t border-white/5 space-y-4">
+                            <ToggleBox
+                                checked={settings.cloudBackupSettings?.enabled || false}
+                                onChange={(val) => handleChange('cloudBackupSettings', { ...settings.cloudBackupSettings, enabled: val })}
+                                label={t('settings.cloud.enable_backup')}
+                                description={t('settings.cloud.enable_backup_desc')}
+                            />
+
+                            {settings.cloudBackupSettings?.enabled && (
+                                <div className="ml-10 space-y-4 animate-slide-down">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="text-sm font-medium text-white">{t('settings.cloud.default_provider')}</div>
+                                            <div className="text-xs text-gray-500">{t('settings.cloud.default_provider_desc')}</div>
+                                        </div>
+                                        <select
+                                            value={settings.cloudBackupSettings?.provider || 'GOOGLE_DRIVE'}
+                                            onChange={(e) => handleChange('cloudBackupSettings', { ...settings.cloudBackupSettings, provider: e.target.value })}
+                                            className="bg-background border border-white/10 rounded-lg px-3 py-1.5 text-xs focus:border-primary outline-none text-gray-300 cursor-pointer"
+                                        >
+                                            <option value="GOOGLE_DRIVE">Google Drive</option>
+                                            <option value="DROPBOX">Dropbox</option>
+                                        </select>
+                                    </div>
+
+                                    <ToggleBox
+                                        checked={settings.cloudBackupSettings?.autoRestore || false}
+                                        onChange={(val) => handleChange('cloudBackupSettings', { ...settings.cloudBackupSettings, autoRestore: val })}
+                                        label={t('settings.cloud.auto_restore')}
+                                        description={t('settings.cloud.auto_restore_desc')}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
-            )}
-        </div>
+            </div>
+
+            { }
+            <div className="bg-surface/50 px-8 py-6 rounded-2xl border border-white/5 mt-6 hover:border-white/10 transition-colors">
+                <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    {t('settings.maintenance.title')}
+                </h2>
+
+                <div className="space-y-6">
+                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+                        <div className="flex items-start gap-3">
+                            <svg className="w-5 h-5 text-primary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <div>
+                                <h3 className="font-bold text-gray-200 text-sm">{t('settings.maintenance.troubleshooting_title')}</h3>
+                                <p className="text-xs text-gray-400 mt-1">{t('settings.maintenance.troubleshooting_desc')}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white/5 rounded-xl p-4 border border-white/5 flex flex-col justify-between h-auto min-h-[140px]">
+                            <div>
+                                <h3 className="font-bold text-white text-sm">{t('settings.maintenance.soft_reset_title')}</h3>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    {t('settings.maintenance.soft_reset_desc')}
+                                    <span className="block mt-1 text-primary font-bold">✓ {t('settings.maintenance.soft_reset_keep')}</span>
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowSoftResetModal(true)}
+                                className="mt-4 w-full bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg text-sm font-bold transition-colors"
+                            >
+                                {t('settings.maintenance.soft_reset_btn')}
+                            </button>
+                        </div>
+
+                        <div className="bg-red-500/5 rounded-xl p-4 border border-red-500/20 flex flex-col justify-between h-auto min-h-[140px]">
+                            <div>
+                                <h3 className="font-bold text-red-400 text-sm">{t('settings.maintenance.factory_reset_title')}</h3>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    {t('settings.maintenance.factory_reset_desc')}
+                                    <span className="block mt-1 text-red-400 font-bold">⚠ {t('settings.maintenance.factory_reset_warning')}</span>
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowFactoryResetModal(true)}
+                                className="mt-4 w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 py-2 rounded-lg text-sm font-bold transition-colors border border-red-500/20"
+                            >
+                                {t('settings.maintenance.factory_reset_btn')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            { }
+            {
+                showSoftResetModal && (
+                    <ConfirmationModal
+                        title={t('settings.maintenance.soft_reset_modal_title')}
+                        message={t('settings.maintenance.soft_reset_modal_msg')}
+                        confirmText={t('settings.maintenance.soft_reset_btn')}
+                        isDangerous={false}
+                        onConfirm={handleSoftReset}
+                        onCancel={() => setShowSoftResetModal(false)}
+                    />
+                )
+            }
+
+            { }
+            {
+                showFactoryResetModal && (
+                    <ConfirmationModal
+                        title={t('settings.maintenance.factory_reset_modal_title')}
+                        message={t('settings.maintenance.factory_reset_modal_msg')}
+                        confirmText={t('settings.maintenance.factory_reset_confirm_btn')}
+                        isDangerous={true}
+                        onConfirm={handleFactoryReset}
+                        onCancel={() => setShowFactoryResetModal(false)}
+                    />
+                )
+            }
+        </div >
     );
 }
 

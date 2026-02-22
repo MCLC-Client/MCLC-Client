@@ -344,10 +344,7 @@
             "optimization": "Enable Optimization",
             "optimization_desc": "Automatically install performance optimization mods when creating a new instance.",
             "auto_mod_install": "Enable Auto Install Mods",
-            "auto_mod_install_desc": "Automatically install selected mods when creating a new instance. Unavailable mods for specific versions will be skipped.",
-            "animations_exaggerated": "Exaggerated Animations",
-            "minimize_on_launch": "Minimize on Launch",
-            "quit_on_game_exit": "Quit on Game Exit"
+            "auto_mod_install_desc": "Automatically install selected mods when creating a new instance. Unavailable mods for specific versions will be skipped."
         },
         "cloud": {
             "title": "Cloud Backup Settings",

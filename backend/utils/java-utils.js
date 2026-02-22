@@ -5,8 +5,8 @@ const AdmZip = require('adm-zip');
 const { pipeline } = require('stream');
 const { promisify } = require('util');
 const streamPipeline = promisify(pipeline);
-const { exec } = require('child_process');
-const execAsync = promisify(exec);
+const { execFile } = require('child_process');
+const execFileAsync = promisify(execFile);
 
 const ADOPTIUM_API = 'https://api.adoptium.net/v3';
 
@@ -42,7 +42,7 @@ async function downloadFile(url, destPath, onProgress) {
 
 async function extractTarGz(source, destination) {
     await fs.ensureDir(destination);
-    await execAsync(`tar -xzf "${source}" -C "${destination}"`);
+    await execFileAsync('tar', ['-xzf', source, '-C', destination]);
 }
 
 async function installJava(version, runtimesDir, onProgress) {
