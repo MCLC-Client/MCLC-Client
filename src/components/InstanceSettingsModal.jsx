@@ -184,7 +184,7 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                                             className="w-24 h-24 bg-surface rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden relative group cursor-pointer hover:border-primary/50 transition-colors shadow-inner"
                                             onClick={() => document.getElementById('instance-icon-upload').click()}
                                         >
-                                            {config.icon && config.icon.startsWith('data:') ? (
+                                            {config.icon && (config.icon.startsWith('data:') || config.icon.startsWith('app-media://')) ? (
                                                 <img src={config.icon} alt="Icon" className="w-full h-full object-cover" />
                                             ) : (
                                                 <svg className="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>

@@ -352,7 +352,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                                         className="group flex items-center gap-4 bg-surface/40 hover:bg-surface/60 border border-white/5 hover:border-primary/30 rounded-xl px-4 py-3 cursor-pointer transition-all"
                                     >
                                         <div className="w-12 h-12 bg-background rounded-lg flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
-                                            {instance.icon && instance.icon.startsWith('data:') ? (
+                                            {instance.icon && (instance.icon.startsWith('data:') || instance.icon.startsWith('app-media://')) ? (
                                                 <img src={instance.icon} alt="" className="w-full h-full object-cover" />
                                             ) : (
                                                 <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
@@ -430,7 +430,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                                     >
                                         <div className="flex items-center gap-3 mb-3">
                                             <div className="w-8 h-8 bg-background rounded-lg flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
-                                                {world.instanceIcon && world.instanceIcon.startsWith('data:') ? (
+                                                {world.instanceIcon && (world.instanceIcon.startsWith('data:') || world.instanceIcon.startsWith('app-media://')) ? (
                                                     <img src={world.instanceIcon} alt="" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>

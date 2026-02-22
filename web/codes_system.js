@@ -140,7 +140,7 @@ module.exports = function (app, ADMIN_PASSWORD) {
     app.get('/api/modpack/:code', handleGetCode);
     app.delete('/api/codes/:code', (req, res) => {
         try {
-            const clientPass = req.query.password; // Keep query for delete for now, or change to body/header
+            const clientPass = req.query.password;
             if (clientPass !== ADMIN_PASSWORD) {
                 console.warn(`[CodesSystem] Unauthorized delete attempt for ${req.params.code}.`);
                 return res.status(401).json({ success: false, error: 'Unauthorized' });

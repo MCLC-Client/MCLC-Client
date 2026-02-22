@@ -65,12 +65,18 @@ const InstanceCard = ({
             </button>
 
             <div className="flex items-start gap-4 mb-3 relative z-10">
-                <OptimizedImage
-                    src={instance.icon}
-                    alt={instance.name}
-                    className="w-16 h-16 bg-background rounded-lg flex items-center justify-center text-4xl shadow-inner border border-white/5 overflow-hidden"
-                    fallback={<svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
-                />
+                {(instance.icon && (instance.icon.startsWith('data:') || instance.icon.startsWith('app-media://') || instance.icon.startsWith('http'))) ? (
+                    <OptimizedImage
+                        src={instance.icon}
+                        alt={instance.name}
+                        className="w-16 h-16 bg-background rounded-lg flex items-center justify-center text-4xl shadow-inner border border-white/5 overflow-hidden"
+                        fallback={<svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
+                    />
+                ) : (
+                    <div className="w-16 h-16 bg-background rounded-lg flex items-center justify-center text-4xl shadow-inner border border-white/5 shrink-0">
+                        <span className="text-2xl">{instance.icon || '📦'}</span>
+                    </div>
+                )}
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-lg text-white truncate group-hover:text-primary transition-colors">{instance.name}</h3>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">

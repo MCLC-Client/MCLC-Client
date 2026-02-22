@@ -49,7 +49,7 @@ const Modpacks = () => {
                 setInstallingPack(null);
                 return;
             }
-            const res = await window.electronAPI.installModpack(primaryFile.url, pack.title);
+            const res = await window.electronAPI.installModpack(primaryFile.url, pack.title, pack.icon_url);
 
             if (res.success) {
                 alert(`Started installing ${pack.title}. Check Dashboard/Downloads for progress.`);

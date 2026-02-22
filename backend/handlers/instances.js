@@ -6,6 +6,7 @@ const path = require('path');
 const os = require('os');
 const { app, ipcMain, shell, dialog } = require('electron');
 console.log('Loaded instances handler. Dialog available:', !!dialog);
+console.log('[DEBUG] CANARY: INSTANCES_JS_V2_LOADED');
 const axios = require('axios');
 const zlib = require('zlib');
 const { promisify } = require('util');
@@ -821,7 +822,7 @@ module.exports = (ipcMain, win) => {
             })();
         };
 
-        const installMrPack = async (packPath, nameOverride = null) => {
+        const installMrPack = async (packPath, nameOverride = null, iconUrl = null) => {
             try {
                 const zip = new AdmZip(packPath);
 
@@ -865,6 +866,17 @@ module.exports = (ipcMain, win) => {
                     status: 'installing',
                     created: Date.now()
                 };
+
+                if (iconUrl) {
+                    try {
+                        const iconPath = path.join(targetDir, 'icon.png');
+                        await downloadFile(iconUrl, iconPath);
+                        instanceConfig.icon = `app-media:///${iconPath.replace(/\\/g, '/')}`;
+                        console.log(`[Import:MrPack] Icon downloaded and set: ${iconPath}`);
+                    } catch (err) {
+                        console.error('[Import:MrPack] Failed to download icon:', err);
+                    }
+                }
 
                 await fs.writeJson(path.join(targetDir, 'instance.json'), instanceConfig, { spaces: 4 });
                 (async () => {
@@ -2258,9 +2270,13 @@ module.exports = (ipcMain, win) => {
             }
         });
 
-        ipcMain.handle('instance:install-modpack', async (_, url, name) => {
+        ipcMain.handle('instance:install-modpack', async (_, url, name, iconUrl) => {
+            console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+            console.log(`[Modpack:Install] TRIGGERED for ${name}`);
+            console.log(`[Modpack:Install] URL: ${url}`);
+            console.log(`[Modpack:Install] ICON_URL: ${iconUrl}`);
+            console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
             try {
-                console.log(`[Modpack:Install] URL: ${url}, Name: ${name}`);
                 const tempPath = path.join(os.tmpdir(), `mclc-modpack-${Date.now()}.mrpack`);
                 if (win && win.webContents) {
                     win.webContents.send('install:progress', { instanceName: name, progress: 1, status: 'Downloading Modpack...' });
@@ -2269,7 +2285,7 @@ module.exports = (ipcMain, win) => {
                 await downloadFile(url, tempPath);
                 console.log(`[Modpack:Install] Downloaded to ${tempPath}`);
 
-                const result = await installMrPack(tempPath, name);
+                const result = await installMrPack(tempPath, name, iconUrl);
                 await fs.remove(tempPath);
 
                 return result;

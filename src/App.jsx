@@ -19,6 +19,7 @@ const Extensions = React.lazy(() => import('./pages/Extensions'));
 
 import Sidebar from './components/Sidebar';
 import ServerSidebar from './components/ServerSidebar';
+import UpdateNotification from './components/UpdateNotification';
 import RightPanel from './components/RightPanel';
 import { useTranslation } from 'react-i18next';
 
@@ -648,6 +649,7 @@ function App() {
                         </React.Suspense>
                     </main>
                 )}
+                <UpdateNotification />
             </div>
 
             { }

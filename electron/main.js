@@ -1,12 +1,15 @@
 const { app, BrowserWindow, ipcMain, protocol, net, Menu } = require('electron');
+const path = require('path');
 console.log('NUCLEAR STARTUP CHECK: main.js is running!');
+console.log('[DEBUG] CWD:', process.cwd());
+console.log('[DEBUG] __dirname:', __dirname);
+console.log('[DEBUG] Preload Path:', path.join(__dirname, '../backend/preload.js'));
 
 ipcMain.handle('ping', () => {
     console.log('Ping received!');
     return 'pong';
 });
 
-const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const dns = require('dns');
@@ -138,6 +141,10 @@ function createWindow() {
         else mainWindow.maximize();
     });
     ipcMain.on('window-close', () => mainWindow.close());
+    ipcMain.on('update:quit-and-install', () => {
+        const { autoUpdater } = require('electron-updater');
+        autoUpdater.quitAndInstall();
+    });
     mainWindow.on('maximize', () => mainWindow.webContents.send('window-state', true));
     mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-state', false));
 }
@@ -146,7 +153,13 @@ function setupAppMediaProtocol() {
     protocol.handle('app-media', (request) => {
         try {
             const url = new URL(request.url);
-            const decodedPath = decodeURIComponent(url.pathname);
+            let decodedPath = decodeURIComponent(url.pathname);
+
+
+            if (process.platform === 'win32' && decodedPath.startsWith('/') && decodedPath.length > 2 && decodedPath[2] === ':') {
+                decodedPath = decodedPath.substring(1);
+            }
+
             const resolvedPath = path.resolve(decodedPath);
 
             // Security: Ensure the path is within the app's data directory (V6)
@@ -261,21 +274,41 @@ app.whenReady().then(() => {
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
 
-    autoUpdater.on('update-available', () => {
-        console.log('[AutoUpdater] Update available. Downloading...');
+    autoUpdater.on('checking-for-update', () => {
+        console.log('[AutoUpdater] Checking for update...');
     });
-    autoUpdater.on('update-downloaded', () => {
-        console.log('[AutoUpdater] Update downloaded. Quitting to install...');
-        autoUpdater.quitAndInstall();
+    autoUpdater.on('update-available', (info) => {
+        console.log('[AutoUpdater] Update available:', info.version);
+        if (mainWindow) mainWindow.webContents.send('update:available', info);
+    });
+    autoUpdater.on('update-not-available', (info) => {
+        console.log('[AutoUpdater] Update not available.');
+        if (mainWindow) mainWindow.webContents.send('update:not-available', info);
+    });
+    autoUpdater.on('download-progress', (progressObj) => {
+        console.log(`[AutoUpdater] Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`);
+        if (mainWindow) mainWindow.webContents.send('update:progress', progressObj);
+    });
+    autoUpdater.on('update-downloaded', (info) => {
+        console.log('[AutoUpdater] Update downloaded:', info.version);
+        if (mainWindow) mainWindow.webContents.send('update:downloaded', info);
     });
     autoUpdater.on('error', (err) => {
         console.error('[AutoUpdater] Error:', err);
+        if (mainWindow) mainWindow.webContents.send('update:error', err.message);
     });
 
     if (app.isPackaged) {
         autoUpdater.checkForUpdates().catch(err => {
             console.error('[AutoUpdater] Check failed:', err);
         });
+    } else {
+        // For development testing: notify update not available after delay
+        setTimeout(() => {
+            if (mainWindow) {
+                // mainWindow.webContents.send('update:available', { version: '9.9.9' }); // For Testign
+            }
+        }, 5000);
     }
 
     app.on('activate', () => {

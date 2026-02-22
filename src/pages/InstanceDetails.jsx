@@ -697,7 +697,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
             { }
             <div className="p-8 pb-0 flex items-center gap-6">
                 <div className="w-32 h-32 bg-surface rounded-2xl flex items-center justify-center text-6xl shadow-2xl border border-white/10 overflow-hidden">
-                    {instance.icon && instance.icon.startsWith('data:') ? (
+                    {instance.icon && (instance.icon.startsWith('data:') || instance.icon.startsWith('app-media://')) ? (
                         <img src={instance.icon} alt="" className="w-full h-full object-cover" />
                     ) : (
                         <span className="text-6xl">{instance.icon || '📦'}</span>
