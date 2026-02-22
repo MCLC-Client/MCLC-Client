@@ -1,4 +1,14 @@
 const { app, BrowserWindow, ipcMain, protocol, net, Menu } = require('electron');
+
+// Force WebGL/GPU acceleration on Linux/unsupported systems
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+if (process.platform === 'linux') {
+    app.commandLine.appendSwitch('use-gl', 'desktop');
+}
+app.commandLine.appendSwitch('enable-webgl-draft-extensions');
+
 const path = require('path');
 console.log('NUCLEAR STARTUP CHECK: main.js is running!');
 console.log('[DEBUG] CWD:', process.cwd());
