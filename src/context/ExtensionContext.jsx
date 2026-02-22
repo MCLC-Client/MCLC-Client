@@ -13,7 +13,7 @@ export const ExtensionProvider = ({ children }) => {
     const [views, setViews] = useState({});
     const [loading, setLoading] = useState(true);
     const { addNotification } = useNotification();
-    const createExtensionApi = (extensionId) => ({
+    const createExtensionApi = (extensionId, localPath) => ({
 
         ui: {
             registerView: (slotName, component) => {
@@ -65,7 +65,7 @@ export const ExtensionProvider = ({ children }) => {
             }
         },
 
-        meta: { id: extensionId }
+        meta: { id: extensionId, localPath: localPath }
     });
     const unloadExtension = async (extensionId) => {
         const active = activeExtensions[extensionId];
@@ -113,7 +113,7 @@ export const ExtensionProvider = ({ children }) => {
 
             const exports = {};
             const module = { exports };
-            const api = createExtensionApi(ext.id);
+            const api = createExtensionApi(ext.id, ext.localPath);
 
             window.MCLC_API = api;
             const wrapper = new Function('require', 'exports', 'module', 'React', 'api', code);

@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 This project follows the guidelines of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and adheres to [Semantic Versioning](https://semver.org/).
 
+> **Note:** Please format all changelog entries in Markdown and follow [markdownlint](https://github.com/DavidAnson/markdownlint) rules to ensure consistency and readability.
+
 ---
 
 ## [Unreleased]
@@ -14,45 +16,29 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 - Server-side mod validation
 - Mod compatibility overview
 - Minimal mode (system tray integration, configurable in settings)
-- Quick server join (partially implemented)
+- Quick server join _(in progress)_
 - Client-side quick join mod
-- Script support (extensions in work, are similar)
+- Script support (partially implemented via Extensions)
 - Log analysis utility
-- Mod dependency validation (partially implemented)
+- Mod dependency validation
 - Mobile application for the administration panel
+- Add Alex and Steve Skin Preview for selection buttons
+- Cross-platform UI polishing: Mac-specific window controls + Linux system tray integration
+- Command line support
 
-### To Do
-
-#### Features in Progress
-
-- [ ] Focus mode
-- [ ] Server-side mod validation
-- [ ] Mod compatibility overview
-- [ ] Minimal mode (system tray integration, configurable in settings)
-- [ ] Quick server join (partially implemented)
-- [ ] Client-side quick join mod
-
-#### Possible Future Features
-
-- [ ] Script support (Partially implemented through Extensions)
-- [ ] Logging analysis utility
-- [ ] Mod dependency validation
-- [ ] Mobile application for the administration panel
-- [ ] Cross-Platform UI Polishing: Mac-specific window controls + Linux system tray integration
-- [ ] Automated Backups: Scheduled backups for worlds/instances
-- [ ] Localization (i18n): Full multi-language support system
-
-#### Optional (Planned for Future)
-
-- [ ] Command line support
-
-> Everything below is now correct and reflects actual released versions.
+> Everything below is not correct and needs an update.
 
 ---
+
+## [1.5.2] - 2026-02-21
+
+- [ ] Mod dependency validation
+- [ ] Automated Backups: Scheduled backups for worlds/instances
 
 ## [1.5.0] - 2026-02-21
 
 ### Added
+
 - **Unified Backup Manager**: A powerful new interface for managing world backups and restorations.
   - Choose between Local Storage and Cloud Storage (Google Drive, Dropbox).
   - Multi-world selection for batch backup operations.
@@ -65,9 +51,10 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 - **Standardized Storage**: Local backups are now stored in a centralized directory at `AppData/Roaming/MCLC/backups/<instanceName>`.
 
 ### Fixed
+
 - **World Restoration Structure**: World backups now properly preserve their folder names, ensuring they extract correctly into the `saves` directory.
 - **ReferenceError fix**: Removed legacy cloud code from `InstanceDetails.jsx` that caused component crashes.
-- **Cloud Cleanup Race Condition**: Moved file cleanup to the backend to ensure local zips are only deleted *after* successful cloud uploads.
+- **Cloud Cleanup Race Condition**: Moved file cleanup to the backend to ensure local zips are only deleted _after_ successful cloud uploads.
 - **Dropbox Authentication**: Fixed "Invalid redirect_uri" error by correctly encoding the authentication URL.
 - **401 Unauthorized errors**: Implemented missing token refresh retry logic in cloud folder management.
 
@@ -89,7 +76,6 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 - Cloud synchronization for worlds and configurations (e.g., Google Drive, Dropbox, OneDrive)
 - Mod dependency validation (partially implemented)
 - Mobile application for the administration panel
-
 - **Styling Page Redesign**: Complete visual overhaul with premium bento grid layout
   - Live mini-preview component showing real-time theme changes
   - Visual theme cards with color thumbnails instead of text lists
@@ -112,7 +98,7 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
   - Asynchronous Java presence checks and backend file operations (FS-extra async).
   - Page-level code-splitting using `React.lazy` and `Suspense` for faster initial loads.
   - Concurrent UI rendering with `useTransition` for smooth view switching.
-  - List and Grid virtualization (`react-window`) for 60fps scrolling in large libraries and news feeds.
+  - List and grid virtualization (`react-window`) for 60fps scrolling in large libraries and news feeds.
   - High-performance image lazy loading using the **Intersection Observer API**.
   - GPU-accelerated CSS transitions using `will-change` properties.
 - **UI Refinement**:
@@ -123,10 +109,10 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 ### Fixed
 
-- The runtime wasn't working and displaying "object Object" when closing the window when selecting runtime ("javaw.exe")
-- Background overlay intensity now correctly applies to the actual app (was only updating preview)
-- Settings button in sidebar now uses glow effect instead of white outline
-- Dropdown arrow in Settings page properly positioned with adequate spacing
+- The runtime was not working and displaying "object Object" when closing the window when selecting runtime ("javaw.exe").
+- Background overlay intensity now correctly applies to the actual app (was only updating preview).
+- Settings button in sidebar now uses glow effect instead of white outline.
+- Dropdown arrow in Settings page properly positioned with adequate spacing.
 - Synchronous I/O bottlenecks in the backend causing UI freezes during launch.
 - Duplicate imports and build-time SyntaxErrors.
 - Visual alignment of toggles and scrolling performance in the dashboard.

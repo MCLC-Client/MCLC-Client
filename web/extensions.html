@@ -35,24 +35,44 @@
             },
         };</script>
 
-    <style>
-        #mobile-menu {
-            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
-            max-height: 0;
-            opacity: 0;
-            overflow: hidden;
-        }
 
-        #mobile-menu.open {
-            max-height: 500px;
-            opacity: 1;
-        }
-    </style>
 </head>
 
 <body class="bg-background text-gray-200 selection:bg-primary/30 antialiased overflow-x-hidden">
+    <div id="downloadModal" class="fixed inset-0 z-[200] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="toggleModal()"></div>
+        <div
+            class="relative bg-surface border border-white/10 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl transform transition-all">
+            <h3 class="text-3xl font-black text-white mb-2 uppercase tracking-tight">Choose Platform</h3>
+            <p class="text-gray-400 mb-8">Select your operating system to start downloading MCLC.</p>
 
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300"
+            <div class="space-y-4">
+                <a id="modalWin" href="#"
+                    class="flex items-center justify-between bg-white/5 hover:bg-primary hover:text-black p-5 rounded-2xl transition-all group">
+                    <span class="font-bold text-lg">Windows (.exe)</span>
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M0 3.449L9.75 2.1V11.7H0V3.449zm0 9.151h9.75v9.6L0 20.551V12.6zm10.55 0h13.45v10.8L10.55 21.3v-8.7zm0-10.5L24 0v11.7H10.55V2.1z" />
+                    </svg>
+                </a>
+                <a id="modalDeb" href="#"
+                    class="flex items-center justify-between bg-white/5 hover:bg-primary hover:text-black p-5 rounded-2xl transition-all">
+                    <span class="font-bold text-lg">Linux (.deb)</span>
+                    <span class="text-xs uppercase font-black opacity-50 tracking-widest">Debian / Ubuntu</span>
+                </a>
+                <a id="modalRpm" href="#"
+                    class="flex items-center justify-between bg-white/5 hover:bg-primary hover:text-black p-5 rounded-2xl transition-all">
+                    <span class="font-bold text-lg">Linux (.rpm)</span>
+                    <span class="text-xs uppercase font-black opacity-50 tracking-widest">Fedora / RedHat</span>
+                </a>
+            </div>
+
+            <button onclick="toggleModal()"
+                class="mt-8 text-gray-500 hover:text-white transition-colors w-full text-sm font-bold uppercase tracking-widest">Close</button>
+        </div>
+    </div>
+
+    <nav class="fixed top-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300"
         id="navbar">
         <div class="max-w-7xl mx-auto px-6 lg:px-12">
             <div class="flex items-center justify-between h-20">
@@ -77,10 +97,10 @@
                 <div class="flex items-center gap-4" id="nav-right-group">
 
                     <div class="hidden md:block">
-                        <a id="downloadNavBtn" href="#"
+                        <button onclick="toggleModal()"
                             class="bg-primary hover:bg-primary-dark text-black px-6 py-2.5 rounded-xl font-bold transition-all shadow-primary-glow transform hover:scale-105 active:scale-95 shrink-0 whitespace-nowrap">
                             Download
-                        </a>
+                        </button>
                     </div>
                     <button id="mobile-menu-btn"
                         class="md:hidden text-gray-300 hover:text-primary focus:outline-none transition-colors p-2">
@@ -93,9 +113,10 @@
             </div>
         </div>
 
-        <div id="mobile-menu" class="md:hidden bg-surface/95 backdrop-blur-xl border-b border-white/5">
+        <div id="mobile-menu"
+            class="md:hidden bg-surface/95 backdrop-blur-xl border-b border-white/5 overflow-hidden transition-all duration-300">
             <div
-                class="px-6 py-4 space-y-4 flex flex-col items-center text-center font-semibold text-gray-300 uppercase tracking-wide">
+                class="px-6 py-6 space-y-4 flex flex-col items-center text-center font-semibold text-gray-300 uppercase tracking-wide">
                 <a href="index.html"
                     class="block w-full py-2 hover:text-primary hover:bg-white/5 rounded-lg transition-all"
                     onclick="toggleMenu()">Home</a>
@@ -115,11 +136,10 @@
                     class="block w-full py-2 hover:text-primary hover:bg-white/5 rounded-lg transition-all"
                     onclick="toggleMenu()">GitHub</a>
 
-                <a id="downloadNavBtnMobile" href="#"
-                    class="block w-full bg-primary text-black py-4 rounded-xl font-black mt-4 shadow-primary-glow active:scale-95 transition-all text-center"
-                    onclick="toggleMenu()">
+                <button id="downloadNavBtnMobile" onclick="toggleModal(); toggleMenu();"
+                    class="block w-full bg-primary text-black py-4 rounded-xl font-black mt-4 shadow-primary-glow active:scale-95 transition-all">
                     Download Now
-                </a>
+                </button>
             </div>
         </div>
     </nav>
@@ -164,23 +184,58 @@
         </div>
     </section>
 
+    <footer class="py-12 bg-background border-t border-white/5 mt-auto">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="flex items-center gap-3">
+                    <img src="/resources/icon.png" alt="MCLC Logo" class="w-8 h-8 opacity-50" />
+                    <span class="text-xl font-bold text-gray-500 tracking-tighter">MCLC</span>
+                </div>
+                <div
+                    class="flex flex-wrap justify-center gap-6 md:gap-8 text-sm font-medium text-gray-500 uppercase tracking-widest">
+                    <a href="/index.html" class="hover:text-primary transition-colors">Home</a>
+                    <a href="/imprint.html" class="hover:text-primary transition-colors">Imprint</a>
+                    <a href="/privacy.html" class="hover:text-primary transition-colors">Privacy</a>
+                </div>
+                <p class="text-gray-600 text-xs text-center md:text-right">
+                    &copy; 2026 MCLC Team. Not an official Minecraft product.
+                </p>
+            </div>
+        </div>
+    </footer>
     <script src="main.js?v=5"></script>
-    <script>        async function fetchLatestRelease() {
+    <script>        function toggleModal() {
+            const modal = document.getElementById('downloadModal');
+            if (modal) {
+                modal.classList.toggle('hidden');
+                modal.classList.toggle('flex');
+                document.body.classList.toggle('overflow-hidden');
+            }
+        }
+        async function fetchLatestRelease() {
             try {
                 const response = await fetch('https://api.github.com/repos/Fernsehheft/MCLC-Client/releases/latest');
                 if (!response.ok) throw new Error('Failed');
                 const release = await response.json();
-                const windowsAsset = release.assets && release.assets.find(asset => asset.name.toLowerCase().endsWith('.exe'));
-                const url = windowsAsset ? windowsAsset.browser_download_url : `https://github.com/Fernsehheft/MCLC-Client/releases/latest`;
+                const assets = release.assets || [];
 
-                const setUrl = (id) => {
+                const getAsset = (ext) => assets.find(a => a.name.toLowerCase().endsWith(ext))?.browser_download_url;
+                const winUrl = getAsset('.exe') || 'https://github.com/Fernsehheft/MCLC-Client/releases/latest';
+                const debUrl = getAsset('.deb') || 'https://github.com/Fernsehheft/MCLC-Client/releases/latest';
+                const rpmUrl = getAsset('.rpm') || 'https://github.com/Fernsehheft/MCLC-Client/releases/latest';
+
+                const setUrl = (id, url) => {
                     const el = document.getElementById(id);
                     if (el) el.href = url;
                 };
-                setUrl('downloadNavBtn');
-                setUrl('downloadNavBtnMobile');
+                setUrl('modalWin', winUrl);
+                setUrl('modalDeb', debUrl);
+                setUrl('modalRpm', rpmUrl);
+
+                // Also update the nav button to open modal instead of direct link if preferred, 
+                // but here we keep it as is or change to toggleModal
             } catch (e) {
-                console.log('Using default download link');
+                console.log('Using default download links');
             }
         }
         document.addEventListener('DOMContentLoaded', fetchLatestRelease);

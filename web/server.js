@@ -42,7 +42,7 @@ require('./passport-setup'); // Ensure passport is configured
 
 console.log('[Main] ========== GOOGLE OAUTH CONFIG ==========');
 console.log('[Main] ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'MISSING');
-console.log('[Main] Secret:', process.env.GOOGLE_CLIENT_SECRET ? (process.env.GOOGLE_CLIENT_SECRET.substring(0, 10) + '...') : 'MISSING');
+console.log('[Main] Secret:', process.env.GOOGLE_CLIENT_SECRET ? 'SET' : 'MISSING');
 console.log('[Main] Callback:', process.env.CALLBACK_URL);
 console.log('[Main] NODE_ENV:', process.env.NODE_ENV);
 console.log('[Main] =========================================');
@@ -50,16 +50,23 @@ console.log('[Main] =========================================');
 const app = express();
 app.set('trust proxy', 1);
 const server = http.createServer(app);
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:5173', 'http://localhost:3001', 'http://localhost:3000'];
+
 const io = new Server(server, {
     cors: {
-        origin: "*",
+        origin: allowedOrigins,
         methods: ["GET", "POST"]
     },
     transports: ['websocket', 'polling']
 });
 
 const PORT = process.env.PORT || 3001;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+    console.error('[CRITICAL] ADMIN_PASSWORD environment variable is NOT SET. Server will not start for security reasons.');
+    process.exit(1);
+}
+
 const NEWS_FILE = path.join(__dirname, 'news.json');
 const ANALYTICS_FILE = path.join(__dirname, 'analytics.json');
 const downloadCooldowns = new Map();
@@ -68,8 +75,14 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET && process.env.NODE_ENV === 'production') {
+    console.error('[CRITICAL] SESSION_SECRET environment variable is NOT SET in production. Server will not start.');
+    process.exit(1);
+}
+
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'mclc-secret-key-change-me',
+    secret: SESSION_SECRET || 'mclc-super-secret-session-key-2026',
     resave: false,
     saveUninitialized: false,
     proxy: true,
@@ -914,7 +927,7 @@ app.post('/api/admin/extensions/:id/:action', ensureAdmin, async (req, res) => {
     }
 });
 
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', ensureAdmin, upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
@@ -1006,6 +1019,15 @@ app.use('/uploads', express.static(uploadPath, {
     }
 }));
 
+app.get('/install', (req, res) => {
+    const ua = req.headers['user-agent'] || '';
+    if (ua.includes('Windows')) {
+        res.redirect('/install.ps1');
+    } else {
+        res.redirect('/install.sh');
+    }
+});
+
 app.get('/extensions/:identifier', (req, res) => {
     res.sendFile(path.join(__dirname, 'extension_detail.html'), { headers: { 'Cache-Control': 'no-cache, must-revalidate' } });
 });
@@ -1019,8 +1041,8 @@ if (!fs.existsSync(NEWS_FILE)) {
 const getNews = () => JSON.parse(fs.readFileSync(NEWS_FILE, 'utf8'));
 const saveNews = (data) => fs.writeFileSync(NEWS_FILE, JSON.stringify(data, null, 2));
 
-app.get('/api/analytics', (req, res) => {
-    if (req.query.password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Unauthorized' });
+app.post('/api/analytics', (req, res) => {
+    if (req.body.password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Unauthorized' });
     res.json({
         live: getLiveStats(),
         persistent: stats

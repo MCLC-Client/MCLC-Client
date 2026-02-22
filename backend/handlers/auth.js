@@ -7,7 +7,68 @@ const authManager = new Auth('select_account');
 module.exports = (ipcMain, mainWindow) => {
     ipcMain.handle('auth:login', async () => {
         try {
-            const xboxManager = await authManager.launch('electron');
+            const electron = require('electron');
+            const BrowserWindow = electron.BrowserWindow || electron.remote.BrowserWindow;
+            
+            const xboxManager = await new Promise((resolve, reject) => {
+                const redirectUri = authManager.token.redirect;
+                const authUrl = authManager.createLink();
+                
+                const win = new BrowserWindow({
+                    width: 500,
+                    height: 650,
+                    resizable: false,
+                    title: 'Microsoft Login',
+                    webPreferences: {
+                        nodeIntegration: false,
+                        contextIsolation: true
+                    }
+                });
+                
+                win.setMenu(null);
+                win.loadURL(authUrl);
+                
+                let isResolved = false;
+                
+                const handleUrl = async (url) => {
+                    if (isResolved) return;
+                    if (url.startsWith(redirectUri)) {
+                        isResolved = true;
+                        const urlObj = new URL(url);
+                        const code = urlObj.searchParams.get('code');
+                        
+                        try {
+                            if (code) {
+                                const mgr = await authManager.login(code);
+                                resolve(mgr);
+                            } else {
+                                reject(new Error('No code present in redirect URL'));
+                            }
+                        } catch (err) {
+                            reject(err);
+                        } finally {
+                            if (!win.isDestroyed()) {
+                                win.close();
+                            }
+                        }
+                    }
+                };
+                
+                win.webContents.on('will-redirect', (event, url) => {
+                    handleUrl(url);
+                });
+                
+                win.webContents.on('did-navigate', (event, url) => {
+                    handleUrl(url);
+                });
+                
+                win.on('closed', () => {
+                    if (!isResolved) {
+                        reject(new Error('Login window closed by user'));
+                    }
+                });
+            });
+
             const token = await xboxManager.getMinecraft();
 
             let name, uuid, accessToken;

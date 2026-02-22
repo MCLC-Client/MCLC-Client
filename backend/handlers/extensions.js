@@ -37,12 +37,20 @@ module.exports = (ipcMain, mainWindow) => {
 
     const loadBackend = async (id, extensionPath) => {
         const backendPath = path.join(extensionPath, 'backend.js');
-        if (await fs.pathExists(backendPath)) {
+
+        // Security: Ensure backendPath is absolute and within the extensions directory (V3)
+        const resolvedBackendPath = path.resolve(backendPath);
+        if (!resolvedBackendPath.startsWith(extensionsDir)) {
+            console.error(`[Extensions] Blocked attempt to load backend outside extensions directory: ${resolvedBackendPath}`);
+            return;
+        }
+
+        if (await fs.pathExists(resolvedBackendPath)) {
             try {
                 console.log(`[Extensions] Loading backend for ${id}...`);
 
-                delete require.cache[require.resolve(backendPath)];
-                const backendModule = require(backendPath);
+                delete require.cache[require.resolve(resolvedBackendPath)];
+                const backendModule = require(resolvedBackendPath);
                 const api = createBackendApi(id);
 
                 if (typeof backendModule.activate === 'function') {
@@ -179,8 +187,21 @@ module.exports = (ipcMain, mainWindow) => {
             for (const filename of Object.keys(zip.files)) {
                 if (zip.files[filename].dir) continue;
 
+                // Security: Prevent path traversal during extraction (V8)
+                const normalizedFilename = path.normalize(filename);
+                if (normalizedFilename.startsWith('..') || path.isAbsolute(normalizedFilename)) {
+                    console.warn(`[Extensions] Skipping suspicious file in ZIP: ${filename}`);
+                    continue;
+                }
+
                 const fileData = await zip.files[filename].async('nodebuffer');
-                const destPath = path.join(installPath, filename);
+                const destPath = path.join(installPath, normalizedFilename);
+
+                // Additional check to double-ensure we stay inside installPath
+                if (!destPath.startsWith(installPath)) {
+                    console.warn(`[Extensions] Blocked attempt to write outside install directory: ${destPath}`);
+                    continue;
+                }
 
                 await fs.ensureDir(path.dirname(destPath));
                 if (filename.endsWith('.jsx') || filename.endsWith('.tsx') || filename.endsWith('.js')) {

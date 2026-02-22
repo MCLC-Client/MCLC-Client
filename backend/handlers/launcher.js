@@ -410,11 +410,18 @@ Add-Type -TypeDefinition $code -Language CSharp
 
             // Initialize live logs buffer for this instance
             liveLogs.set(instanceName, []);
-            // Execute pre-launch hook if configured
             if (config.preLaunchHook && config.preLaunchHook.trim()) {
                 try {
-                    const { execSync } = require('child_process');
-                    execSync(config.preLaunchHook, { cwd: instanceDir, stdio: 'inherit' });
+                    const hook = config.preLaunchHook.trim();
+                    // Basic sanity check: reject shell metacharacters to prevent command injection
+                    const forbiddenChars = /[;&|`$<>]/;
+                    if (forbiddenChars.test(hook)) {
+                        console.error('[Launcher] Blocked potentially malicious pre-launch hook:', hook);
+                    } else {
+                        const { execSync } = require('child_process');
+                        console.log(`[Launcher] Executing pre-launch hook: ${hook}`);
+                        execSync(hook, { cwd: instanceDir, stdio: 'inherit' });
+                    }
                 } catch (e) {
                     console.error('Pre-launch hook failed:', e.message);
                 }
@@ -572,7 +579,7 @@ Add-Type -TypeDefinition $code -Language CSharp
 
                 try {
                     const discord = require('./discord');
-                    discord.setActivity('In Launcher', 'Idle', 'minecraft', 'Minecraft');
+                    discord.setActivity('In Launcher', 'Idle', 'mclc_icon', 'MCLC');
                 } catch (e) { /* ignore */ }
 
                 // Stop Scheduler

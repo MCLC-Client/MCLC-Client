@@ -1,9 +1,11 @@
 import { io } from "socket.io-client";
+import packageJson from '../../package.json';
+
 class AnalyticsService {
     constructor() {
         this.socket = null;
         this.serverUrl = 'https://mclc.pluginhub.de';
-        this.clientVersion = '1.3.3';
+        this.clientVersion = packageJson.version;
         this.os = 'win32';
         this.userProfile = null;
     }
@@ -18,8 +20,7 @@ class AnalyticsService {
             reconnectionAttempts: 10,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
-            timeout: 20000,
-            transports: ['polling']
+            transports: ['websocket', 'polling']
         });
 
         this.socket.on("connect", () => {
@@ -29,10 +30,25 @@ class AnalyticsService {
 
         this.socket.on("connect_error", (err) => {
             console.error("[Analytics] Connection error:", err.message);
+            if (this.socket.io.opts.transports.indexOf('polling') === -1) {
+                console.log("[Analytics] Falling back to polling");
+                this.socket.io.opts.transports = ['polling'];
+            }
+        });
+
+        this.socket.io.on("reconnect_attempt", () => {
+            if (this.socket.io.opts.transports.indexOf('polling') !== -1) {
+                this.socket.io.opts.transports = ['polling'];
+            } else {
+                this.socket.io.opts.transports = ['websocket'];
+            }
         });
 
         this.socket.on("disconnect", (reason) => {
             console.log("[Analytics] Disconnected:", reason);
+            if (reason === "io server disconnect") {
+                this.socket.connect();
+            }
         });
     }
 

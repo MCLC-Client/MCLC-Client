@@ -19,8 +19,9 @@ const Extensions = React.lazy(() => import('./pages/Extensions'));
 
 import Sidebar from './components/Sidebar';
 import ServerSidebar from './components/ServerSidebar';
-
+import UpdateNotification from './components/UpdateNotification';
 import RightPanel from './components/RightPanel';
+import { useTranslation } from 'react-i18next';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -35,24 +36,30 @@ class ErrorBoundary extends React.Component {
     }
     render() {
         if (this.state.hasError) {
-            return (
-                <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#111] text-white p-8 text-center">
-                    <h1 className="text-4xl font-black mb-4 text-red-500">Oops! Something went wrong.</h1>
-                    <p className="text-gray-400 mb-8 max-w-md">The application encountered an unexpected error. You can try restarting it.</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="bg-primary text-black px-8 py-3 rounded-xl font-bold hover:scale-105 transition-transform"
-                    >
-                        Restart App
-                    </button>
-                </div>
-            );
+            return <ErrorFallback />;
         }
         return this.props.children;
     }
 }
 
+function ErrorFallback() {
+    const { t } = useTranslation();
+    return (
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#111] text-white p-8 text-center">
+            <h1 className="text-4xl font-black mb-4 text-red-500">{t('common.error_title')}</h1>
+            <p className="text-gray-400 mb-8 max-w-md">{t('common.error_desc')}</p>
+            <button
+                onClick={() => window.location.reload()}
+                className="bg-primary text-black px-8 py-3 rounded-xl font-bold hover:scale-105 transition-transform"
+            >
+                {t('common.restart_app')}
+            </button>
+        </div>
+    );
+}
+
 function App() {
+    const { t, i18n } = useTranslation();
     const [currentView, setCurrentView] = useState('login');
     const [isPending, startTransition] = React.useTransition();
     const [currentMode, setCurrentMode] = useState('client');
@@ -420,7 +427,7 @@ function App() {
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                         </svg>
-                                        <span className="font-medium">Client</span>
+                                        <span className="font-medium">{t('common.client')}</span>
                                         {currentMode === 'client' && (
                                             <svg className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -434,7 +441,7 @@ function App() {
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
                                         </svg>
-                                        <span className="font-medium">Server</span>
+                                        <span className="font-medium">{t('common.server')}</span>
                                         {currentMode === 'server' && (
                                             <svg className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -462,7 +469,7 @@ function App() {
                             >
                                 <div className={`w-1.5 h-1.5 rounded-full ${runningCount > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
                                 <span className="text-[10px] font-bold text-gray-100">
-                                    {runningCount === 0 ? 'Idle' : `${runningCount} Running`}
+                                    {runningCount === 0 ? t('common.idle') : `${runningCount} ${t('common.running')}`}
                                 </span>
                             </button>
 
@@ -509,7 +516,7 @@ function App() {
                             {showDownloads && (
                                 <div className="absolute top-14 right-0 w-64 bg-[#0d0d0d] border border-white/10 rounded-xl shadow-2xl overflow-hidden py-3 animate-in fade-in slide-in-from-top-2 duration-100 z-[100]">
                                     <div className="px-4 pb-2 border-b border-white/5 mb-2">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Downloads</span>
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('common.downloads')}</span>
                                     </div>
                                     <div className="max-h-60 overflow-y-auto px-4 space-y-3">
                                         {Object.keys(activeDownloads).length === 0 ? (
@@ -642,6 +649,7 @@ function App() {
                         </React.Suspense>
                     </main>
                 )}
+                <UpdateNotification />
             </div>
 
             { }

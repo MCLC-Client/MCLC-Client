@@ -2,50 +2,73 @@
   "productName": "MCLC",
   "name": "mclc",
   "description": "Lightweight, open-source Minecraft launcher (Electron + React) - features profile & modpack management, skin preview, Discord Rich Presence, and a modern UI for easy installs and updates.",
-  "author": "Fernsehheft <contact@pluginhub.de>",
-  "version": "1.5.2",
+  "author": "MCLC Team <contact@pluginhub.de>",
+  "version": "1.6.3",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"cross-env NODE_ENV=development electron .\"",
     "build": "vite build",
     "start": "electron .",
     "dist-clean": "concurrently \"rimraf dist\" \"rimraf release\"",
-    "dist": "npm run dist-clean && npm run build && electron-builder --win --linux",
-    "dist-all": "npm run dist-clean && npm run build && electron-builder --wl"
+    "dist": "npm run dist-clean && npm run build && electron-builder --win",
+    "dist-all": "npm run dist-clean && npm run build && electron-builder -wl"
   },
   "build": {
     "appId": "de.pluginhub.mclc",
     "productName": "MCLC",
+    "compression": "normal",
     "icon": "resources/icon.png",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "MCLC-Client",
+        "repo": "MCLC-Client"
+      }
+    ],
     "files": [
       "dist/**/*",
       "electron/**/*",
       "backend/**/*",
       "resources/**/*",
+      ".env",
       "package.json"
     ],
     "directories": {
       "output": "release"
     },
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-setup.${ext}"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": false,
+      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
     },
     "mac": {
       "target": [
         "zip"
       ],
-      "category": "public.app-category.games"
+      "category": "public.app-category.games",
+      "artifactName": "${productName}-setup.${ext}"
     },
     "linux": {
       "target": [
-        "deb"
+        "AppImage",
+        "deb",
+        "rpm"
       ],
-      "category": "Game"
+      "category": "Game",
+      "executableName": "mclc",
+      "artifactName": "${productName}-setup.${ext}"
     }
   },
   "dependencies": {
@@ -53,12 +76,14 @@
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "axios": "^1.13.5",
-    "dotenv": "17.3.1",
     "discord-rpc": "^4.0.1",
+    "dotenv": "17.3.1",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^8.1.0",
+    "electron-updater": "^6.8.3",
     "form-data": "^4.0.5",
     "fs-extra": "^11.3.3",
+    "i18next": "^25.8.13",
     "ipc-event-emitter": "^2.0.2",
     "jszip": "^3.10.1",
     "minecraft-launcher-core": "^3.18.2",
@@ -69,6 +94,7 @@
     "prismarine-nbt": "^2.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-i18next": "^16.5.4",
     "react-virtualized-auto-sizer": "^2.0.3",
     "react-window": "^2.2.7",
     "skinview3d": "^3.4.1",
@@ -80,7 +106,7 @@
     "autoprefixer": "^10.4.17",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
-    "electron": "^40.4.1",
+    "electron": "40.4.1",
     "electron-builder": "^26.7.0",
     "postcss": "^8.4.35",
     "rimraf": "^6.1.3",

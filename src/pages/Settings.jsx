@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 import ToggleBox from '../components/ToggleBox';
 import ConfirmationModal from '../components/ConfirmationModal';
 
 function Settings() {
+    const { t, i18n } = useTranslation();
     const { addNotification } = useNotification();
     const [settings, setSettings] = useState({
         javaPath: '',
@@ -25,6 +27,7 @@ function Settings() {
         optimization: true,
         enableAutoInstallMods: true,
         autoInstallMods: [],
+        language: 'en_us',
         cloudBackupSettings: {
             enabled: false,
             provider: 'GOOGLE_DRIVE',
@@ -119,14 +122,14 @@ function Settings() {
     };
 
     const handleDeleteRuntime = async (dirPath) => {
-        if (!confirm("Are you sure you want to delete this Java runtime?")) return;
+        if (!confirm(t('settings.java.delete_confirm'))) return;
         try {
             const res = await window.electronAPI.deleteJavaRuntime(dirPath);
             if (res.success) {
-                addNotification("Java runtime deleted", "success");
+                addNotification(t('settings.java.delete_success'), "success");
                 loadJavaRuntimes();
             } else {
-                addNotification(`Failed to delete: ${res.error}`, "error");
+                addNotification(t('settings.java.delete_failed', { error: res.error }), "error");
             }
         } catch (e) {
             addNotification(`Error: ${e.message}`, "error");
@@ -144,6 +147,11 @@ function Settings() {
                     ...(res.settings.cloudBackupSettings || {})
                 }
             };
+            // Map old language codes
+            const languageMap = { 'en': 'en_us', 'de': 'de_de' };
+            if (languageMap[loadedSettings.language]) {
+                loadedSettings.language = languageMap[loadedSettings.language];
+            }
             setSettings(loadedSettings);
             initialSettingsRef.current = loadedSettings;
         }
@@ -163,10 +171,10 @@ function Settings() {
         try {
             const res = await window.electronAPI.cloudLogin(providerId);
             if (res.success) {
-                addNotification(`Successfully logged into ${providerId.replace('_', ' ')}`, 'success');
+                addNotification(t('settings.cloud.login_success', { provider: providerId.replace('_', ' ') }), 'success');
                 loadCloudStatus();
             } else {
-                addNotification(`Login failed: ${res.error}`, 'error');
+                addNotification(t('login.failed') + ': ' + res.error, 'error');
             }
         } catch (e) {
             addNotification(`Error: ${e.message}`, 'error');
@@ -177,7 +185,7 @@ function Settings() {
         try {
             const res = await window.electronAPI.cloudLogout(providerId);
             if (res.success) {
-                addNotification(`Logged out from ${providerId.replace('_', ' ')}`, 'success');
+                addNotification(t('settings.cloud.logout_success', { provider: providerId.replace('_', ' ') }), 'success');
                 loadCloudStatus();
             }
         } catch (e) {
@@ -206,10 +214,10 @@ function Settings() {
             initialSettingsRef.current = newSettings;
             hasUnsavedChanges.current = false;
             if (!silent) {
-                addNotification('Settings saved successfully', 'success');
+                addNotification(t('settings.saved_success'), 'success');
             }
         } else {
-            addNotification('Failed to save settings', 'error');
+            addNotification(t('settings.save_failed'), 'error');
         }
     };
     const handleUpdate = async (key, value) => {
@@ -245,7 +253,7 @@ function Settings() {
         if (selectedPath && (selectedPath.toLowerCase().endsWith('.exe') || selectedPath.toLowerCase().endsWith('.bin'))) {
             handleChange('javaPath', selectedPath);
         } else {
-            addNotification('Please select a valid Java executable (javaw.exe or java)', 'error');
+            addNotification(t('settings.java.select_valid'), 'error');
         }
     };
     const handleManualSave = () => {
@@ -255,11 +263,11 @@ function Settings() {
     const addAutoInstallMod = async () => {
         const input = autoInstallModsInput.trim();
         if (!input) {
-            addNotification('Please enter a Modrinth ID or search term', 'error');
+            addNotification(t('settings.auto_install.add_failed'), 'error');
             return;
         }
         if (settings.autoInstallMods.includes(input)) {
-            addNotification('This mod is already in the list', 'warning');
+            addNotification(t('settings.auto_install.already_exists'), 'warning');
             setAutoInstallModsInput('');
             return;
         }
@@ -284,7 +292,7 @@ function Settings() {
         setAutoInstallModsMetadata(prev => ({ ...prev, [input]: modName }));
         setAutoInstallModsInput('');
         setAutoInstallModsSearchResults([]);
-        addNotification('Mod added to Auto Install Mods', 'success');
+        addNotification(t('settings.auto_install.add_success'), 'success');
     };
 
     const removeAutoInstallMod = (modId) => {
@@ -295,7 +303,7 @@ function Settings() {
             delete newMetadata[modId];
             return newMetadata;
         });
-        addNotification('Mod removed from Auto Install Mods', 'success');
+        addNotification(t('settings.auto_install.remove_success'), 'success');
     };
 
     const searchModrinthMod = async (query) => {
@@ -311,7 +319,7 @@ function Settings() {
             setAutoInstallModsSearchResults(data.hits || []);
         } catch (err) {
             console.error('Failed to search mods:', err);
-            addNotification('Failed to search Modrinth', 'error');
+            addNotification(t('settings.auto_install.search_failed'), 'error');
             setAutoInstallModsSearchResults([]);
         } finally {
             setSearchingAutoInstallMods(false);
@@ -320,8 +328,8 @@ function Settings() {
 
     return (
         <div className="p-10 text-white h-full overflow-y-auto custom-scrollbar">
-            <h1 className="text-3xl font-bold mb-2">Settings</h1>
-            <p className="text-gray-400 mb-10">Manage your launcher preferences.</p>
+            <h1 className="text-3xl font-bold mb-2">{t('settings.title')}</h1>
+            <p className="text-gray-400 mb-10">{t('settings.desc')}</p>
 
             { }
             <div className="max-w-3xl mb-6 flex justify-end">
@@ -332,28 +340,62 @@ function Settings() {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                     </svg>
-                    <span>Save Settings</span>
+                    <span>{t('settings.save_btn')}</span>
                 </button>
             </div>
 
             <div className="space-y-6 max-w-3xl">
                 { }
                 <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                    <h2 className="text-lg font-bold mb-6 text-white">General</h2>
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.general.title')}</h2>
 
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="font-medium text-white">Startup Page</div>
-                            <div className="text-sm text-gray-500 mt-1">Choose which page to show when you open the app</div>
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <div className="font-medium text-white">{t('settings.general.startup_page')}</div>
+                                <div className="text-sm text-gray-500 mt-1">{t('settings.general.startup_page_desc')}</div>
+                            </div>
+                            <select
+                                value={settings.startPage || 'dashboard'}
+                                onChange={(e) => handleChange('startPage', e.target.value)}
+                                className="bg-background border border-white/10 rounded-xl px-4 pr-10 py-2.5 text-sm focus:border-primary outline-none text-gray-300 cursor-pointer min-w-[180px]"
+                            >
+                                <option value="dashboard">{t('common.dashboard')}</option>
+                                <option value="library">{t('common.library')}</option>
+                            </select>
                         </div>
-                        <select
-                            value={settings.startPage || 'dashboard'}
-                            onChange={(e) => handleChange('startPage', e.target.value)}
-                            className="bg-background border border-white/10 rounded-xl px-4 pr-10 py-2.5 text-sm focus:border-primary outline-none text-gray-300 cursor-pointer min-w-[180px]"
-                        >
-                            <option value="dashboard">Dashboard</option>
-                            <option value="library">Library</option>
-                        </select>
+
+                        <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                            <div>
+                                <div className="font-medium text-white">{t('settings.general.language')}</div>
+                                <div className="text-sm text-gray-500 mt-1">{t('settings.general.language_desc')}</div>
+                            </div>
+                            <select
+                                value={settings.language || 'en_us'}
+                                onChange={(e) => {
+                                    const newLang = e.target.value;
+                                    handleChange('language', newLang);
+                                    i18n.changeLanguage(newLang);
+                                }}
+                                className="bg-background border border-white/10 rounded-xl px-4 pr-10 py-2.5 text-sm focus:border-primary outline-none text-gray-300 cursor-pointer min-w-[180px]"
+                            >
+                                <option value="en_us">{t('settings.general.english')}</option>
+                                <option value="en_uk">{t('settings.general.english_uk')}</option>
+                                <option value="de_de">{t('settings.general.german')}</option>
+                                <option value="de_ch">{t('settings.general.swiss_german')}</option>
+                                <option value="es_es">{t('settings.general.spanish')}</option>
+                                <option value="fr_fr">{t('settings.general.french')}</option>
+                                <option value="it_it">{t('settings.general.italian')}</option>
+                                <option value="pl_pl">{t('settings.general.polish')}</option>
+                                <option value="pt_br">{t('settings.general.portuguese_br')}</option>
+                                <option value="pt_pt">{t('settings.general.portuguese_pt')}</option>
+                                <option value="ro_ro">{t('settings.general.romanian')}</option>
+                                <option value="ru_ru">{t('settings.general.russian')}</option>
+                                <option value="sk_sk">{t('settings.general.slovak')}</option>
+                                <option value="sl_si">{t('settings.general.slovenian')}</option>
+                                <option value="sv_se">{t('settings.general.swedish')}</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -361,8 +403,8 @@ function Settings() {
                 {showJavaModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
                         <div className="bg-[#151515] p-6 rounded-2xl border border-white/10 w-96 shadow-2xl animate-scale-in">
-                            <h3 className="text-xl font-bold mb-4">Install Java</h3>
-                            <p className="text-gray-400 mb-6 text-sm">Select a Java version to install. We recommend Java 17 for most modern versions (1.18+).</p>
+                            <h3 className="text-xl font-bold mb-4">{t('settings.java.install')}</h3>
+                            <p className="text-gray-400 mb-6 text-sm">{t('settings.java.install_desc')}</p>
 
                             <div className="space-y-3">
                                 {[8, 17, 21].map(v => (
@@ -372,7 +414,7 @@ function Settings() {
                                         className="w-full p-4 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/20 transition flex items-center justify-between group"
                                     >
                                         <span className="font-medium">Java {v} (LTS)</span>
-                                        <span className="text-primary opacity-0 group-hover:opacity-100 transition">Install &rarr;</span>
+                                        <span className="text-primary opacity-0 group-hover:opacity-100 transition">{t('settings.java.install')} &rarr;</span>
                                     </button>
                                 ))}
                             </div>
@@ -381,7 +423,7 @@ function Settings() {
                                 onClick={() => setShowJavaModal(false)}
                                 className="mt-6 w-full py-2 text-sm text-gray-400 hover:text-white transition"
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                         </div>
                     </div>
@@ -389,23 +431,23 @@ function Settings() {
 
                 { }
                 <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                    <h2 className="text-lg font-bold mb-6 text-white">Java Runtime</h2>
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.java.title')}</h2>
 
                     <div className="mb-4">
-                        <label className="block text-gray-400 text-sm font-medium mb-2">Java Executable Path</label>
+                        <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.java.path')}</label>
                         <div className="flex gap-2">
                             <input
                                 type="text"
                                 value={settings.javaPath || ''}
                                 readOnly
-                                placeholder="Detecting..."
+                                placeholder={t('settings.java.detecting')}
                                 className="flex-1 bg-black/20 border border-white/5 rounded-lg px-4 py-2 text-sm text-gray-300 focus:outline-none focus:border-primary/50"
                             />
                             <button
                                 onClick={handleBrowseJava}
                                 className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-medium transition border border-white/5"
                             >
-                                Browse
+                                {t('settings.java.browse')}
                             </button>
                             <button
                                 onClick={() => setShowJavaModal(true)}
@@ -415,14 +457,14 @@ function Settings() {
                                 {isInstallingJava ? (
                                     <>
                                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        <span>{javaInstallProgress ? `${Math.round(javaInstallProgress.progress)}%` : 'Installing...'}</span>
+                                        <span>{javaInstallProgress ? `${Math.round(javaInstallProgress.progress)}%` : t('settings.java.installing')}</span>
                                     </>
                                 ) : (
                                     <>
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                         </svg>
-                                        <span>Install Java</span>
+                                        <span>{t('settings.java.install')}</span>
                                     </>
                                 )}
                             </button>
@@ -436,7 +478,7 @@ function Settings() {
                             <svg className="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            Recommended: Leave empty to use bundled Java. Install specific version if needed.
+                            {t('settings.java.recommended')}
                         </p>
                     </div>
 
@@ -444,12 +486,12 @@ function Settings() {
                     {installedRuntimes.length > 0 && (
                         <div className="mt-6 border-t border-white/5 pt-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-sm font-bold text-gray-300">Installed Versions</h3>
+                                <h3 className="text-sm font-bold text-gray-300">{t('settings.java.installed_versions')}</h3>
                                 <button
                                     onClick={() => window.electronAPI.openJavaFolder()}
                                     className="text-xs text-primary hover:text-primary-hover transition"
                                 >
-                                    Open Folder
+                                    {t('settings.java.open_folder')}
                                 </button>
                             </div>
 
@@ -462,19 +504,19 @@ function Settings() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {settings.javaPath === runtime.path ? (
-                                                <span className="px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded border border-green-500/20">Active</span>
+                                                <span className="px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded border border-green-500/20">{t('settings.java.active')}</span>
                                             ) : (
                                                 <button
                                                     onClick={() => handleChange('javaPath', runtime.path)}
                                                     className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-xs rounded transition border border-white/5 hover:border-white/10"
                                                 >
-                                                    Select
+                                                    {t('settings.java.select')}
                                                 </button>
                                             )}
                                             <button
                                                 onClick={() => handleDeleteRuntime(runtime.dirPath)}
                                                 className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded transition"
-                                                title="Delete Runtime"
+                                                title={t('settings.java.delete_runtime')}
                                             >
                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -490,11 +532,11 @@ function Settings() {
 
                 { }
                 <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                    <h2 className="text-lg font-bold mb-6 text-white">Memory Allocation</h2>
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.memory.title')}</h2>
 
                     <div className="grid grid-cols-2 gap-8 mb-6">
                         <div>
-                            <label className="block text-gray-400 text-sm font-medium mb-2">Minimum (MB)</label>
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.memory.min')}</label>
                             <input
                                 type="number"
                                 value={settings.minMemory}
@@ -503,7 +545,7 @@ function Settings() {
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-400 text-sm font-medium mb-2">Maximum (MB)</label>
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.memory.max')}</label>
                             <input
                                 type="number"
                                 value={settings.maxMemory}
@@ -532,11 +574,11 @@ function Settings() {
 
                 { }
                 <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                    <h2 className="text-lg font-bold mb-6 text-white">Resolution</h2>
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.resolution.title')}</h2>
 
                     <div className="grid grid-cols-2 gap-8">
                         <div>
-                            <label className="block text-gray-400 text-sm font-medium mb-2">Width</label>
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.resolution.width')}</label>
                             <input
                                 type="number"
                                 value={settings.resolutionWidth}
@@ -545,7 +587,7 @@ function Settings() {
                             />
                         </div>
                         <div>
-                            <label className="block text-gray-400 text-sm font-medium mb-2">Height</label>
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.resolution.height')}</label>
                             <input
                                 type="number"
                                 value={settings.resolutionHeight}
@@ -558,18 +600,18 @@ function Settings() {
 
                 { }
                 <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                    <h2 className="text-lg font-bold mb-6 text-white">Instance Creation</h2>
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.instance.title')}</h2>
 
                     <ToggleBox
                         checked={settings.copySettingsEnabled || false}
                         onChange={(val) => handleChange('copySettingsEnabled', val)}
-                        label="Copy Settings from Instance"
-                        description="Automatically copy keybinds and options from a selected instance when creating a new one."
+                        label={t('settings.instance.copy_settings')}
+                        description={t('settings.instance.copy_settings_desc')}
                     />
 
                     {settings.copySettingsEnabled && (
                         <div>
-                            <label className="block text-gray-400 text-sm font-medium mb-2">Source Instance</label>
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.instance.source_instance')}</label>
                             <select
                                 value={settings.copySettingsSourceInstance || ''}
                                 onChange={(e) => handleChange('copySettingsSourceInstance', e.target.value)}
@@ -586,53 +628,52 @@ function Settings() {
 
                 { }
                 <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                    <h2 className="text-lg font-bold mb-6 text-white">Launcher Integration</h2>
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.integration.title')}</h2>
 
                     <ToggleBox
                         checked={settings.enableDiscordRPC}
                         onChange={(val) => handleChange('enableDiscordRPC', val)}
-                        label="Discord Rich Presence"
-                        description="Show what you're playing on Discord"
+                        label={t('settings.integration.discord_rpc')}
+                        description={t('settings.integration.discord_rpc_desc')}
                     />
                     <ToggleBox
                         className="mt-4 pt-4 border-t border-white/5"
                         checked={settings.autoUploadLogs || false}
                         onChange={(val) => handleChange('autoUploadLogs', val)}
-                        label="Auto-upload logs on crash"
-                        description="Automatically upload logs to mclo.gs if the game crashes"
+                        label={t('settings.integration.auto_logs')}
+                        description={t('settings.integration.auto_logs_desc')}
                     />
                     <ToggleBox
                         className="mt-6 pt-6 border-t border-white/5"
                         checked={settings.showDisabledFeatures || false}
                         onChange={(val) => handleChange('showDisabledFeatures', val)}
-                        label="Show Disabled Features"
-                        description="Hides or grays out features that are currently disabled (like the Extensions button)."
+                        label={t('settings.integration.disabled_features')}
+                        description={t('settings.integration.disabled_features_desc')}
                     />
                     <ToggleBox
                         className="mt-4 pt-4 border-t border-white/5"
                         checked={settings.optimization || false}
                         onChange={(val) => handleChange('optimization', val)}
-                        label="Enable Optimization"
-                        description="Automatically install performance optimization mods when creating a new instance."
+                        label={t('settings.integration.optimization')}
+                        description={t('settings.integration.optimization_desc')}
                     />
                     <ToggleBox
                         className="mt-4 pt-4 border-t border-white/5"
                         checked={settings.enableAutoInstallMods || false}
                         onChange={(val) => handleChange('enableAutoInstallMods', val)}
-                        label="Enable Auto Install Mods"
-                        description="Automatically install selected mods when creating a new instance. Unavailable mods for specific versions will be skipped."
+                        label={t('settings.integration.auto_mod_install')}
+                        description={t('settings.integration.auto_mod_install_desc')}
                     />
                 </div>
 
                 { }
                 {settings.enableAutoInstallMods && (
                     <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors mt-6">
-                        <h2 className="text-lg font-bold mb-6 text-white">Auto Install Mods Management</h2>
-                        <p className="text-sm text-gray-400 mb-4">Add mods by entering their Modrinth ID or searching by name. These mods will be automatically installed in every new instance.</p>
+                        <h2 className="text-lg font-bold mb-6 text-white">{t('settings.auto_install.management_title')}</h2>
+                        <p className="text-sm text-gray-400 mb-4">{t('settings.auto_install.management_desc')}</p>
 
-                        { }
                         <div className="mb-6">
-                            <label className="block text-gray-400 text-sm font-medium mb-2">Add Auto Install Mod</label>
+                            <label className="block text-gray-400 text-sm font-medium mb-2">{t('settings.auto_install.add_label')}</label>
                             <div className="flex gap-2 mb-3">
                                 <input
                                     type="text"
@@ -645,7 +686,7 @@ function Settings() {
                                             setAutoInstallModsSearchResults([]);
                                         }
                                     }}
-                                    placeholder="Enter Modrinth ID or search mod name..."
+                                    placeholder={t('settings.auto_install.input_placeholder')}
                                     className="flex-1 bg-black/20 border border-white/5 rounded-lg px-4 py-2.5 text-sm text-gray-300 focus:outline-none focus:border-primary/50"
                                     onKeyPress={(e) => e.key === 'Enter' && addAutoInstallMod()}
                                 />
@@ -653,7 +694,7 @@ function Settings() {
                                     onClick={addAutoInstallMod}
                                     className="px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg text-sm font-medium transition"
                                 >
-                                    Add
+                                    {t('settings.auto_install.btn_add')}
                                 </button>
                             </div>
 
@@ -681,13 +722,13 @@ function Settings() {
                         {(settings.autoInstallMods || []).length > 0 ? (
                             <div>
                                 <div className="flex items-center justify-between mb-3">
-                                    <label className="block text-gray-400 text-sm font-medium">Auto Install Mods ({settings.autoInstallMods.length})</label>
+                                    <label className="block text-gray-400 text-sm font-medium">{t('settings.auto_install.count_label', { count: settings.autoInstallMods.length })}</label>
                                 </div>
                                 <input
                                     type="text"
                                     value={autoInstallModsListSearch}
                                     onChange={(e) => setAutoInstallModsListSearch(e.target.value)}
-                                    placeholder="Search mods in list..."
+                                    placeholder={t('settings.auto_install.list_search_placeholder')}
                                     className="w-full mb-3 bg-black/20 border border-white/5 rounded-lg px-4 py-2.5 text-sm text-gray-300 focus:outline-none focus:border-primary/50"
                                 />
                                 <div className="space-y-2">
@@ -705,7 +746,7 @@ function Settings() {
                                                 onClick={() => removeAutoInstallMod(mod)}
                                                 className="px-3 py-1 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded border border-red-500/20 transition"
                                             >
-                                                Remove
+                                                {t('settings.auto_install.remove_btn')}
                                             </button>
                                         </div>
                                     ))}
@@ -714,13 +755,13 @@ function Settings() {
                                         const searchQuery = autoInstallModsListSearch.toLowerCase();
                                         return modName.toLowerCase().includes(searchQuery) || mod.toLowerCase().includes(searchQuery);
                                     }).length === 0 && (
-                                            <div className="text-center py-4 text-gray-500 text-sm">No mods match your search.</div>
+                                            <div className="text-center py-4 text-gray-500 text-sm">{t('settings.auto_install.no_matches')}</div>
                                         )}
                                 </div>
                             </div>
                         ) : (
                             <div className="text-center py-6 bg-black/20 border border-white/5 rounded-lg">
-                                <p className="text-gray-500 text-sm">No auto install mods added yet. Add some to get started!</p>
+                                <p className="text-gray-500 text-sm">{t('settings.auto_install.no_mods')}</p>
                             </div>
                         )}
                     </div>
@@ -732,13 +773,12 @@ function Settings() {
                         <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                         </svg>
-                        Cloud Backup
+                        {t('settings.cloud.title')}
                     </h2>
 
-                    <p className="text-sm text-gray-400 mb-6">Backup your worlds and instances to your favorite cloud storage. Access them from anywhere and restore them easily if something goes wrong.</p>
+                    <p className="text-sm text-gray-400 mb-6">{t('settings.cloud.desc')}</p>
 
                     <div className="space-y-6">
-                        { }
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[
                                 { id: 'GOOGLE_DRIVE', name: 'Google Drive', icon: 'M12 2L2 20h20L12 2z' },
@@ -769,7 +809,7 @@ function Settings() {
                                                 onClick={() => handleCloudLogout(provider.id)}
                                                 className="w-full py-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded border border-red-500/10 transition"
                                             >
-                                                Logout
+                                                {t('settings.cloud.logout')}
                                             </button>
                                         </div>
                                     ) : (
@@ -777,7 +817,7 @@ function Settings() {
                                             onClick={() => handleCloudLogin(provider.id)}
                                             className="w-full py-2 text-xs bg-primary hover:bg-primary-hover text-white rounded font-medium transition"
                                         >
-                                            Login
+                                            {t('settings.cloud.login_btn')}
                                         </button>
                                     )}
                                 </div>
@@ -789,16 +829,16 @@ function Settings() {
                             <ToggleBox
                                 checked={settings.cloudBackupSettings?.enabled || false}
                                 onChange={(val) => handleChange('cloudBackupSettings', { ...settings.cloudBackupSettings, enabled: val })}
-                                label="Enable Cloud Backup"
-                                description="Automatically upload backups to the cloud after local creation."
+                                label={t('settings.cloud.enable_backup')}
+                                description={t('settings.cloud.enable_backup_desc')}
                             />
 
                             {settings.cloudBackupSettings?.enabled && (
                                 <div className="ml-10 space-y-4 animate-slide-down">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <div className="text-sm font-medium text-white">Default Provider</div>
-                                            <div className="text-xs text-gray-500">The cloud service used for automatic backups</div>
+                                            <div className="text-sm font-medium text-white">{t('settings.cloud.default_provider')}</div>
+                                            <div className="text-xs text-gray-500">{t('settings.cloud.default_provider_desc')}</div>
                                         </div>
                                         <select
                                             value={settings.cloudBackupSettings?.provider || 'GOOGLE_DRIVE'}
@@ -813,8 +853,8 @@ function Settings() {
                                     <ToggleBox
                                         checked={settings.cloudBackupSettings?.autoRestore || false}
                                         onChange={(val) => handleChange('cloudBackupSettings', { ...settings.cloudBackupSettings, autoRestore: val })}
-                                        label="Auto-restore from Cloud"
-                                        description="Automatically check for and download missing backups from the cloud."
+                                        label={t('settings.cloud.auto_restore')}
+                                        description={t('settings.cloud.auto_restore_desc')}
                                     />
                                 </div>
                             )}
@@ -827,7 +867,7 @@ function Settings() {
             <div className="bg-surface/50 px-8 py-6 rounded-2xl border border-white/5 mt-6 hover:border-white/10 transition-colors">
                 <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                    Maintenance & Reset
+                    {t('settings.maintenance.title')}
                 </h2>
 
                 <div className="space-y-6">
@@ -835,8 +875,8 @@ function Settings() {
                         <div className="flex items-start gap-3">
                             <svg className="w-5 h-5 text-primary mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             <div>
-                                <h3 className="font-bold text-gray-200 text-sm">Troubleshooting Tools</h3>
-                                <p className="text-xs text-gray-400 mt-1">Use these options if the application is behaving unexpectedly or if you want to clear your data.</p>
+                                <h3 className="font-bold text-gray-200 text-sm">{t('settings.maintenance.troubleshooting_title')}</h3>
+                                <p className="text-xs text-gray-400 mt-1">{t('settings.maintenance.troubleshooting_desc')}</p>
                             </div>
                         </div>
                     </div>
@@ -844,33 +884,33 @@ function Settings() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-white/5 rounded-xl p-4 border border-white/5 flex flex-col justify-between h-auto min-h-[140px]">
                             <div>
-                                <h3 className="font-bold text-white text-sm">Soft Reset</h3>
+                                <h3 className="font-bold text-white text-sm">{t('settings.maintenance.soft_reset_title')}</h3>
                                 <p className="text-xs text-gray-500 mt-2">
-                                    Resets all settings, themes, and caches.
-                                    <span className="block mt-1 text-primary font-bold">✓ Keeps your Instances & Worlds</span>
+                                    {t('settings.maintenance.soft_reset_desc')}
+                                    <span className="block mt-1 text-primary font-bold">✓ {t('settings.maintenance.soft_reset_keep')}</span>
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowSoftResetModal(true)}
                                 className="mt-4 w-full bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg text-sm font-bold transition-colors"
                             >
-                                Soft Reset
+                                {t('settings.maintenance.soft_reset_btn')}
                             </button>
                         </div>
 
                         <div className="bg-red-500/5 rounded-xl p-4 border border-red-500/20 flex flex-col justify-between h-auto min-h-[140px]">
                             <div>
-                                <h3 className="font-bold text-red-400 text-sm">Factory Reset</h3>
+                                <h3 className="font-bold text-red-400 text-sm">{t('settings.maintenance.factory_reset_title')}</h3>
                                 <p className="text-xs text-gray-500 mt-2">
-                                    Completely wipes the application data.
-                                    <span className="block mt-1 text-red-400 font-bold">⚠ Deletes EVERYTHING</span>
+                                    {t('settings.maintenance.factory_reset_desc')}
+                                    <span className="block mt-1 text-red-400 font-bold">⚠ {t('settings.maintenance.factory_reset_warning')}</span>
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowFactoryResetModal(true)}
                                 className="mt-4 w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 py-2 rounded-lg text-sm font-bold transition-colors border border-red-500/20"
                             >
-                                Factory Reset
+                                {t('settings.maintenance.factory_reset_btn')}
                             </button>
                         </div>
                     </div>
@@ -878,29 +918,33 @@ function Settings() {
             </div>
 
             { }
-            {showSoftResetModal && (
-                <ConfirmationModal
-                    title="Soft Reset Application?"
-                    message="This will reset your themes, settings, and accounts. Your Minecraft instances and worlds will be SAFE. The application will restart."
-                    confirmText="Soft Reset"
-                    isDangerous={false}
-                    onConfirm={handleSoftReset}
-                    onCancel={() => setShowSoftResetModal(false)}
-                />
-            )}
+            {
+                showSoftResetModal && (
+                    <ConfirmationModal
+                        title={t('settings.maintenance.soft_reset_modal_title')}
+                        message={t('settings.maintenance.soft_reset_modal_msg')}
+                        confirmText={t('settings.maintenance.soft_reset_btn')}
+                        isDangerous={false}
+                        onConfirm={handleSoftReset}
+                        onCancel={() => setShowSoftResetModal(false)}
+                    />
+                )
+            }
 
             { }
-            {showFactoryResetModal && (
-                <ConfirmationModal
-                    title="⚠ FACTORY RESET ⚠"
-                    message="Are you sure? This will DELETE EVERYTHING including all instances, worlds, and settings. This action cannot be undone."
-                    confirmText="DELETE EVERYTHING"
-                    isDangerous={true}
-                    onConfirm={handleFactoryReset}
-                    onCancel={() => setShowFactoryResetModal(false)}
-                />
-            )}
-        </div>
+            {
+                showFactoryResetModal && (
+                    <ConfirmationModal
+                        title={t('settings.maintenance.factory_reset_modal_title')}
+                        message={t('settings.maintenance.factory_reset_modal_msg')}
+                        confirmText={t('settings.maintenance.factory_reset_confirm_btn')}
+                        isDangerous={true}
+                        onConfirm={handleFactoryReset}
+                        onCancel={() => setShowFactoryResetModal(false)}
+                    />
+                )
+            }
+        </div >
     );
 }
 

@@ -1,0 +1,132 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "README.md"
+      - "CHANGELOG.md"
+      - ".github/workflows/**"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "README.md"
+      - "CHANGELOG.md"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+concurrency:
+  group: build-win-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+      actions: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute build SHA (PR head or push SHA)
+        id: vars
+        shell: bash
+        run: |
+          BUILD_SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "BUILD_SHA=$BUILD_SHA" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${BUILD_SHA:0:7}" >> "$GITHUB_ENV"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Set Electron cache dirs
+        shell: bash
+        run: |
+          echo "ELECTRON_CACHE_DIR=$LOCALAPPDATA\\electron\\Cache" >> "$GITHUB_ENV"
+          echo "ELECTRON_BUILDER_CACHE_DIR=$LOCALAPPDATA\\electron-builder\\Cache" >> "$GITHUB_ENV"
+
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.ELECTRON_CACHE_DIR }}
+            ${{ env.ELECTRON_BUILDER_CACHE_DIR }}
+          key: ${{ runner.os }}-electron-${{ hashFiles('package-lock.json', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Build
+        run: npm run build
+
+      - name: Package
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npx electron-builder --win --publish never
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Add SHA to release filenames
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: |
+          if (Test-Path "release") {
+            Get-ChildItem -Path "release" -File | ForEach-Object {
+              $newName = "$($_.BaseName)-$env:SHORT_SHA$($_.Extension)"
+              Rename-Item -Path $_.FullName -NewName $newName -Force
+            }
+          }
+
+      - name: Check release artifacts exist
+        id: relcheck
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          if [[ -d "release" ]] && compgen -G "release/*" > /dev/null; then
+            echo "has_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload release artifacts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.relcheck.outputs.has_release == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-win-${{ env.SHORT_SHA }}
+          path: release/
+          if-no-files-found: error
+          compression-level: 6
+
+      - name: Check build output exists
+        id: outcheck
+        if: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
+        shell: bash
+        run: |
+          has=false
+          for d in dist build out; do
+            if [[ -d "$d" ]] && compgen -G "$d/*" > /dev/null; then
+              has=true
+              break
+            fi
+          done
+          echo "has_output=$has" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build output (non-main pushes/PRs)
+        if: ${{ (github.event_name != 'push' || github.ref != 'refs/heads/main') && steps.outcheck.outputs.has_output == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-win-${{ env.SHORT_SHA }}
+          path: |
+            dist/
+            build/
+            out/
+          if-no-files-found: error
+          compression-level: 6

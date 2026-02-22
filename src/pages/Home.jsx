@@ -1,34 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import DashboardCustomizer from '../components/DashboardCustomizer';
 import modOfTheDayData from '../data/modOfTheDay.json';
+import { useTranslation } from 'react-i18next';
 
-const formatTimeAgo = (timestamp) => {
-    if (!timestamp) return '';
-    const now = Date.now();
-    const diff = now - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    const weeks = Math.floor(diff / 604800000);
 
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
-    if (weeks === 1) return 'Last week';
-    return `${weeks} weeks ago`;
-};
-
-const formatPlaytime = (ms) => {
-    if (!ms || ms <= 0) return '0h';
-    const hours = Math.floor(ms / 3600000);
-    const minutes = Math.floor((ms % 3600000) / 60000);
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
-};
 
 function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
+    const { t } = useTranslation();
+
+    const formatTimeAgo = (timestamp) => {
+        if (!timestamp) return '';
+        const now = Date.now();
+        const diff = now - timestamp;
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+        const weeks = Math.floor(diff / 604800000);
+
+        if (minutes < 1) return t('common.time.just_now');
+        if (minutes < 60) return t('common.time.minutes_ago', { count: minutes });
+        if (hours < 24) return t('common.time.hours_ago', { count: hours });
+        if (days === 1) return t('common.time.yesterday');
+        if (days < 7) return t('common.time.days_ago', { count: days });
+        if (weeks === 1) return t('common.time.last_week');
+        return t('common.time.weeks_ago', { count: weeks });
+    };
+
+    const formatPlaytime = (ms) => {
+        if (!ms || ms <= 0) return t('common.time.0h');
+        const hours = Math.floor(ms / 3600000);
+        const minutes = Math.floor((ms % 3600000) / 60000);
+        if (hours > 0) return t('common.time.hours_minutes', { hours, minutes });
+        return t('common.time.minutes', { minutes });
+    };
     const [instances, setInstances] = useState([]);
     const [modpacks, setModpacks] = useState([]);
     const [loadingModpacks, setLoadingModpacks] = useState(false);
@@ -42,7 +46,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
     const [modIds, setModIds] = useState([]);
     const [currentModId, setCurrentModId] = useState(null);
     const [dashSettings, setDashSettings] = useState({
-        welcomeMessage: 'Welcome back!',
+        welcomeMessage: t('home.welcome_back'),
         layout: [
             { id: 'recent-instances', visible: true, width: 12 },
             { id: 'recent-worlds', visible: true, width: 12 },
@@ -313,7 +317,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                 {isEditing && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-primary text-black text-[10px] font-bold px-2 py-0.5 rounded-full z-10 shadow-lg">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-                        Drag to reorder
+                        {t('home.drag_to_reorder', 'Drag to reorder')}
                     </div>
                 )}
 
@@ -333,7 +337,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                 { }
                 {section.id === 'recent-instances' && recentInstances.length > 0 && (
                     <div className="mb-10">
-                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Jump back in</h2>
+                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{t('home.jump_back_in')}</h2>
                         <div className="space-y-2">
                             {recentInstances.map((instance) => {
                                 const status = runningInstances[instance.name];
@@ -348,7 +352,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                                         className="group flex items-center gap-4 bg-surface/40 hover:bg-surface/60 border border-white/5 hover:border-primary/30 rounded-xl px-4 py-3 cursor-pointer transition-all"
                                     >
                                         <div className="w-12 h-12 bg-background rounded-lg flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
-                                            {instance.icon && instance.icon.startsWith('data:') ? (
+                                            {instance.icon && (instance.icon.startsWith('data:') || instance.icon.startsWith('app-media://')) ? (
                                                 <img src={instance.icon} alt="" className="w-full h-full object-cover" />
                                             ) : (
                                                 <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
@@ -358,12 +362,12 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                                             <div className="flex items-center gap-2">
                                                 <span className="font-bold text-white truncate">{instance.name}</span>
                                                 {isRunning && (
-                                                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">Running</span>
+                                                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{t('common.running')}</span>
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                                                 {instance.lastPlayed && (
-                                                    <span>Played {formatTimeAgo(instance.lastPlayed)}</span>
+                                                    <span>{t('home.played_ago', { time: formatTimeAgo(instance.lastPlayed) })}</span>
                                                 )}
                                                 <span>•</span>
                                                 <span className="bg-white/5 px-1.5 py-0.5 rounded capitalize text-[10px]">{instance.loader || 'Vanilla'}</span>
@@ -387,11 +391,11 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                                                 }`}
                                         >
                                             {isRunning ? (
-                                                <><svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><rect x="6" y="6" width="8" height="8" rx="1" /></svg>Stop</>
+                                                <><svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><rect x="6" y="6" width="8" height="8" rx="1" /></svg>{t('common.stop')}</>
                                             ) : (isInstalling || isLaunching || isPending) ? (
-                                                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>{isInstalling ? 'Installing...' : 'Starting...'}</>
+                                                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>{isInstalling ? t('common.installing') : t('common.starting')}</>
                                             ) : (
-                                                <><svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>Play</>
+                                                <><svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>{t('common.play')}</>
                                             )}
                                         </button>
                                         <button
@@ -409,7 +413,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
 
                 {section.id === 'recent-worlds' && recentWorlds.length > 0 && (
                     <div className="mb-10">
-                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Recent Worlds</h2>
+                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{t('home.recent_worlds')}</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {recentWorlds.map((world, idx) => {
                                 const inst = instances.find(i => i.name === world.instanceName);
@@ -426,7 +430,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                                     >
                                         <div className="flex items-center gap-3 mb-3">
                                             <div className="w-8 h-8 bg-background rounded-lg flex items-center justify-center overflow-hidden border border-white/5 shrink-0">
-                                                {world.instanceIcon && world.instanceIcon.startsWith('data:') ? (
+                                                {world.instanceIcon && (world.instanceIcon.startsWith('data:') || world.instanceIcon.startsWith('app-media://')) ? (
                                                     <img src={world.instanceIcon} alt="" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
@@ -453,7 +457,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                                                 disabled={isInstalling || isLaunching || isPending}
                                                 className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${isRunning ? 'bg-red-500/20 text-red-400 border border-red-500/30' : (isInstalling || isLaunching || isPending) ? 'bg-gray-700/50 text-gray-500 border border-white/5' : 'bg-white/5 text-gray-300 hover:bg-primary/20 hover:text-primary border border-white/10'}`}
                                             >
-                                                {isRunning ? 'Stop' : (isInstalling || isLaunching || isPending) ? 'Starting' : 'Play'}
+                                                {isRunning ? t('common.stop') : (isInstalling || isLaunching || isPending) ? t('common.starting') : t('common.play')}
                                             </button>
                                         </div>
                                     </div>
@@ -466,11 +470,11 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                 {section.id === 'modpacks' && (
                     <div className="mb-8">
                         <button onClick={() => onNavigateSearch && onNavigateSearch('modpack')} className="flex items-center gap-2 mb-4 group cursor-pointer">
-                            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider group-hover:text-primary transition-colors">Discover a modpack</h2>
+                            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider group-hover:text-primary transition-colors">{t('home.discover_modpack')}</h2>
                             <svg className="w-4 h-4 text-gray-500 group-hover:text-primary group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </button>
                         {loadingModpacks ? (
-                            <div className="flex items-center gap-3 text-gray-500 text-sm"><div className="w-5 h-5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></div>Loading modpacks...</div>
+                            <div className="flex items-center gap-3 text-gray-500 text-sm"><div className="w-5 h-5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></div>{t('home.loading_modpacks')}</div>
                         ) : (
                             <div className={`grid gap-4 ${section.width === 6 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-2 md:grid-cols-3'}`}>
                                 {modpacks.map((pack) => (
@@ -483,7 +487,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                                                 {pack.icon_url && <img src={pack.icon_url} alt="" className="w-8 h-8 rounded-lg shrink-0 border border-white/10" />}
                                                 <div className="min-w-0">
                                                     <h3 className="text-sm font-bold text-white truncate group-hover:text-primary transition-colors">{pack.title}</h3>
-                                                    <p className="text-[10px] text-gray-500 mt-0.5">by {pack.author}</p>
+                                                    <p className="text-[10px] text-gray-500 mt-0.5">{t('home.by_author', { author: pack.author })}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -496,9 +500,9 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
 
                 {section.id === 'mod-of-the-day' && (
                     <div className="mb-8">
-                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Mod of the Day</h2>
+                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{t('home.mod_of_the_day')}</h2>
                         {loadingModOfTheDay ? (
-                            <div className="flex items-center gap-3 text-gray-500 text-sm"><div className="w-5 h-5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></div>Loading mod...</div>
+                            <div className="flex items-center gap-3 text-gray-500 text-sm"><div className="w-5 h-5 border-2 border-white/20 border-t-primary rounded-full animate-spin"></div>{t('home.loading_mod')}</div>
                         ) : modOfTheDay ? (
                             <div className="rounded-xl overflow-hidden border border-white/5 bg-surface/30 hover:bg-surface/50 transition-all">
                                 { }
@@ -569,7 +573,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                                                 </h3>
 
                                                 <span className="text-xs text-gray-500">
-                                                    by {modOfTheDay.author}
+                                                    {t('home.by_author', { author: modOfTheDay.author })}
                                                 </span>
 
                                             </div>
@@ -666,7 +670,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                                             onClick={loadNewModOfTheDay}
                                             className="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg text-xs font-bold transition-all border border-white/10"
                                         >
-                                            Other Mod
+                                            {t('home.other_mod')}
                                         </button>
 
                                     </div>
@@ -675,7 +679,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
 
                             </div>
                         ) : (
-                            <div className="p-4 text-center text-gray-400 text-sm">Failed to load Mod of the Day</div>
+                            <div className="p-4 text-center text-gray-400 text-sm">{t('home.failed_to_load_mod')}</div>
                         )}
                     </div>
                 )}
@@ -689,9 +693,9 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
             <div className="mb-8 flex justify-between items-start">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-1">
-                        {dashSettings.welcomeMessage || 'Welcome back!'}
+                        {dashSettings.welcomeMessage === 'Welcome back!' || dashSettings.welcomeMessage === t('home.welcome_back') ? t('home.welcome_back') : dashSettings.welcomeMessage}
                     </h1>
-                    <p className="text-gray-500 text-sm">Everything in its place.</p>
+                    <p className="text-gray-500 text-sm">{t('home.everything_place')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     {isEditing && (
@@ -700,7 +704,7 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch }) {
                             className="px-4 py-2 bg-primary text-black font-bold rounded-xl hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                            Save Layout
+                            {t('home.save_layout')}
                         </button>
                     )}
                     <button

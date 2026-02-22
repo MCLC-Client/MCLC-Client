@@ -1,0 +1,9 @@
+{
+    "id": "icon-picker",
+    "name": "Icon Picker",
+    "version": "1.0.0",
+    "description": "Seamlessly change your Minecraft instance icons with a grid of defaults or custom uploads.",
+    "main": "main.js",
+    "author": "MCLC Team",
+    "icon": "assets/icons/sword.png"
+}

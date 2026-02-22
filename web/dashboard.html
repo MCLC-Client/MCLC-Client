@@ -1078,7 +1078,7 @@
             const list = document.getElementById('users-list-body');
             list.innerHTML = users.map(u => {
                 const avatar = fixPath(u.avatar);
-                return `
+                return DOMPurify.sanitize(`
                 <tr class="border-b border-white/5 hover:bg-white/5 transition-all">
                     <td class="p-6">
                         <div class="flex items-center gap-4">
@@ -1109,7 +1109,7 @@
                         </div>
                     </td>
                 </tr>
-                `;
+                `);
             }).join('');
         }
 

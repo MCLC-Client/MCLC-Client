@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useExtensions } from '../context/ExtensionContext';
 
 const Extensions = () => {
+    const { t } = useTranslation();
     const { installedExtensions, refreshExtensions, unloadExtension, toggleExtension } = useExtensions();
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -40,8 +42,8 @@ const Extensions = () => {
         <div className="p-8 text-white h-full overflow-y-auto">
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Extensions</h1>
-                    <p className="text-gray-400 mt-1">Manage and configure your installed extensions.</p>
+                    <h1 className="text-3xl font-bold text-white">{t('extensions.title')}</h1>
+                    <p className="text-gray-400 mt-1">{t('extensions.desc')}</p>
                 </div>
                 <button
                     onClick={handleUpload}
@@ -50,7 +52,7 @@ const Extensions = () => {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
-                    Upload Extension
+                    {t('extensions.install')}
                 </button>
             </div>
 
@@ -60,8 +62,8 @@ const Extensions = () => {
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
-                        <p className="text-gray-500 font-medium text-lg">No extensions installed</p>
-                        <p className="text-gray-600 text-sm mt-1">Upload a .zip or .mclcextension file to get started.</p>
+                        <p className="text-gray-500 font-medium text-lg">{t('extensions.no_extensions')}</p>
+                        <p className="text-gray-600 text-sm mt-1">{t('dashboard.import_file')}</p>
                     </div>
                 ) : (
                     installedExtensions.map(ext => (
@@ -102,7 +104,7 @@ const Extensions = () => {
                                         onChange={(e) => toggleExtension(ext.id, e.target.checked)}
                                     />
                                     <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                    <span className="ml-3 text-sm font-medium text-gray-300 min-w-[60px]">{ext.enabled ? 'Enabled' : 'Disabled'}</span>
+                                    <span className="ml-3 text-sm font-medium text-gray-300 min-w-[60px]">{ext.enabled ? t('common.enabled') : t('common.disabled')}</span>
                                 </label>
 
                                 <div className="h-8 w-[1px] bg-white/10"></div>
@@ -110,7 +112,7 @@ const Extensions = () => {
                                 <button
                                     onClick={() => handleRemove(ext.id)}
                                     className="p-2 rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                                    title="Uninstall"
+                                    title={t('extensions.uninstall')}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

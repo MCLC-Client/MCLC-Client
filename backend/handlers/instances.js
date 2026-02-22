@@ -6,6 +6,7 @@ const path = require('path');
 const os = require('os');
 const { app, ipcMain, shell, dialog } = require('electron');
 console.log('Loaded instances handler. Dialog available:', !!dialog);
+console.log('[DEBUG] CANARY: INSTANCES_JS_V2_LOADED');
 const axios = require('axios');
 const zlib = require('zlib');
 const { promisify } = require('util');
@@ -340,6 +341,22 @@ async function installNeoForgeLoader(instanceDir, mcVersion, loaderVersion, onPr
         console.error('NeoForge install error:', e.message);
         return { success: false, error: e.message };
     }
+}
+
+function sanitizeInstanceConfig(config) {
+    if (!config || typeof config !== 'object') return {};
+    const allowedKeys = [
+        'name', 'version', 'loader', 'loaderVersion', 'versionId', 'icon',
+        'created', 'playtime', 'lastPlayed', 'status', 'imported',
+        'javaPath', 'minMemory', 'maxMemory', 'resolutionWidth', 'resolutionHeight'
+    ];
+    const cleanConfig = {};
+    for (const key of allowedKeys) {
+        if (config[key] !== undefined) {
+            cleanConfig[key] = config[key];
+        }
+    }
+    return cleanConfig;
 }
 
 module.exports = (ipcMain, win) => {
@@ -805,7 +822,7 @@ module.exports = (ipcMain, win) => {
             })();
         };
 
-        const installMrPack = async (packPath, nameOverride = null) => {
+        const installMrPack = async (packPath, nameOverride = null, iconUrl = null) => {
             try {
                 const zip = new AdmZip(packPath);
 
@@ -849,6 +866,17 @@ module.exports = (ipcMain, win) => {
                     status: 'installing',
                     created: Date.now()
                 };
+
+                if (iconUrl) {
+                    try {
+                        const iconPath = path.join(targetDir, 'icon.png');
+                        await downloadFile(iconUrl, iconPath);
+                        instanceConfig.icon = `app-media:///${iconPath.replace(/\\/g, '/')}`;
+                        console.log(`[Import:MrPack] Icon downloaded and set: ${iconPath}`);
+                    } catch (err) {
+                        console.error('[Import:MrPack] Failed to download icon:', err);
+                    }
+                }
 
                 await fs.writeJson(path.join(targetDir, 'instance.json'), instanceConfig, { spaces: 4 });
                 (async () => {
@@ -1065,7 +1093,8 @@ module.exports = (ipcMain, win) => {
                     return await installMrPack(packPath);
                 } else if (ext === '.mcpack' || zip.getEntry('instance.json')) {
                     const instanceJsonEntry = zip.getEntry('instance.json');
-                    const instanceConfig = JSON.parse(instanceJsonEntry.getData().toString('utf8'));
+                    const rawInstanceConfig = JSON.parse(instanceJsonEntry.getData().toString('utf8'));
+                    const instanceConfig = sanitizeInstanceConfig(rawInstanceConfig);
                     let instanceName = instanceConfig.name || path.basename(packPath, path.extname(packPath));
                     let targetDir = path.join(instancesDir, instanceName);
                     let counter = 1;
@@ -1519,29 +1548,56 @@ module.exports = (ipcMain, win) => {
             return backupsDir;
         });
 
-        ipcMain.handle('instance:restore-local-backup', async (_, instanceName, backupFileName) => {
+        ipcMain.handle('instance:restore-local-backup', async (_, instanceName, backupPath) => {
+            const instanceDir = path.join(instancesDir, instanceName);
+            const targetSavesDir = path.join(instanceDir, 'saves');
+
             try {
-                const backupPath = path.isAbsolute(backupFileName)
-                    ? backupFileName
-                    : path.join(globalBackupsDir, instanceName, backupFileName);
-
-                const targetSavesDir = path.join(instancesDir, instanceName, 'saves');
-
-                if (!await fs.pathExists(backupPath)) throw new Error('Backup file not found');
+                if (!await fs.pathExists(backupPath)) return { success: false, error: 'Backup file not found' };
 
                 const zip = new AdmZip(backupPath);
-                zip.extractAllTo(targetSavesDir, true);
+                const zipEntries = zip.getEntries();
+
+                for (const entry of zipEntries) {
+                    if (entry.isDirectory) continue;
+
+                    const entryName = entry.entryName;
+                    const normalizedEntry = path.normalize(entryName);
+
+                    // Security: Prevent path traversal (V10)
+                    if (normalizedEntry.startsWith('..') || path.isAbsolute(normalizedEntry)) {
+                        console.warn(`[Instances] Skipping suspicious entry in backup ZIP: ${entryName}`);
+                        continue;
+                    }
+
+                    const destPath = path.join(targetSavesDir, normalizedEntry);
+                    if (!destPath.startsWith(targetSavesDir)) {
+                        console.warn(`[Instances] Blocked attempt to write outside saves directory: ${destPath}`);
+                        continue;
+                    }
+
+                    await fs.ensureDir(path.dirname(destPath));
+                    await fs.writeFile(destPath, entry.getData());
+                }
 
                 return { success: true };
             } catch (e) {
+                console.error('[Instances] Restore error:', e);
                 return { success: false, error: e.message };
             }
         });
 
         ipcMain.handle('instance:remove-file', async (_, filePath) => {
             try {
-                if (await fs.pathExists(filePath)) {
-                    await fs.remove(filePath);
+                // Security: Ensure the path is within the instances directory
+                const resolvedPath = path.resolve(filePath);
+                if (!resolvedPath.startsWith(instancesDir)) {
+                    console.error(`[Instances] Blocked attempt to delete file outside instances directory: ${resolvedPath}`);
+                    return { success: false, error: 'Access denied: Path is outside of instances directory' };
+                }
+
+                if (await fs.pathExists(resolvedPath)) {
+                    await fs.remove(resolvedPath);
                     return { success: true };
                 }
                 return { success: false, error: 'File not found' };
@@ -1835,7 +1891,8 @@ module.exports = (ipcMain, win) => {
                 const configPath = path.join(instancesDir, instanceName, 'instance.json');
                 if (await fs.pathExists(configPath)) {
                     const current = await fs.readJson(configPath);
-                    const updated = { ...current, ...newConfig };
+                    const safeNewConfig = sanitizeInstanceConfig(newConfig);
+                    const updated = { ...current, ...safeNewConfig };
                     await fs.writeJson(configPath, updated, { spaces: 4 });
                     return { success: true };
                 }
@@ -1894,7 +1951,8 @@ module.exports = (ipcMain, win) => {
                 await fs.copy(sourcePath, destPath);
                 const configPath = path.join(destPath, 'instance.json');
                 if (await fs.pathExists(configPath)) {
-                    const config = await fs.readJson(configPath);
+                    const rawConfig = await fs.readJson(configPath);
+                    const config = sanitizeInstanceConfig(rawConfig);
                     config.name = newName;
                     config.created = Date.now();
                     config.playtime = 0;
@@ -2212,9 +2270,13 @@ module.exports = (ipcMain, win) => {
             }
         });
 
-        ipcMain.handle('instance:install-modpack', async (_, url, name) => {
+        ipcMain.handle('instance:install-modpack', async (_, url, name, iconUrl) => {
+            console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+            console.log(`[Modpack:Install] TRIGGERED for ${name}`);
+            console.log(`[Modpack:Install] URL: ${url}`);
+            console.log(`[Modpack:Install] ICON_URL: ${iconUrl}`);
+            console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
             try {
-                console.log(`[Modpack:Install] URL: ${url}, Name: ${name}`);
                 const tempPath = path.join(os.tmpdir(), `mclc-modpack-${Date.now()}.mrpack`);
                 if (win && win.webContents) {
                     win.webContents.send('install:progress', { instanceName: name, progress: 1, status: 'Downloading Modpack...' });
@@ -2223,7 +2285,7 @@ module.exports = (ipcMain, win) => {
                 await downloadFile(url, tempPath);
                 console.log(`[Modpack:Install] Downloaded to ${tempPath}`);
 
-                const result = await installMrPack(tempPath, name);
+                const result = await installMrPack(tempPath, name, iconUrl);
                 await fs.remove(tempPath);
 
                 return result;
@@ -2240,7 +2302,8 @@ module.exports = (ipcMain, win) => {
                 if (!await fs.pathExists(configPath)) throw new Error('Instance not found');
 
                 const currentConfig = await fs.readJson(configPath);
-                const finalConfig = { ...currentConfig, ...newConfig, status: 'installing' };
+                const safeNewConfig = sanitizeInstanceConfig(newConfig);
+                const finalConfig = { ...currentConfig, ...safeNewConfig, status: 'installing' };
                 await fs.writeJson(configPath, finalConfig, { spaces: 4 });
                 startBackgroundInstall(instanceName, finalConfig, false, true);
 

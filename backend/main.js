@@ -23,7 +23,7 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
-            sandbox: false
+            sandbox: true,
         },
     });
 
@@ -111,14 +111,19 @@ function createWindow() {
         else mainWindow.maximize();
     });
     ipcMain.on('window-close', () => mainWindow.close());
-    ipcMain.handle('open-external', async (event, url) => {
+    ipcMain.handle('open-external', async (_, url) => {
         try {
-            const { shell } = require('electron');
-            await shell.openExternal(url);
-            return { success: true };
-        } catch (error) {
-            console.error('Error opening external URL:', error);
-            return { success: false, error: error.message };
+            const parsedUrl = new URL(url);
+            if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
+                await shell.openExternal(url);
+                return { success: true };
+            } else {
+                console.warn(`[Main] Blocked attempt to open non-http(s) URL: ${url}`);
+                return { success: false, error: 'Blocked non-http(s) URL' };
+            }
+        } catch (e) {
+            console.error(`[Main] Failed to open external URL: ${url}`, e);
+            return { success: false, error: e.message };
         }
     });
 

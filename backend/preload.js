@@ -66,7 +66,7 @@ const electronAPI = {
     importFile: () => ipcRenderer.invoke('instance:unified-import-v3'),
     ping: () => ipcRenderer.invoke('ping'),
     getInstances: () => ipcRenderer.invoke('instance:get-all'),
-    installModpack: (url, name) => ipcRenderer.invoke('instance:install-modpack', url, name),
+    installModpack: (url, name, iconUrl) => ipcRenderer.invoke('instance:install-modpack', url, name, iconUrl),
     searchModrinth: (query, facets, options) => ipcRenderer.invoke('modrinth:search', query, facets, options),
     modrinthSearch: (query, facets, options) => ipcRenderer.invoke('modrinth:search', query, facets, options),
     getServerMods: (serverName) => ipcRenderer.invoke('server:get-mods', serverName),
@@ -110,6 +110,32 @@ const electronAPI = {
     saveLocalSkin: (filePath) => ipcRenderer.invoke('skin:save-local', filePath),
     getLocalSkins: () => ipcRenderer.invoke('skin:get-local'),
     deleteLocalSkin: (id) => ipcRenderer.invoke('skin:delete-local', id),
+    onUpdateAvailable: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('update:available', subscription);
+        return () => ipcRenderer.removeListener('update:available', subscription);
+    },
+    onUpdateNotAvailable: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('update:not-available', subscription);
+        return () => ipcRenderer.removeListener('update:not-available', subscription);
+    },
+    onUpdateProgress: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('update:progress', subscription);
+        return () => ipcRenderer.removeListener('update:progress', subscription);
+    },
+    onUpdateDownloaded: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('update:downloaded', subscription);
+        return () => ipcRenderer.removeListener('update:downloaded', subscription);
+    },
+    onUpdateError: (callback) => {
+        const subscription = (_event, value) => callback(value);
+        ipcRenderer.on('update:error', subscription);
+        return () => ipcRenderer.removeListener('update:error', subscription);
+    },
+    restartAndInstall: () => ipcRenderer.send('update:quit-and-install'),
     renameLocalSkin: (id, newName) => ipcRenderer.invoke('skin:rename-local', id, newName),
     onLaunchProgress: (callback) => {
         const subscription = (_event, value) => callback(value);

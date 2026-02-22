@@ -10,15 +10,10 @@ import * as ReactWindow from 'react-window';
 const { FixedSizeGrid } = ReactWindow;
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import OptimizedImage from '../components/OptimizedImage';
+import { useTranslation } from 'react-i18next';
 
 const DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'%3E%3C/path%3E%3Cpolyline points='3.27 6.96 12 12.01 20.73 6.96'%3E%3C/polyline%3E%3Cline x1='12' y1='22.08' x2='12' y2='12'%3E%3C/line%3E%3C/svg%3E";
-const formatPlaytime = (ms) => {
-    if (!ms || ms <= 0) return '0h';
-    const hours = Math.floor(ms / 3600000);
-    const minutes = Math.floor((ms % 3600000) / 60000);
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
-};
+
 
 const InstanceCard = ({
     instance,
@@ -29,8 +24,17 @@ const InstanceCard = ({
     handleContextMenu,
     addNotification,
     loadInstances,
-    setPendingLaunches
+    setPendingLaunches,
+    t
 }) => {
+    const formatPlaytime = (ms) => {
+        if (!ms || ms <= 0) return t('common.time.0h');
+        const hours = Math.floor(ms / 3600000);
+        const minutes = Math.floor((ms % 3600000) / 60000);
+        if (hours > 0) return t('common.time.hours_minutes', { hours, minutes });
+        return t('common.time.minutes', { minutes });
+    };
+
     const liveStatus = runningInstances[instance.name];
     const persistedStatus = instance.status;
     const installStateKey = Object.keys(installProgress).find(k => k.toLowerCase() === instance.name.toLowerCase());
@@ -61,12 +65,18 @@ const InstanceCard = ({
             </button>
 
             <div className="flex items-start gap-4 mb-3 relative z-10">
-                <OptimizedImage
-                    src={instance.icon}
-                    alt={instance.name}
-                    className="w-16 h-16 bg-background rounded-lg flex items-center justify-center text-4xl shadow-inner border border-white/5 overflow-hidden"
-                    fallback={<svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
-                />
+                {(instance.icon && (instance.icon.startsWith('data:') || instance.icon.startsWith('app-media://') || instance.icon.startsWith('http'))) ? (
+                    <OptimizedImage
+                        src={instance.icon}
+                        alt={instance.name}
+                        className="w-16 h-16 bg-background rounded-lg flex items-center justify-center text-4xl shadow-inner border border-white/5 overflow-hidden"
+                        fallback={<svg className="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
+                    />
+                ) : (
+                    <div className="w-16 h-16 bg-background rounded-lg flex items-center justify-center text-4xl shadow-inner border border-white/5 shrink-0">
+                        <span className="text-2xl">{instance.icon || '📦'}</span>
+                    </div>
+                )}
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-lg text-white truncate group-hover:text-primary transition-colors">{instance.name}</h3>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
@@ -76,7 +86,7 @@ const InstanceCard = ({
                     {status && status !== 'ready' && status !== 'stopped' && (
                         <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-primary animate-pulse">
                             <div className="w-2 h-2 rounded-full bg-primary"></div>
-                            {isInstalling ? (installState ? `Installing (${installState.progress}%)` : 'Installing...') : isLaunching ? 'Launching...' : 'Running'}
+                            {isInstalling ? (installState ? `${t('common.installing')} (${installState.progress}%)` : t('common.installing')) : isLaunching ? t('common.starting') : t('common.running')}
                         </div>
                     )}
                 </div>
@@ -114,7 +124,7 @@ const InstanceCard = ({
                         }
                     }}
                     className={`w-10 h-10 rounded-full flex items-center justify-center transform transition-all duration-300 shadow-lg z-20 ${isRunning ? 'bg-red-500 hover:bg-red-400 text-white opacity-100' : (isInstalling || isLaunching || pendingLaunches[instance.name]) ? 'bg-gray-700 text-gray-400 cursor-wait opacity-100' : 'bg-primary text-black opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 hover:bg-primary-hover hover:scale-110'}`}
-                    title={isRunning ? "Stop" : isInstalling ? (installState ? installState.status : "Installing...") : isLaunching ? "Launching..." : pendingLaunches[instance.name] ? "Starting..." : "Launch Game"}
+                    title={isRunning ? t('common.stop') : isInstalling ? (installState ? installState.status : t('common.installing')) : isLaunching ? t('common.starting') : pendingLaunches[instance.name] ? t('common.starting') : t('dashboard.launch_game', 'Launch Game')}
                     disabled={isInstalling || isLaunching || pendingLaunches[instance.name]}
                 >
                     {isRunning ? (
@@ -132,6 +142,7 @@ const InstanceCard = ({
 
 function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCreateHandled }) {
     const { addNotification } = useNotification();
+    const { t } = useTranslation();
     const [instances, setInstances] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     useEffect(() => {
@@ -185,7 +196,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
     }, []);
 
     const handleCodeImportComplete = async (modpackData) => {
-        addNotification(`Starting background import for "${modpackData.name}"...`, 'info');
+        addNotification(t('dashboard.import_starting', { name: modpackData.name }), 'info');
 
         try {
 
@@ -204,14 +215,14 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                 }));
                 window.electronAPI.installSharedContent(instanceName, modpackData);
 
-                addNotification(`Instance "${instanceName}" created. Download starting in the background.`, 'success');
+                addNotification(t('dashboard.instance_created', { name: instanceName }), 'success');
                 loadInstances();
             } else {
-                addNotification(`Failed to create instance: ${createRes.error}`, 'error');
+                addNotification(t('dashboard.create_failed', { error: createRes.error }), 'error');
             }
         } catch (error) {
             console.error('Code import error:', error);
-            addNotification(`Error during import: ${error.message}`, 'error');
+            addNotification(t('dashboard.import_failed', { error: error.message }), 'error');
         }
     };
 
@@ -516,15 +527,15 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
     ];
 
     const sortOptions = [
-        { value: 'name', label: 'Sort by: Name' },
-        { value: 'version', label: 'Sort by: Game version' },
-        { value: 'playtime', label: 'Sort by: Playtime' }
+        { value: 'name', label: t('dashboard.sort.name') },
+        { value: 'version', label: t('dashboard.sort.version') },
+        { value: 'playtime', label: t('dashboard.sort.playtime') }
     ];
 
     const groupOptions = [
-        { value: 'none', label: 'Group by: None' },
-        { value: 'version', label: 'Group by: Game version' },
-        { value: 'loader', label: 'Group by: Loader' }
+        { value: 'none', label: t('dashboard.group.none') },
+        { value: 'version', label: t('dashboard.group.version') },
+        { value: 'loader', label: t('dashboard.group.loader') }
     ];
     const filteredInstances = instances.filter(inst =>
         inst.name.toLowerCase().includes(deferredSearchQuery.toLowerCase()) ||
@@ -565,18 +576,18 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                 {isLoading && <LoadingOverlay message="Processing..." />}
                 <div className="flex justify-between items-center mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-1">Library</h1>
-                        <p className="text-gray-400 text-sm">Manage your instances</p>
+                        <h1 className="text-3xl font-bold text-white mb-1">{t('dashboard.title')}</h1>
+                        <p className="text-gray-400 text-sm">{t('dashboard.desc')}</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="relative group">
                             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             <input
                                 type="text"
-                                placeholder="Search"
+                                placeholder={t('dashboard.search_placeholder')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="bg-background border border-white/10 rounded-xl py-2 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 outline-none transition-all w-64"
+                                className="w-64 bg-background border border-white/10 rounded-xl py-2 pl-10 pr-4 text-sm text-white placeholder-gray-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 outline-none transition-all"
                             />
                         </div>
                         <div className="w-48">
@@ -590,26 +601,26 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                         <div className="relative" ref={createMenuRef}>
                             <button
                                 onClick={() => setShowCreateMenu(!showCreateMenu)}
-                                className="bg-primary hover:bg-primary-hover text-black font-bold px-6 py-2.5 rounded-xl shadow-primary-glow transition-all transform hover:scale-105 flex items-center gap-2 text-sm"
+                                className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-black transition-all transform rounded-xl shadow-primary-glow bg-primary hover:bg-primary-hover hover:scale-105"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
-                                New Instance
+                                {t('dashboard.new_instance')}
                                 <svg className={`w-4 h-4 transition-transform ${showCreateMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                             </button>
 
                             {showCreateMenu && (
-                                <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden py-2 animate-in fade-in slide-in-from-top-2 duration-100">
+                                <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-white/10 bg-surface py-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-100">
                                     <button
                                         onClick={() => {
                                             setShowCreateModal(true);
                                             setShowCreateMenu(false);
                                         }}
-                                        className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-sm"
+                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-white/5"
                                     >
-                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                                        Manual Creation
+                                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                        {t('dashboard.manual_creation')}
                                     </button>
-                                    <div className="h-px bg-white/5 my-1"></div>
+                                    <div className="my-1 h-px bg-white/5"></div>
                                     <button
                                         onClick={async () => {
                                             setShowCreateMenu(false);
@@ -631,20 +642,20 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                                 addNotification(`Import error: ${err.message}`, 'error');
                                             }
                                         }}
-                                        className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-sm"
+                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-white/5"
                                     >
-                                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                        Import from File
+                                        <svg className="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                        {t('dashboard.import_file')}
                                     </button>
                                     <button
                                         onClick={() => {
                                             setShowCreateMenu(false);
                                             setShowCodeModal(true);
                                         }}
-                                        className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-sm"
+                                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-white/5"
                                     >
-                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-                                        Import from Code
+                                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                                        {t('dashboard.import_code')}
                                     </button>
                                 </div>
                             )}
@@ -652,20 +663,20 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                     </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-hidden pr-1 flex flex-col relative w-full h-full">
+                <div className="relative flex h-full w-full flex-col overflow-hidden pr-1">
                     { }
-                    <div className="flex-1 min-h-0 overflow-hidden pr-1 flex flex-col">
+                    <div className="flex h-full min-h-0 flex-col overflow-hidden pr-1">
                         {groupMethod !== 'none' ? (
-                            <div className="h-full overflow-y-auto custom-scrollbar pb-20">
+                            <div className="custom-scrollbar h-full overflow-y-auto pb-20">
                                 {groupedData.map((group, gIdx) => (
                                     <div key={group.title || 'all'} className={gIdx > 0 ? 'mt-3' : ''}>
                                         {group.title && (
-                                            <div className="flex items-center gap-4 mb-4">
-                                                <span className="text-white font-bold text-sm whitespace-nowrap opacity-80">{group.title}</span>
-                                                <div className="h-px bg-white/10 flex-1"></div>
+                                            <div className="mb-4 flex items-center gap-4">
+                                                <span className="whitespace-nowrap text-sm font-bold text-white opacity-80">{group.title}</span>
+                                                <div className="flex-1 h-px bg-white/10"></div>
                                             </div>
                                         )}
-                                        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 mb-8">
+                                        <div className="mb-8 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
                                             {group.items.map((instance) => (
                                                 <InstanceCard
                                                     key={instance.name}
@@ -678,6 +689,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                                     addNotification={addNotification}
                                                     loadInstances={loadInstances}
                                                     setPendingLaunches={setPendingLaunches}
+                                                    t={t}
                                                 />
                                             ))}
                                         </div>
@@ -685,7 +697,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                 ))}
                             </div>
                         ) : (
-                            <div className="h-full overflow-y-auto custom-scrollbar pb-20">
+                            <div className="custom-scrollbar h-full overflow-y-auto pb-20">
                                 <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6 p-1">
                                     {sortedInstances.map((instance) => (
                                         <InstanceCard
@@ -699,6 +711,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                             addNotification={addNotification}
                                             loadInstances={loadInstances}
                                             setPendingLaunches={setPendingLaunches}
+                                            t={t}
                                         />
                                     ))}
                                 </div>
@@ -708,63 +721,63 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                 </div>
 
                 {groupedData.length === 0 || (groupedData.length === 1 && groupedData[0].items.length === 0) ? (
-                    <div className="col-span-full py-20 text-center text-gray-500 border-2 border-white/5 border-dashed rounded-xl flex flex-col items-center justify-center">
-                        <svg className="w-12 h-12 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                        <p className="text-xl font-medium mb-2 text-gray-400">No instances found</p>
-                        <p className="text-sm">Create a new instance to start playing</p>
+                    <div className="col-span-full flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/5 py-20 text-center text-gray-500">
+                        <svg className="mb-4 h-12 w-12 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                        <p className="mb-2 text-xl font-medium text-gray-400">{t('dashboard.no_instances')}</p>
+                        <p className="text-sm">{t('dashboard.create_to_start')}</p>
                     </div>
                 ) : null}
             </div>
 
             {contextMenu && createPortal(
                 <div
-                    className="fixed bg-surface border border-white/10 rounded-lg shadow-2xl py-2 z-[9999] min-w-[180px]"
+                    className="fixed z-[9999] min-w-[180px] rounded-lg border border-white/10 bg-surface py-2 shadow-2xl"
                     style={{ left: contextMenu.x, top: contextMenu.y }}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <button onClick={() => handleContextAction('play')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm">
-                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
-                        Play
+                    <button onClick={() => handleContextAction('play')} className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-white/5">
+                        <svg className="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+                        {t('dashboard.context.play')}
                     </button>
-                    <div className="border-t border-white/5 my-1"></div>
-                    <button onClick={() => handleContextAction('view')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                        View instance
+                    <div className="my-1 border-t border-white/5"></div>
+                    <button onClick={() => handleContextAction('view')} className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-white/5">
+                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        {t('dashboard.context.view')}
                     </button>
-                    <button onClick={() => handleContextAction('duplicate')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                        Duplicate
+                    <button onClick={() => handleContextAction('duplicate')} className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-white/5">
+                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        {t('dashboard.context.duplicate')}
                     </button>
-                    <button onClick={() => handleContextAction('export')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                        Export
+                    <button onClick={() => handleContextAction('export')} className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-white/5">
+                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        {t('dashboard.context.export')}
                     </button>
-                    <button onClick={() => handleContextAction('folder')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                        Open folder
+                    <button onClick={() => handleContextAction('folder')} className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-white/5">
+                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                        {t('dashboard.context.folder')}
                     </button>
-                    <div className="border-t border-white/5 my-1"></div>
-                    <button onClick={() => handleContextAction('delete')} className="w-full px-4 py-2 text-left hover:bg-red-500/20 text-red-400 flex items-center gap-3 text-sm">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        Delete
+                    <div className="my-1 border-t border-white/5"></div>
+                    <button onClick={() => handleContextAction('delete')} className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/20">
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        {t('dashboard.context.delete')}
                     </button>
                 </div>,
                 document.body
             )}
 
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-surface border border-white/10 rounded-2xl w-full max-w-lg p-8 shadow-2xl transform transition-all scale-100">
-                        <h2 className="text-2xl font-bold mb-6 text-white text-center">Create New Instance</h2>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/80">
+                    <div className="w-full max-w-lg transform rounded-2xl border border-white/10 bg-surface p-8 shadow-2xl transition-all scale-100">
+                        <h2 className="mb-6 text-center text-2xl font-bold text-white">Create New Instance</h2>
                         <form onSubmit={handleCreate} className="space-y-6">
                             {creationStep === 1 && (
                                 <>
                                     { }
                                     <div className="flex flex-col items-center gap-4">
-                                        <div className="w-24 h-24 bg-background rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden relative group cursor-pointer hover:border-primary/50 transition-colors"
+                                        <div className="group relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-white/10 bg-background transition-colors hover:border-primary/50"
                                             onClick={() => fileInputRef.current?.click()}>
-                                            <img src={newInstanceIcon} alt="Icon" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <img src={newInstanceIcon} alt="Icon" className="object-cover w-full h-full" />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                                             </div>
                                             <input
@@ -775,44 +788,44 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                                 className="hidden"
                                             />
                                         </div>
-                                        <span className="text-xs text-gray-400 uppercase tracking-wide font-bold">Click to upload icon</span>
+                                        <span className="text-xs font-bold tracking-wide text-gray-400 uppercase">Click to upload icon</span>
                                     </div>
 
                                     <div>
-                                        <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Name</label>
+                                        <label className="mb-2 block text-sm font-bold tracking-wide text-gray-400 uppercase">Name</label>
                                         <input
                                             type="text"
                                             value={newInstanceName}
                                             onChange={(e) => setNewInstanceName(e.target.value)}
-                                            className="w-full bg-background border border-white/10 rounded-xl p-3 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                                            className="w-full rounded-xl border border-white/10 bg-background p-3 text-white outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
                                             placeholder="New Instance"
                                         />
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <div className="flex justify-between items-center mb-2">
-                                                <label className="block text-gray-400 text-sm font-bold uppercase tracking-wide">Version</label>
-                                                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowSnapshots(!showSnapshots)}>
-                                                    <div className={`w-8 h-4 rounded-full relative transition-colors ${showSnapshots ? 'bg-primary' : 'bg-gray-600'}`}>
-                                                        <div className={`absolute top-0.5 bottom-0.5 w-3 h-3 bg-white rounded-full transition-all ${showSnapshots ? 'left-4.5' : 'left-0.5'}`} style={{ left: showSnapshots ? '18px' : '2px' }}></div>
+                                            <div className="mb-2 flex items-center justify-between">
+                                                <label className="mb-2 block text-sm font-bold tracking-wide text-gray-400 uppercase">{t('dashboard.version')}</label>
+                                                <div className="flex cursor-pointer items-center gap-2" onClick={() => setShowSnapshots(!showSnapshots)}>
+                                                    <div className={`relative h-4 w-8 rounded-full transition-colors ${showSnapshots ? 'bg-primary' : 'bg-gray-600'}`}>
+                                                        <div className={`absolute top-0.5 bottom-0.5 h-3 w-3 rounded-full bg-white transition-all ${showSnapshots ? 'left-4.5' : 'left-0.5'}`} style={{ left: showSnapshots ? '18px' : '2px' }}></div>
                                                     </div>
-                                                    <span className="text-[10px] text-gray-400 font-bold uppercase">Dev Builds</span>
+                                                    <span className="text-[10px] font-bold uppercase text-gray-400">{t('dashboard.dev_builds')}</span>
                                                 </div>
                                             </div>
                                             {loadingVersions ? (
-                                                <div className="p-3 text-gray-500 bg-background border border-white/10 rounded-xl">Loading...</div>
+                                                <div className="rounded-xl border border-white/10 bg-background p-3 text-gray-500">{t('common.loading')}</div>
                                             ) : (
                                                 <Dropdown
                                                     options={versionOptions}
                                                     value={selectedVersion}
                                                     onChange={setSelectedVersion}
-                                                    placeholder="Select Version"
+                                                    placeholder={t('dashboard.select_version')}
                                                 />
                                             )}
                                         </div>
                                         <div>
-                                            <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Loader</label>
+                                            <label className="mb-2 block text-sm font-bold tracking-wide text-gray-400 uppercase">{t('dashboard.loader')}</label>
                                             <Dropdown
                                                 options={loaderOptions}
                                                 value={selectedLoader}
@@ -825,14 +838,14 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
 
                             {creationStep === 2 && (
                                 <div>
-                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Select {selectedLoader} Version</label>
+                                    <label className="mb-2 block text-sm font-bold tracking-wide text-gray-400 uppercase">{t('dashboard.select_loader_version', { loader: selectedLoader })}</label>
                                     <Dropdown
                                         options={loaderVersions.map(v => ({ value: v.version, label: v.version }))}
                                         value={selectedLoaderVersion}
                                         onChange={setSelectedLoaderVersion}
-                                        placeholder="Select Loader Version"
+                                        placeholder={t('dashboard.select_loader_version_placeholder')}
                                     />
-                                    <p className="text-xs text-gray-500 mt-2">Minecraft {selectedVersion}</p>
+                                    <p className="mt-2 text-xs text-gray-500">Minecraft {selectedVersion}</p>
                                 </div>
                             )}
 
@@ -845,7 +858,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                             className="px-4 py-2 rounded-xl text-xs text-primary font-bold hover:bg-primary/10 transition-colors flex items-center gap-2 border border-primary/20"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                            Import Options
+                                            {t('dashboard.import_options')}
                                             <svg className={`w-3 h-3 transition-transform ${showModalImportMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                         </button>
 
@@ -877,7 +890,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                                     className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-xs text-gray-200"
                                                 >
                                                     <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                                    Import from File
+                                                    {t('dashboard.import_file')}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -889,7 +902,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                                     className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-xs text-gray-200"
                                                 >
                                                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-                                                    Import from Code
+                                                    {t('dashboard.import_code')}
                                                 </button>
                                             </div>
                                         )}
@@ -900,7 +913,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                         onClick={() => setCreationStep(1)}
                                         className="px-6 py-2 rounded-xl text-gray-400 font-bold hover:text-white hover:bg-white/5 transition-colors"
                                     >
-                                        Back
+                                        {t('common.back')}
                                     </button>
                                 )}
 
@@ -911,7 +924,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                         onClick={() => setShowCreateModal(false)}
                                         className="px-6 py-2 rounded-xl text-gray-400 font-bold hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Cancel
+                                        {t('common.cancel')}
                                     </button>
                                     <button
                                         type="submit"
@@ -919,8 +932,8 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                         className="bg-primary hover:bg-primary-hover text-black font-bold px-8 py-2 rounded-xl shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     >
                                         {isCreating && <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>}
-                                        {isCreating ? 'Creating...' : (
-                                            creationStep === 1 && selectedLoader.toLowerCase() !== 'vanilla' ? 'Next' : 'Create'
+                                        {isCreating ? t('common.creating') : (
+                                            creationStep === 1 && selectedLoader.toLowerCase() !== 'vanilla' ? t('common.next') : t('common.create')
                                         )}
                                     </button>
                                 </div>
@@ -943,9 +956,9 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
 
             {showDeleteModal && (
                 <ConfirmationModal
-                    title="Delete Instance"
-                    message={`Are you sure you want to delete "${instanceToDelete?.name}"? This action cannot be undone.`}
-                    confirmText="Delete"
+                    title={t('dashboard.delete_title')}
+                    message={t('dashboard.delete_message', { name: instanceToDelete?.name })}
+                    confirmText={t('common.delete')}
                     isDangerous={true}
                     onConfirm={handleDeleteConfirm}
                     onCancel={() => {

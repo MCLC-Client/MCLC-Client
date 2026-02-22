@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 import ReinstallModal from './ReinstallModal';
 import ConfirmationModal from './ConfirmationModal';
@@ -6,6 +7,7 @@ import Dropdown from './Dropdown';
 import ToggleBox from './ToggleBox';
 
 function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
+    const { t } = useTranslation();
     const { addNotification } = useNotification();
     const [activeTab, setActiveTab] = useState('general');
     const [config, setConfig] = useState({ ...instance });
@@ -67,7 +69,7 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
             }
 
             await window.electronAPI.updateInstance(config.name, config);
-            addNotification('Settings saved successfully', 'success');
+            addNotification(t('settings.saved_success'), 'success');
             onSave(config);
             onClose();
         } catch (e) {
@@ -103,7 +105,7 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
         setLoading(true);
         try {
             await window.electronAPI.deleteInstance(instance.name);
-            addNotification(`Instance ${instance.name} deleted`, 'success');
+            addNotification(t('skins.delete_success'), 'success');
             onClose();
             if (onDelete) onDelete(instance.name);
         } catch (e) {
@@ -143,17 +145,17 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                     <div className="w-64 bg-[#111] border-r border-white/5 p-4 flex flex-col gap-2">
                         <div className="text-xl font-bold mb-4 px-2 truncate" title={instance.name}>{instance.name}</div>
 
-                        <SettingsTab label="General" id="general" active={activeTab} onClick={setActiveTab} icon="info" />
-                        <SettingsTab label="Installation" id="installation" active={activeTab} onClick={setActiveTab} icon="build" />
-                        <SettingsTab label="Window" id="window" active={activeTab} onClick={setActiveTab} icon="desktop_windows" />
-                        <SettingsTab label="Java & Memory" id="java" active={activeTab} onClick={setActiveTab} icon="memory" />
-                        <SettingsTab label="Launch Hooks" id="hooks" active={activeTab} onClick={setActiveTab} icon="code" />
+                        <SettingsTab label={t('instance_settings.tabs.general')} id="general" active={activeTab} onClick={setActiveTab} icon="info" />
+                        <SettingsTab label={t('instance_settings.tabs.installation')} id="installation" active={activeTab} onClick={setActiveTab} icon="build" />
+                        <SettingsTab label={t('instance_settings.tabs.window')} id="window" active={activeTab} onClick={setActiveTab} icon="desktop_windows" />
+                        <SettingsTab label={t('instance_settings.tabs.java')} id="java" active={activeTab} onClick={setActiveTab} icon="memory" />
+                        <SettingsTab label={t('instance_settings.tabs.hooks')} id="hooks" active={activeTab} onClick={setActiveTab} icon="code" />
 
                         <div className="my-2 border-t border-white/5"></div>
-                        <SettingsTab label="Danger Zone" id="danger" active={activeTab} onClick={setActiveTab} icon="warning" isDanger />
+                        <SettingsTab label={t('instance_settings.tabs.danger')} id="danger" active={activeTab} onClick={setActiveTab} icon="warning" isDanger />
 
                         <div className="mt-auto">
-                            <button onClick={onClose} className="w-full text-left px-4 py-2 rounded hover:bg-white/5 text-gray-400">Cancel</button>
+                            <button onClick={onClose} className="w-full text-left px-4 py-2 rounded hover:bg-white/5 text-gray-400">{t('common.cancel')}</button>
                         </div>
                     </div>
 
@@ -161,12 +163,12 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                     <div className="flex-1 p-8 overflow-y-auto bg-background">
                         <div className="max-w-2xl">
                             <h2 className={`text-2xl font-bold mb-6 ${activeTab === 'danger' ? 'text-red-500' : ''}`}>
-                                {activeTab === 'general' && 'General Settings'}
-                                {activeTab === 'installation' && 'Installation'}
-                                {activeTab === 'window' && 'Window Settings'}
-                                {activeTab === 'java' && 'Java & Memory'}
-                                {activeTab === 'hooks' && 'Launch Hooks'}
-                                {activeTab === 'danger' && 'Danger Zone'}
+                                {activeTab === 'general' && t('instance_settings.general.title')}
+                                {activeTab === 'installation' && t('instance_settings.installation.title')}
+                                {activeTab === 'window' && t('instance_settings.window.title')}
+                                {activeTab === 'java' && t('instance_settings.java.title')}
+                                {activeTab === 'hooks' && t('instance_settings.hooks.title')}
+                                {activeTab === 'danger' && t('instance_settings.danger.title')}
                             </h2>
 
                             {error && (
@@ -182,7 +184,7 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                                             className="w-24 h-24 bg-surface rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden relative group cursor-pointer hover:border-primary/50 transition-colors shadow-inner"
                                             onClick={() => document.getElementById('instance-icon-upload').click()}
                                         >
-                                            {config.icon && config.icon.startsWith('data:') ? (
+                                            {config.icon && (config.icon.startsWith('data:') || config.icon.startsWith('app-media://')) ? (
                                                 <img src={config.icon} alt="Icon" className="w-full h-full object-cover" />
                                             ) : (
                                                 <svg className="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
@@ -207,18 +209,18 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                                                 className="hidden"
                                             />
                                         </div>
-                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Click to change icon</span>
+                                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{t('instance_settings.general.icon_label')}</span>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-gray-400">Name</label>
+                                        <label className="text-sm font-bold text-gray-400">{t('instance_settings.general.name_label')}</label>
                                         <input
                                             type="text"
                                             value={config.name || ''}
                                             onChange={(e) => handleChange('name', e.target.value)}
                                             className="w-full bg-surface border border-white/10 rounded p-3 focus:border-primary outline-none transition-colors"
                                         />
-                                        <p className="text-xs text-gray-500">Note: Renaming will also rename the instance folder.</p>
+                                        <p className="text-xs text-gray-500">{t('instance_settings.general.rename_note')}</p>
                                     </div>
                                 </div>
                             )}
@@ -228,8 +230,8 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                                     <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg text-primary text-sm flex items-start gap-3">
                                         <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         <div className="space-y-1">
-                                            <p className="font-bold">Migration Mode</p>
-                                            <p className="text-xs opacity-80">Changing the version or loader will trigger a migration. The launcher will automatically try to find compatible versions for your installed mods on Modrinth.</p>
+                                            <p className="font-bold">{t('instance_settings.installation.migration_title')}</p>
+                                            <p className="text-xs opacity-80">{t('instance_settings.installation.migration_desc')}</p>
                                         </div>
                                     </div>
 
@@ -237,16 +239,16 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                                         <ToggleBox
                                             checked={showSnapshots}
                                             onChange={setShowSnapshots}
-                                            label="Show Snapshots"
-                                            description="Include experimental and development versions in the version list."
+                                            label={t('instance_settings.installation.show_snapshots')}
+                                            description={t('instance_settings.installation.show_snapshots_desc')}
                                         />
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">Game Version</label>
+                                            <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">{t('instance_settings.installation.game_version')}</label>
                                             {loadingVersions ? (
-                                                <div className="p-3 text-gray-500 bg-surface/50 border border-white/10 rounded">Loading...</div>
+                                                <div className="p-3 text-gray-500 bg-surface/50 border border-white/10 rounded">{t('common.loading')}</div>
                                             ) : (
                                                 <Dropdown
                                                     options={availableVersions.map(v => ({ value: v.id, label: v.id }))}
@@ -256,7 +258,7 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                                             )}
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">Mod Loader</label>
+                                            <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">{t('instance_settings.installation.mod_loader')}</label>
                                             <Dropdown
                                                 options={[
                                                     { value: 'Vanilla', label: 'Vanilla' },
@@ -281,9 +283,9 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                                                 {loading ? <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin"></div> : (
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                                 )}
-                                                Migrate & Update Mods
+                                                {t('instance_settings.installation.migrate_btn')}
                                             </button>
-                                            <p className="text-[10px] text-gray-500 mt-2 text-center uppercase tracking-tighter">Existing mods will be replaced with compatible versions or removed if not found.</p>
+                                            <p className="text-[10px] text-gray-500 mt-2 text-center uppercase tracking-tighter">{t('instance_settings.installation.migrate_note')}</p>
                                         </div>
                                     )}
                                 </div>
@@ -293,7 +295,7 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-sm font-bold text-gray-400">Width</label>
+                                            <label className="text-sm font-bold text-gray-400">{t('instance_settings.window.width')}</label>
                                             <input
                                                 type="number"
                                                 value={config.resolutionWidth || 854}
@@ -302,7 +304,7 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-bold text-gray-400">Height</label>
+                                            <label className="text-sm font-bold text-gray-400">{t('instance_settings.window.height')}</label>
                                             <input
                                                 type="number"
                                                 value={config.resolutionHeight || 480}
@@ -317,23 +319,23 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                             {activeTab === 'java' && (
                                 <div className="space-y-6">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-gray-400">Java Path (Optional)</label>
+                                        <label className="text-sm font-bold text-gray-400">{t('instance_settings.java.path_label')}</label>
                                         <div className="flex gap-2">
                                             <input
                                                 type="text"
                                                 value={config.javaPath || ''}
                                                 onChange={(e) => handleChange('javaPath', e.target.value)}
-                                                placeholder="Leave empty to use global default"
+                                                placeholder={t('instance_settings.java.path_placeholder')}
                                                 className="flex-1 bg-surface border border-white/10 rounded p-3 focus:border-primary outline-none transition-colors placeholder:text-gray-600"
                                             />
                                         </div>
                                     </div>
 
                                     <div className="space-y-4">
-                                        <label className="text-sm font-bold text-gray-400">Memory Allocation (MB)</label>
+                                        <label className="text-sm font-bold text-gray-400">{t('instance_settings.java.memory_label')}</label>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="text-xs text-gray-500 mb-1 block">Minimum</label>
+                                                <label className="text-xs text-gray-500 mb-1 block">{t('instance_settings.java.min_memory')}</label>
                                                 <input
                                                     type="number"
                                                     value={config.minMemory || 1024}
@@ -342,7 +344,7 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-xs text-gray-500 mb-1 block">Maximum</label>
+                                                <label className="text-xs text-gray-500 mb-1 block">{t('instance_settings.java.max_memory')}</label>
                                                 <input
                                                     type="number"
                                                     value={config.maxMemory || 4096}
@@ -358,29 +360,29 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                             {activeTab === 'hooks' && (
                                 <div className="space-y-6">
                                     <p className="text-sm text-gray-400 mb-4">
-                                        Commands that run before or after launching the game. Use these for custom scripts, backups, or other automation.
+                                        {t('instance_settings.hooks.desc')}
                                     </p>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-gray-400">Pre-Launch Command</label>
+                                        <label className="text-sm font-bold text-gray-400">{t('instance_settings.hooks.pre_launch')}</label>
                                         <input
                                             type="text"
                                             value={config.preLaunchHook || ''}
                                             onChange={(e) => handleChange('preLaunchHook', e.target.value)}
-                                            placeholder="e.g., backup.bat or /path/to/script.sh"
+                                            placeholder={t('instance_settings.hooks.placeholder')}
                                             className="w-full bg-surface border border-white/10 rounded p-3 focus:border-primary outline-none transition-colors placeholder:text-gray-600"
                                         />
-                                        <p className="text-xs text-gray-500">Runs before Minecraft starts.</p>
+                                        <p className="text-xs text-gray-500">{t('instance_settings.hooks.pre_launch_desc')}</p>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-gray-400">Post-Exit Command</label>
+                                        <label className="text-sm font-bold text-gray-400">{t('instance_settings.hooks.post_exit')}</label>
                                         <input
                                             type="text"
                                             value={config.postExitHook || ''}
                                             onChange={(e) => handleChange('postExitHook', e.target.value)}
-                                            placeholder="e.g., cleanup.bat or /path/to/script.sh"
+                                            placeholder={t('instance_settings.hooks.placeholder')}
                                             className="w-full bg-surface border border-white/10 rounded p-3 focus:border-primary outline-none transition-colors placeholder:text-gray-600"
                                         />
-                                        <p className="text-xs text-gray-500">Runs after Minecraft closes.</p>
+                                        <p className="text-xs text-gray-500">{t('instance_settings.hooks.post_exit_desc')}</p>
                                     </div>
                                 </div>
                             )}
@@ -388,29 +390,28 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
                             {activeTab === 'danger' && (
                                 <div className="space-y-6">
                                     <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-                                        <h3 className="font-bold text-red-400 mb-2">Reinstall Instance</h3>
+                                        <h3 className="font-bold text-red-400 mb-2">{t('instance_settings.danger.reinstall_title')}</h3>
                                         <p className="text-sm text-gray-400 mb-4">
-                                            If your game is crashing or mods aren't loading, you can try reinstalling.
-                                            You can choose between a Soft Reinstall (keeps data) or Hard Reinstall (wipes everything).
+                                            {t('instance_settings.danger.reinstall_desc')}
                                         </p>
                                         <button
                                             onClick={() => setShowReinstall(true)}
                                             className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded hover:bg-red-500 hover:text-white transition-all font-bold text-sm"
                                         >
-                                            Reinstall Options...
+                                            {t('instance_settings.danger.reinstall_btn')}
                                         </button>
                                     </div>
 
                                     <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-                                        <h3 className="font-bold text-red-500 mb-2">Delete Instance</h3>
+                                        <h3 className="font-bold text-red-500 mb-2">{t('instance_settings.danger.delete_title')}</h3>
                                         <p className="text-sm text-gray-400 mb-4">
-                                            Permanently delete this instance and all its files. This action cannot be undone.
+                                            {t('instance_settings.danger.delete_desc')}
                                         </p>
                                         <button
                                             onClick={() => setShowDeleteConfirm(true)}
                                             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-all font-bold text-sm shadow-lg"
                                         >
-                                            Delete Instance
+                                            {t('instance_settings.danger.delete_btn')}
                                         </button>
                                     </div>
                                 </div>
@@ -418,13 +419,13 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
 
                             {activeTab !== 'danger' && (
                                 <div className="mt-8 pt-6 border-t border-white/5 flex justify-end gap-3">
-                                    <button onClick={onClose} className="px-6 py-2 rounded text-gray-300 hover:text-white hover:bg-white/5 transition-colors">Cancel</button>
+                                    <button onClick={onClose} className="px-6 py-2 rounded text-gray-300 hover:text-white hover:bg-white/5 transition-colors">{t('common.cancel')}</button>
                                     <button
                                         onClick={handleSave}
                                         disabled={loading}
                                         className="px-6 py-2 rounded bg-primary text-black font-bold hover:brightness-110 transition-all disabled:opacity-50"
                                     >
-                                        {loading ? 'Saving...' : 'Save Settings'}
+                                        {loading ? t('instance_settings.saving') : t('instance_settings.save_btn')}
                                     </button>
                                 </div>
                             )}
@@ -443,11 +444,11 @@ function InstanceSettingsModal({ instance, onClose, onSave, onDelete }) {
 
             {showDeleteConfirm && (
                 <ConfirmationModal
-                    title="Delete Instance?"
-                    message={`Are you sure you want to delete "${instance.name}"? This will remove all files forever.`}
+                    title={t('instance_settings.danger.delete_modal_title')}
+                    message={t('instance_settings.danger.delete_modal_msg', { name: instance.name })}
                     onConfirm={handleDelete}
                     onCancel={() => setShowDeleteConfirm(false)}
-                    confirmLabel="Delete Forever"
+                    confirmLabel={t('instance_settings.danger.delete_forever_btn')}
                     isDanger
                 />
             )}

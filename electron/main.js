@@ -1,12 +1,31 @@
 const { app, BrowserWindow, ipcMain, protocol, net, Menu } = require('electron');
+
+// Force WebGL/GPU acceleration on Linux/unsupported systems
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('disable-gpu-driver-bug-workarounds');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+
+if (process.platform === 'linux') {
+    // Sometimes necessary for WebGL on certain Linux drivers/sandboxes
+    app.commandLine.appendSwitch('disable-gpu-sandbox');
+    // Try 'desktop' or 'egl'. Letting it auto-detect might be safer if desktop fails.
+    // app.commandLine.appendSwitch('use-gl', 'desktop'); 
+}
+app.commandLine.appendSwitch('enable-webgl-draft-extensions');
+
+const path = require('path');
 console.log('NUCLEAR STARTUP CHECK: main.js is running!');
+console.log('[DEBUG] CWD:', process.cwd());
+console.log('[DEBUG] __dirname:', __dirname);
+console.log('[DEBUG] Preload Path:', path.join(__dirname, '../backend/preload.js'));
 
 ipcMain.handle('ping', () => {
     console.log('Ping received!');
     return 'pong';
 });
 
-const path = require('path');
 const fs = require('fs');
 const { pathToFileURL } = require('url');
 const dns = require('dns');
@@ -44,7 +63,7 @@ function createWindow() {
             preload: path.join(__dirname, '../backend/preload.js'),
             nodeIntegration: false,
             contextIsolation: true,
-            sandbox: false,
+            sandbox: true,
             v8CacheOptions: 'bypassHeatCheck'
         },
     });
@@ -138,23 +157,37 @@ function createWindow() {
         else mainWindow.maximize();
     });
     ipcMain.on('window-close', () => mainWindow.close());
+    ipcMain.on('update:quit-and-install', () => {
+        const { autoUpdater } = require('electron-updater');
+        autoUpdater.quitAndInstall();
+    });
     mainWindow.on('maximize', () => mainWindow.webContents.send('window-state', true));
     mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-state', false));
 }
 
-app.whenReady().then(() => {
+function setupAppMediaProtocol() {
     protocol.handle('app-media', (request) => {
         try {
             const url = new URL(request.url);
+            // Combine host and pathname to handle drive letters (e.g., host="C:", pathname="/Users/...")
+            let decodedPath = decodeURIComponent(url.host + url.pathname);
 
-            let decodedPath = decodeURIComponent(url.pathname);
-            if (process.platform === 'win32' && /^\/[a-zA-Z]:/.test(decodedPath)) {
-                decodedPath = decodedPath.slice(1);
+            console.log(`[Main] app-media request: ${request.url} -> decodedPath: ${decodedPath}`);
+
+            const resolvedPath = path.resolve(decodedPath);
+
+            // Security: Ensure the path is within the app's data directory (V6)
+            const userDataPath = app.getPath('userData');
+            const isInside = process.platform === 'win32'
+                ? resolvedPath.toLowerCase().startsWith(userDataPath.toLowerCase())
+                : resolvedPath.startsWith(userDataPath);
+
+            if (!isInside) {
+                console.error(`[Main] Blocked app-media attempt to access path outside userData: ${resolvedPath}`);
+                return new Response('Access Denied', { status: 403 });
             }
-            if (!decodedPath || decodedPath === '/' || !require('fs').existsSync(decodedPath)) {
-                return new Response('Not Found', { status: 404 });
-            }
-            return net.fetch(pathToFileURL(decodedPath).toString());
+
+            return net.fetch(pathToFileURL(resolvedPath).toString());
         } catch (e) {
             console.error('Protocol error:', e);
             return new Response(null, { status: 404 });
@@ -218,43 +251,100 @@ app.whenReady().then(() => {
 
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
-    const handleDeepLink = (argv) => {
-        const file = argv.find(arg => arg.endsWith('.mcextension'));
-        if (file) {
-            console.log('[Main] file opened:', file);
+}
 
-            if (mainWindow && mainWindow.webContents && !mainWindow.webContents.isLoading()) {
+const handleDeepLink = (argv) => {
+    const file = argv.find(arg => arg.endsWith('.mcextension'));
+    if (file) {
+        console.log('[Main] file opened:', file);
+
+        if (mainWindow && mainWindow.webContents && !mainWindow.webContents.isLoading()) {
+            mainWindow.webContents.send('extension:open-file', file);
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+        } else if (mainWindow) {
+            mainWindow.once('ready-to-show', () => {
                 mainWindow.webContents.send('extension:open-file', file);
-                if (mainWindow.isMinimized()) mainWindow.restore();
-                mainWindow.focus();
-            } else if (mainWindow) {
-                mainWindow.once('ready-to-show', () => {
-                    mainWindow.webContents.send('extension:open-file', file);
-                });
-            }
+            });
         }
-    };
-    const gotTheLock = app.requestSingleInstanceLock();
-    if (!gotTheLock) {
-        app.quit();
-    } else {
-        app.on('second-instance', (event, commandLine, workingDirectory) => {
-
-            if (mainWindow) {
-                if (mainWindow.isMinimized()) mainWindow.restore();
-                mainWindow.focus();
-                handleDeepLink(commandLine);
-            }
-        });
     }
+};
 
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+    app.quit();
+} else {
+    app.on('second-instance', (event, commandLine, workingDirectory) => {
+        if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+            handleDeepLink(commandLine);
+        }
+    });
+}
+
+app.whenReady().then(() => {
+    setupAppMediaProtocol();
     createWindow();
     handleDeepLink(process.argv);
+
+    const { autoUpdater } = require('electron-updater');
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    autoUpdater.on('checking-for-update', () => {
+        console.log('[AutoUpdater] Checking for update...');
+    });
+    autoUpdater.on('update-available', (info) => {
+        console.log('[AutoUpdater] Update available:', info.version);
+        if (mainWindow) mainWindow.webContents.send('update:available', info);
+    });
+    autoUpdater.on('update-not-available', (info) => {
+        console.log('[AutoUpdater] Update not available.');
+        if (mainWindow) mainWindow.webContents.send('update:not-available', info);
+    });
+    autoUpdater.on('download-progress', (progressObj) => {
+        console.log(`[AutoUpdater] Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`);
+        if (mainWindow) mainWindow.webContents.send('update:progress', progressObj);
+    });
+    autoUpdater.on('update-downloaded', (info) => {
+        console.log('[AutoUpdater] Update downloaded:', info.version);
+        if (mainWindow) mainWindow.webContents.send('update:downloaded', info);
+    });
+    autoUpdater.on('error', (err) => {
+        const msg = (err && (err.message || err.toString())) || '';
+        console.error('[AutoUpdater] Error Object:', err);
+        console.error('[AutoUpdater] Error Message String:', msg);
+
+        const lowerMsg = msg.toLowerCase();
+        if (lowerMsg.includes('latest.yml') || lowerMsg.includes('dev-app-update.yml') || lowerMsg.includes('could not find latest.yml')) {
+            console.log('[AutoUpdater] 🛑 Suppressing known non-critical update error:', msg);
+            return;
+        }
+        if (mainWindow) {
+            console.log('[AutoUpdater] 📤 Sending error to renderer:', msg);
+            mainWindow.webContents.send('update:error', msg);
+        }
+    });
+
+    if (app.isPackaged) {
+        autoUpdater.checkForUpdates().catch(err => {
+            console.error('[AutoUpdater] Check failed:', err);
+        });
+    } else {
+        // For development testing: notify update not available after delay
+        setTimeout(() => {
+            if (mainWindow) {
+                // mainWindow.webContents.send('update:available', { version: '9.9.9' }); // For Testign
+            }
+        }, 5000);
+    }
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
 });
+
 app.on('open-file', (event, path) => {
     event.preventDefault();
     console.log('[Main] macOS open-file:', path);

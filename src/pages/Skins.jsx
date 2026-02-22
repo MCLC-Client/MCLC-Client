@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { SkinViewer, WalkingAnimation, IdleAnimation } from 'skinview3d';
+import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 const SkinPreview = ({ src, className, model = 'classic' }) => {
     const canvasRef = useRef(null);
@@ -97,6 +98,7 @@ const CapePreview = ({ src, className }) => {
 };
 
 function Skins({ onLogout, onProfileUpdate }) {
+    const { t } = useTranslation();
     const { addNotification } = useNotification();
     const canvasRef = useRef(null);
     const skinViewerRef = useRef(null);
@@ -117,30 +119,55 @@ function Skins({ onLogout, onProfileUpdate }) {
     const [capes, setCapes] = useState([]);
     const [activeCapeId, setActiveCapeId] = useState(null);
     const [showCapeModal, setShowCapeModal] = useState(false);
+    const [webglError, setWebglError] = useState(false);
+
+    const isWebGLSupported = () => {
+        try {
+            const canvas = document.createElement('canvas');
+            return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+        } catch (e) {
+            return false;
+        }
+    };
+
     useEffect(() => {
         if (!canvasRef.current) return;
 
-        const viewer = new SkinViewer({
-            canvas: canvasRef.current,
-            width: 300,
-            height: 400,
-            skin: null
-        });
-
-        viewer.fov = 70;
-        viewer.zoom = 0.9;
-        viewer.animation = new WalkingAnimation();
-        viewer.autoRotate = false;
-        viewer.autoRotateSpeed = 0.5;
-        if (canvasRef.current) {
-            canvasRef.current.style.imageRendering = "pixelated";
+        if (!isWebGLSupported()) {
+            console.error("WebGL is not supported or context could not be created.");
+            setWebglError(true);
+            return;
         }
-        viewer.renderer.setPixelRatio(window.devicePixelRatio);
 
-        skinViewerRef.current = viewer;
+        let viewer;
+        try {
+            viewer = new SkinViewer({
+                canvas: canvasRef.current,
+                width: 300,
+                height: 400,
+                skin: null
+            });
+
+            viewer.fov = 70;
+            viewer.zoom = 0.9;
+            viewer.animation = new WalkingAnimation();
+            viewer.autoRotate = false;
+            viewer.autoRotateSpeed = 0.5;
+            if (canvasRef.current) {
+                canvasRef.current.style.imageRendering = "pixelated";
+            }
+            viewer.renderer.setPixelRatio(window.devicePixelRatio);
+
+            skinViewerRef.current = viewer;
+        } catch (e) {
+            console.error("Failed to initialize SkinViewer:", e);
+            setWebglError(true);
+        }
 
         return () => {
-            viewer.dispose();
+            if (viewer) {
+                viewer.dispose();
+            }
         };
     }, []);
     useEffect(() => {
@@ -214,16 +241,16 @@ function Skins({ onLogout, onProfileUpdate }) {
                         await updateSkinInViewer(skinUrl, model);
                     } else {
                         if (res.authError) {
-                            addNotification('Session expired. Please login again.', 'error');
+                            addNotification(t('login.failed') + '. ' + t('common.restart_app'), 'error');
                             if (onLogout) onLogout();
                             return;
                         }
-                        addNotification(`Skin error: ${res.error}`, 'info');
+                        addNotification(t('skins.upload_failed', { error: res.error }), 'info');
                         setIsSkinLoaded(true);
                     }
                 } catch (e) {
                     console.error("Failed to load skin", e);
-                    addNotification('Failed to fetch skin from Mojang.', 'error');
+                    addNotification(t('skins.upload_failed', { error: 'Mojang' }), 'error');
                 }
             }
 
@@ -231,7 +258,7 @@ function Skins({ onLogout, onProfileUpdate }) {
             if (onProfileUpdate) onProfileUpdate(profile);
         } catch (e) {
             console.error("Failed to load profile/skin", e);
-            addNotification('Error loading profile.', 'error');
+            addNotification(t('skins.upload_failed', { error: t('common.error_title') }), 'error');
         }
         setIsLoading(false);
     };
@@ -251,10 +278,10 @@ function Skins({ onLogout, onProfileUpdate }) {
         try {
             const res = await window.electronAPI.saveLocalSkin();
             if (res.success) {
-                addNotification('Skin imported successfully', 'success');
+                addNotification(t('skins.import_success'), 'success');
                 loadLocalSkins();
             } else if (res.error !== 'Cancelled') {
-                addNotification(`Import failed: ${res.error}`, 'error');
+                addNotification(t('skins.import_failed', { error: res.error }), 'error');
             }
         } catch (e) {
             console.error("Import failed", e);
@@ -283,7 +310,7 @@ function Skins({ onLogout, onProfileUpdate }) {
     const handleApplySkin = async () => {
         if (!pendingSkin) return;
         if (!userProfile) {
-            addNotification('You must be logged in to upload a skin', 'error');
+            addNotification(t('skins.upload_failed', { error: 'Auth' }), 'error');
             return;
         }
 
@@ -299,21 +326,16 @@ function Skins({ onLogout, onProfileUpdate }) {
             }
 
             if (res.success) {
-                addNotification('Skin uploaded! It may take a minute to update.', 'success');
+                addNotification(t('skins.upload_success'), 'success');
                 setPendingSkin(null);
 
                 loadProfileAndSkin();
             } else {
-                if (res.authError) {
-                    addNotification('Session expired. Please login again.', 'error');
-                    if (onLogout) onLogout();
-                } else {
-                    addNotification(`Upload failed: ${res.error}`, 'error');
-                }
+                addNotification(t('skins.upload_failed', { error: res.error }), 'error');
             }
         } catch (e) {
             console.error(e);
-            addNotification('Upload failed due to an error.', 'error');
+            addNotification(t('skins.upload_failed', { error: e.message }), 'error');
         }
 
         setIsLoading(false);
@@ -332,14 +354,9 @@ function Skins({ onLogout, onProfileUpdate }) {
                 skinViewerRef.current.loadCape(cape ? cape.url : null);
             }
             setShowCapeModal(false);
-            addNotification(capeId ? 'Cape activated' : 'Cape removed', 'success');
+            addNotification(capeId ? t('skins.cape_activated') : t('skins.cape_removed'), 'success');
         } else {
-            if (res.authError) {
-                addNotification('Session expired. Please login again.', 'error');
-                if (onLogout) onLogout();
-            } else {
-                addNotification(`Failed to set cape: ${res.error}`, 'error');
-            }
+            addNotification(t('skins.upload_failed', { error: res.error }), 'error');
         }
     };
 
@@ -347,7 +364,7 @@ function Skins({ onLogout, onProfileUpdate }) {
         e.stopPropagation();
         const res = await window.electronAPI.deleteLocalSkin(id);
         if (res.success) {
-            addNotification('Skin deleted', 'info');
+            addNotification(t('skins.delete_success'), 'info');
             if (pendingSkin?.id === id) {
                 setPendingSkin(null);
 
@@ -357,7 +374,7 @@ function Skins({ onLogout, onProfileUpdate }) {
             }
             loadLocalSkins();
         } else {
-            addNotification(`Delete failed: ${res.error}`, 'error');
+            addNotification(t('skins.delete_failed', { error: res.error }), 'error');
         }
     };
 
@@ -368,10 +385,10 @@ function Skins({ onLogout, onProfileUpdate }) {
         }
         const res = await window.electronAPI.renameLocalSkin(id, editName);
         if (res.success) {
-            addNotification('Skin renamed', 'success');
+            addNotification(t('skins.rename_success'), 'success');
             loadLocalSkins();
         } else {
-            addNotification(`Rename failed: ${res.error}`, 'error');
+            addNotification(t('skins.rename_failed', { error: res.error }), 'error');
         }
         setEditingSkinId(null);
     };
@@ -383,7 +400,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                 <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-8 backdrop-blur-sm">
                     <div className="bg-[#151515] border border-white/10 rounded-2xl p-6 w-full max-w-2xl max-h-full flex flex-col">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-white">Select a Cape</h2>
+                            <h2 className="text-2xl font-bold text-white">{t('skins.select_cape')}</h2>
                             <button onClick={() => setShowCapeModal(false)} className="text-gray-400 hover:text-white transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -397,7 +414,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                                 onClick={() => handleSetCape(null)}
                                 className={`aspect-[3/4] rounded-xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${activeCapeId === null ? 'border-primary bg-primary/10' : 'border-white/10 hover:border-white/30 bg-black/20'}`}
                             >
-                                <div className="text-gray-400 font-bold">No Cape</div>
+                                <div className="text-gray-400 font-bold">{t('skins.no_cape')}</div>
                             </div>
 
                             {capes.map(cape => (
@@ -412,7 +429,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                                     <span className="text-sm font-medium text-white text-center px-2">{cape.alias}</span>
                                     {activeCapeId === cape.id && (
                                         <div className="absolute top-2 right-2 bg-primary text-black text-xs font-bold px-2 py-0.5 rounded-full">
-                                            Active
+                                            {t('skins.active')}
                                         </div>
                                     )}
                                 </div>
@@ -425,19 +442,33 @@ function Skins({ onLogout, onProfileUpdate }) {
             { }
             <div className="w-1/3 min-w-[300px] bg-background-dark border-r border-white/5 flex flex-col items-center justify-center relative p-6">
                 <div className="absolute top-4 left-4 bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                    Beta
+                    {t('common.beta')}
                 </div>
 
                 <h2 className="absolute top-4 right-4 text-xl font-bold text-white drop-shadow-md">
-                    {userProfile?.name || 'Guest'}
+                    {userProfile?.name || t('skins.guest')}
                 </h2>
 
-                <div className={`relative w-full h-[400px] flex items-center justify-center transition-opacity duration-300 ${isSkinLoaded ? 'opacity-100' : 'opacity-0'}`}>
-                    <canvas ref={canvasRef} className="cursor-move outline-none" />
+                <div className={`relative w-full h-[400px] flex items-center justify-center transition-opacity duration-300 ${isSkinLoaded || webglError ? 'opacity-100' : 'opacity-0'}`}>
+                    {webglError ? (
+                        <div className="flex flex-col items-center justify-center p-6 text-center">
+                            <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-2">{t('common.error_title')}</h3>
+                            <p className="text-sm text-gray-400">
+                                {t('skins.webgl_error') || "3D Preview is not available on your system. You can still manage your skins using the 2D previews below."}
+                            </p>
+                        </div>
+                    ) : (
+                        <canvas ref={canvasRef} className="cursor-move outline-none" />
+                    )}
                 </div>
 
                 { }
-                {!isSkinLoaded && (
+                {!isSkinLoaded && !webglError && (
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                     </div>
@@ -447,7 +478,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                     <button
                         onClick={() => setIsAnimating(!isAnimating)}
                         className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-colors text-white"
-                        title={isAnimating ? "Pause" : "Play"}
+                        title={isAnimating ? t('skins.pause') : t('skins.play')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             {isAnimating ? (
@@ -470,7 +501,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                         }}
                         className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-colors text-white text-sm font-medium"
                     >
-                        Model: {variant === 'classic' ? '(Wide)' : '(Slim)'}
+                        {t('skins.model')}: {variant === 'classic' ? `(${t('skins.wide')})` : `(${t('skins.slim')})`}
                     </button>
 
                     <button
@@ -478,7 +509,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                         disabled={!capes.length}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${!capes.length ? 'bg-white/5 text-gray-500 cursor-not-allowed' : 'bg-white/10 hover:bg-white/20 text-white'}`}
                     >
-                        {capes.length ? 'Change Cape' : 'No Capes'}
+                        {capes.length ? t('skins.change_cape') : t('skins.no_capes')}
                     </button>
                 </div>
             </div>
@@ -487,8 +518,8 @@ function Skins({ onLogout, onProfileUpdate }) {
             <div className="flex-1 bg-background p-8 overflow-y-auto custom-scrollbar">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-white">Skins</h1>
-                        <p className="text-gray-400">Manage your appearance</p>
+                        <h1 className="text-3xl font-bold text-white">{t('skins.title')}</h1>
+                        <p className="text-gray-400">{t('skins.desc')}</p>
                     </div>
                     {pendingSkin && (
                         <button
@@ -496,14 +527,14 @@ function Skins({ onLogout, onProfileUpdate }) {
                             disabled={isLoading}
                             className="bg-primary hover:bg-primary-hover text-black font-bold px-6 py-2 rounded-xl shadow-lg transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-wait"
                         >
-                            {isLoading ? 'Uploading...' : 'Apply to Account'}
+                            {isLoading ? t('skins.uploading') : t('skins.apply')}
                         </button>
                     )}
                 </div>
 
                 { }
                 <div>
-                    <h3 className="text-lg font-bold text-gray-300 mb-4">Saved Skins</h3>
+                    <h3 className="text-lg font-bold text-gray-300 mb-4">{t('skins.saved_skins')}</h3>
                     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         { }
                         <div
@@ -515,7 +546,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
                             </div>
-                            <span className="text-sm font-medium text-gray-400 group-hover:text-white">Add a skin</span>
+                            <span className="text-sm font-medium text-gray-400 group-hover:text-white">{t('skins.add_skin')}</span>
                         </div>
 
                         { }
@@ -586,15 +617,25 @@ function Skins({ onLogout, onProfileUpdate }) {
 
                 { }
                 <div className="mt-8">
-                    <h3 className="text-lg font-bold text-gray-300 mb-4">Default Skins</h3>
+                    <h3 className="text-lg font-bold text-gray-300 mb-4">{t('skins.default_skins')}</h3>
                     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {['Steve', 'Alex'].map(name => (
+                        {[
+                            { name: 'Steve', url: 'https://textures.minecraft.net/texture/1a4af718455d4aab528e7a61f86fa25e6a369d1768dcb13f7df319a713eb810b', model: 'classic' },
+                            { name: 'Alex', url: 'https://textures.minecraft.net/texture/3b60a1f6d562f52aaebbf1434f1de147933a3affe0e764fa49ea057536623cd3', model: 'slim' }
+                        ].map(skin => (
                             <div
-                                key={name}
-                                onClick={() => handleSelectDefaultSkin(name)}
-                                className={`aspect-[3/4] bg-surface rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer border-2 transition-all ${pendingSkin?.name === name ? 'border-primary shadow-primary-glow' : 'border-transparent hover:border-white/20'}`}
+                                key={skin.name}
+                                onClick={() => handleSelectDefaultSkin(skin.name)}
+                                className={`aspect-[3/4] bg-surface rounded-xl overflow-hidden relative cursor-pointer border-2 transition-all group ${pendingSkin?.name === skin.name ? 'border-primary shadow-primary-glow' : 'border-transparent hover:border-white/20'}`}
                             >
-                                <div className="text-gray-400 font-bold">{name}</div>
+                                <div className="p-4 flex items-center justify-center h-full bg-[#1a1a1a]">
+                                    <SkinPreview src={skin.url} model={skin.model} />
+                                </div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="text-white font-medium truncate flex-1">
+                                        {skin.name}
+                                    </span>
+                                </div>
                             </div>
                         ))}
                     </div>

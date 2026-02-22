@@ -1,0 +1,141 @@
+name: VirusTotal Scan
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 11 * * *"
+
+jobs:
+  virustotal:
+    runs-on: ubuntu-latest
+    environment: Virustotal
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Create repo archive
+        id: prep
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="repo-${GITHUB_REPOSITORY#*/}-${GITHUB_SHA}.zip"
+          zip -qr "$OUT" . \
+            -x ".git/*" ".github/workflows/*" "node_modules/*" "**/node_modules/*" \
+            "*.log" "**/*.log"
+
+          echo "file=$OUT" >> "$GITHUB_OUTPUT"
+          echo "size_bytes=$(stat -c%s "$OUT")" >> "$GITHUB_OUTPUT"
+
+      - name: VirusTotal upload + poll analysis
+        id: vt
+        shell: bash
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          FILE="${{ steps.prep.outputs.file }}"
+          SIZE="${{ steps.prep.outputs.size_bytes }}"
+
+          if [ -z "${VT_API_KEY:-}" ]; then
+            echo "VT_API_KEY is not available. Ensure the job uses the correct Environment and the secret is named VT_API_KEY." >&2
+            exit 1
+          fi
+
+          echo "Scanning repo archive: $FILE ($SIZE bytes)"
+
+          UPLOAD_URL="$(curl -fsS \
+            -H "x-apikey: $VT_API_KEY" \
+            https://www.virustotal.com/api/v3/files/upload_url \
+            | jq -r '.data')"
+
+          if [ -z "$UPLOAD_URL" ] || [ "$UPLOAD_URL" = "null" ]; then
+            echo "Failed to obtain VirusTotal upload URL" >&2
+            exit 1
+          fi
+
+          ANALYSIS_ID="$(curl -fsS \
+            -H "x-apikey: $VT_API_KEY" \
+            -F "file=@${FILE}" \
+            "$UPLOAD_URL" \
+            | jq -r '.data.id')"
+
+          if [ -z "$ANALYSIS_ID" ] || [ "$ANALYSIS_ID" = "null" ]; then
+            echo "Failed to start analysis (no analysis id returned)" >&2
+            exit 1
+          fi
+
+          echo "analysis_id=$ANALYSIS_ID" >> "$GITHUB_OUTPUT"
+
+          echo "Polling analysis..."
+          for i in $(seq 1 60); do
+            RESP="$(curl -fsS -H "x-apikey: $VT_API_KEY" \
+              "https://www.virustotal.com/api/v3/analyses/$ANALYSIS_ID")"
+
+            STATUS="$(echo "$RESP" | jq -r '.data.attributes.status')"
+            if [ "$STATUS" = "completed" ]; then
+              break
+            fi
+
+            sleep 5
+          done
+
+          if [ "${STATUS:-}" != "completed" ]; then
+            echo "Timed out waiting for VirusTotal analysis to complete." >&2
+            exit 1
+          fi
+
+          MALICIOUS="$(echo "$RESP" | jq -r '.data.attributes.stats.malicious // 0')"
+          SUSPICIOUS="$(echo "$RESP" | jq -r '.data.attributes.stats.suspicious // 0')"
+          UNDETECTED="$(echo "$RESP" | jq -r '.data.attributes.stats.undetected // 0')"
+          TIMEOUT="$(echo "$RESP" | jq -r '.data.attributes.stats.timeout // 0')"
+          FAILURE="$(echo "$RESP" | jq -r '.data.attributes.stats.failure // 0')"
+          TYPE_UNSUPPORTED="$(echo "$RESP" | jq -r '.data.attributes.stats."type-unsupported" // 0')"
+
+          echo "malicious=$MALICIOUS" >> "$GITHUB_OUTPUT"
+          echo "suspicious=$SUSPICIOUS" >> "$GITHUB_OUTPUT"
+          echo "undetected=$UNDETECTED" >> "$GITHUB_OUTPUT"
+          echo "timeout=$TIMEOUT" >> "$GITHUB_OUTPUT"
+          echo "failure=$FAILURE" >> "$GITHUB_OUTPUT"
+          echo "type_unsupported=$TYPE_UNSUPPORTED" >> "$GITHUB_OUTPUT"
+
+      - name: Publish results
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          FILE="${{ steps.prep.outputs.file }}"
+          ID="${{ steps.vt.outputs.analysis_id }}"
+
+          MAL="${{ steps.vt.outputs.malicious }}"
+          SUS="${{ steps.vt.outputs.suspicious }}"
+          UND="${{ steps.vt.outputs.undetected }}"
+          TMO="${{ steps.vt.outputs.timeout }}"
+          FAI="${{ steps.vt.outputs.failure }}"
+          UNS="${{ steps.vt.outputs.type_unsupported }}"
+
+          {
+            echo "## VirusTotal Scan Results"
+            echo ""
+            echo "**Commit:** \`${GITHUB_SHA}\`"
+            echo ""
+            echo "| Metric | Count |"
+            echo "|---|---:|"
+            echo "| Malicious | $MAL |"
+            echo "| Suspicious | $SUS |"
+            echo "| Undetected | $UND |"
+            echo "| Timeout | $TMO |"
+            echo "| Failure | $FAI |"
+            echo "| Type unsupported | $UNS |"
+            echo ""
+            echo "**Analysis ID:** \`$ID\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if malicious detections found
+        shell: bash
+        run: |
+          if [ "${{ steps.vt.outputs.malicious }}" != "0" ]; then
+            echo "VirusTotal reported malicious detections: ${{ steps.vt.outputs.malicious }}"
+            exit 1
+          fi

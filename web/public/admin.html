@@ -206,14 +206,7 @@
                 </div>
             </div>
 
-            <!-- Activity Log -->
-            <div class="card" style="margin-top: 20px;">
-                <h3 style="margin-bottom:15px; color:var(--text-main);">Real-time Activity Log</h3>
-                <div id="activity-log"
-                    style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">
-                    <div style="padding: 5px 0;" id="activity-log-placeholder">Waiting for activity...</div>
-                </div>
-            </div>
+
         </div>
 
         <!-- News List Section -->
@@ -668,19 +661,7 @@
             charts.activity.update();
         }
 
-        function logActivity(message) {
-            const list = document.getElementById('activity-log');
-            if (!list) return;
-            const placeholder = document.getElementById('activity-log-placeholder');
-            if (placeholder) placeholder.remove();
 
-            const item = document.createElement('div');
-            item.innerHTML = `<span style="color:var(--primary)">[${new Date().toLocaleTimeString()}]</span> ${message}`;
-            item.style.padding = '5px 0';
-            item.style.borderBottom = '1px solid var(--border-light)';
-            list.prepend(item);
-            if (list.children.length > 50) list.lastElementChild.remove();
-        }
 
         // --- Socket Events ---
         socket.on('connect', () => {
@@ -738,10 +719,7 @@
             }
         }
 
-        socket.on('new-download', (data) => {
-            const user = data.username ? `<strong style="color:var(--secondary)">${data.username}</strong>` : 'User';
-            logActivity(`${user} downloaded <strong style="color:white">${data.name || data.id}</strong> (${data.type})`);
-        });
+
 
         socket.on('error', (err) => {
             console.error('[Socket] Error:', err);

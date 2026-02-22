@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import Dropdown from '../components/Dropdown';
-import { useNotification } from '../context/NotificationContext';
 import LoadingOverlay from '../components/LoadingOverlay';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ServerConsole from '../components/ServerConsole';
+import Dropdown from '../components/Dropdown';
+import { useTranslation } from 'react-i18next';
+import { useNotification } from '../context/NotificationContext';
 import { Analytics } from '../services/Analytics';
 
 const DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='4' width='20' height='16' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='8' y1='9' x2='16' y2='9'%3E%3C/line%3E%3Cline x1='8' y1='13' x2='16' y2='13'%3E%3C/line%3E%3Cline x1='8' y1='17' x2='12' y2='17'%3E%3C/line%3E%3C/svg%3E";
-const formatUptime = (seconds) => {
-    if (!seconds || seconds <= 0) return 'Offline';
-    const days = Math.floor(seconds / 86400);
+const formatUptime = (seconds, t) => {
+    if (!seconds || seconds <= 0) return t('server.offline');
+    const days = Math.floor(seconds / 84600);
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
 
@@ -20,6 +20,7 @@ const formatUptime = (seconds) => {
 };
 
 function ServerDashboard({ onServerClick, runningInstances = {} }) {
+    const { t } = useTranslation();
     const { addNotification } = useNotification();
     const [servers, setServers] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -74,7 +75,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
         const removeListener = window.electronAPI.onServerStatus(({ serverName, status }) => {
             loadServers();
             if (selectedServer?.name === serverName && status === 'stopped') {
-                addNotification(`Server ${serverName} stopped`, 'info');
+                addNotification(t('server.stop_notification', { name: serverName }), 'info');
             }
         });
 
@@ -120,7 +121,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                 }
             } catch (error) {
                 console.error('Failed to load versions:', error);
-                addNotification(`Failed to load versions for ${selectedSoftware}`, 'error');
+                addNotification(t('server.versions_failed', { software: selectedSoftware }), 'error');
                 setAvailableVersions([]);
                 setSelectedVersion('');
             } finally {
@@ -157,7 +158,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
             setServers(list || []);
         } catch (error) {
             console.error('Failed to load servers:', error);
-            addNotification('Failed to load servers', 'error');
+            addNotification(t('server.load_failed'), 'error');
         }
     };
 
@@ -183,7 +184,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
         if (isCreating) return;
 
         if (!selectedVersion) {
-            addNotification('Please select a Minecraft version', 'error');
+            addNotification(t('server.select_version_error'), 'error');
             return;
         }
 
@@ -227,16 +228,16 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                 setShowCreateModal(false);
                 setShowNameConflictModal(false);
                 await loadServers();
-                addNotification(`Started creating server: ${result.serverName || serverData.name}`, 'success');
+                addNotification(t('server.create_started', { name: result.serverName || serverData.name }), 'success');
                 Analytics.trackServerCreation(serverData.software, serverData.version);
             } else {
                 const errorMsg = result?.error || 'Unknown error occurred';
-                addNotification(`Failed to create server: ${errorMsg}`, 'error');
+                addNotification(t('server.create_failed', { error: errorMsg }), 'error');
                 console.error('Create server failed:', result);
             }
         } catch (err) {
             console.error('Error creating server:', err);
-            addNotification(`Error creating server: ${err.message}`, 'error');
+            addNotification(t('server.create_error', { error: err.message }), 'error');
         } finally {
             setIsCreating(false);
         }
@@ -250,7 +251,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
             await doCreate(pendingServerData);
         } catch (err) {
             console.error('Overwrite failed:', err);
-            addNotification(`Overwrite failed: ${err.message}`, 'error');
+            addNotification(t('server.overwrite_failed', { error: err.message }), 'error');
         } finally {
             setIsCreating(false);
             setShowNameConflictModal(false);
@@ -278,7 +279,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
             await doCreate(dataWithSafe);
         } catch (err) {
             console.error('Rename create failed:', err);
-            addNotification(`Rename failed: ${err.message}`, 'error');
+            addNotification(t('server.rename_failed', { error: err.message }), 'error');
         } finally {
             setIsCreating(false);
             setShowNameConflictModal(false);
@@ -291,12 +292,12 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
         if (!pendingServerData) return;
         const newName = (conflictOtherName || '').trim();
         if (!newName) {
-            addNotification('Please enter a valid name', 'error');
+            addNotification(t('server.name_valid_error'), 'error');
             return;
         }
         const existing = servers.find(s => s.name && s.name.toLowerCase() === newName.toLowerCase());
         if (existing) {
-            addNotification('That name is still in use. Choose another.', 'error');
+            addNotification(t('server.name_in_use_error'), 'error');
             return;
         }
 
@@ -346,15 +347,15 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
             switch (action) {
                 case 'start':
                     await window.electronAPI.startServer(server.name);
-                    addNotification(`Starting server: ${server.name}...`, 'info');
+                    addNotification(t('server.start_notification', { name: server.name }), 'info');
                     break;
                 case 'stop':
                     await window.electronAPI.stopServer(server.name);
-                    addNotification(`Stopping server: ${server.name}...`, 'info');
+                    addNotification(t('server.stop_notification', { name: server.name }), 'info');
                     break;
                 case 'restart':
                     await window.electronAPI.restartServer(server.name);
-                    addNotification(`Restarting server: ${server.name}...`, 'info');
+                    addNotification(t('server.restart_notification', { name: server.name }), 'info');
                     break;
                 case 'console':
                     handleServerClick(server);
@@ -362,18 +363,18 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                 case 'duplicate':
                     const duplicateResult = await window.electronAPI.duplicateServer(server.name);
                     if (duplicateResult.success) {
-                        addNotification(`Duplicated server: ${server.name}`, 'success');
+                        addNotification(t('server.duplicate_success', { name: server.name }), 'success');
                         await loadServers();
                     } else {
-                        addNotification(`Duplicate failed: ${duplicateResult.error}`, 'error');
+                        addNotification(t('server.duplicate_failed', { error: duplicateResult.error }), 'error');
                     }
                     break;
                 case 'backup':
                     const backupResult = await window.electronAPI.backupServer(server.name);
                     if (backupResult.success) {
-                        addNotification(`Backup created: ${backupResult.path}`, 'success');
+                        addNotification(t('server.backup_success', { path: backupResult.path }), 'success');
                     } else if (backupResult.error !== 'Cancelled') {
-                        addNotification(`Backup failed: ${backupResult.error}`, 'error');
+                        addNotification(t('server.backup_failed', { error: backupResult.error }), 'error');
                     }
                     break;
                 case 'folder':
@@ -388,7 +389,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
             }
         } catch (error) {
             console.error(`Error in context action ${action}:`, error);
-            addNotification(`Action failed: ${error.message}`, 'error');
+            addNotification(t('server.action_failed', { error: error.message }), 'error');
         }
     };
     const handleServerAction = async (action, server) => {
@@ -410,7 +411,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                     break;
             }
         } catch (error) {
-            addNotification(`Action failed: ${error.message}`, 'error');
+            addNotification(t('server.action_failed', { error: error.message }), 'error');
         }
     };
 
@@ -430,18 +431,18 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
             const result = await window.electronAPI.deleteServer(serverToDelete.name);
 
             if (result && result.success) {
-                addNotification(`Deleted server: ${serverToDelete.name}`, 'info');
+                addNotification(t('server.delete_success', { name: serverToDelete.name }), 'info');
                 await loadServers();
                 if (selectedServer?.name === serverToDelete.name) {
                     setShowConsole(false);
                     setSelectedServer(null);
                 }
             } else {
-                addNotification(`Failed to delete: ${result?.error || 'Unknown error'}`, 'error');
+                addNotification(t('server.delete_failed_error', { error: result?.error || 'Unknown error' }), 'error');
             }
         } catch (e) {
             console.error('Delete error:', e);
-            addNotification(`Failed to delete: ${e.message}`, 'error');
+            addNotification(t('server.delete_failed_error', { error: e.message }), 'error');
         } finally {
             setIsLoading(false);
             setShowDeleteModal(false);
@@ -484,8 +485,8 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
             {isLoading && <LoadingOverlay message="Processing..." />}
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-1">Server Management</h1>
-                    <p className="text-gray-400 text-sm">Manage your Minecraft servers</p>
+                    <h1 className="text-3xl font-bold text-white mb-1">{t('server.title')}</h1>
+                    <p className="text-gray-400 text-sm">{t('server.desc')}</p>
                 </div>
                 <button
                     onClick={() => setShowCreateModal(true)}
@@ -494,7 +495,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                     </svg>
-                    New Server
+                    {t('server.new_btn')}
                 </button>
             </div>
 
@@ -555,12 +556,12 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
 
                             <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-white/5 relative z-10">
                                 <div className="text-xs text-gray-500">
-                                    <span className="block text-[10px] uppercase tracking-wider text-gray-600">Players</span>
+                                    <span className="block text-[10px] uppercase tracking-wider text-gray-600">{t('server.players')}</span>
                                     <span className="font-mono">{server.players || '0'}/{server.maxPlayers || '20'}</span>
                                 </div>
                                 <div className="text-xs text-gray-500 text-right">
-                                    <span className="block text-[10px] uppercase tracking-wider text-gray-600">Uptime</span>
-                                    <span className="font-mono">{formatUptime(server.uptime)}</span>
+                                    <span className="block text-[10px] uppercase tracking-wider text-gray-600">{t('server.uptime')}</span>
+                                    <span className="font-mono">{formatUptime(server.uptime, t)}</span>
                                 </div>
                             </div>
 
@@ -582,22 +583,22 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                                     {isRunning ? (
                                         <>
                                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><rect x="6" y="6" width="8" height="8" rx="1" /></svg>
-                                            Stop
+                                            {t('server.stop')}
                                         </>
                                     ) : isStarting ? (
                                         <>
                                             <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-                                            Starting...
+                                            {t('common.starting')}
                                         </>
                                     ) : isStopping ? (
                                         <>
                                             <div className="w-3 h-3 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin"></div>
-                                            Stopping...
+                                            {t('server.stop_dots')}
                                         </>
                                     ) : (
                                         <>
                                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
-                                            Start
+                                            {t('server.start')}
                                         </>
                                     )}
                                 </button>
@@ -614,8 +615,8 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                             <line x1="8" y1="13" x2="16" y2="13" strokeWidth={1.5} />
                             <line x1="8" y1="17" x2="12" y2="17" strokeWidth={1.5} />
                         </svg>
-                        <p className="text-xl font-medium mb-2 text-gray-400">No servers found</p>
-                        <p className="text-sm">Create a new server to get started</p>
+                        <p className="text-xl font-medium mb-2 text-gray-400">{t('server.no_servers')}</p>
+                        <p className="text-sm">{t('server.create_prompt')}</p>
                     </div>
                 )}
             </div>
@@ -630,40 +631,40 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                         <>
                             <button onClick={() => handleContextAction('stop')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm text-red-400">
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><rect x="6" y="6" width="8" height="8" rx="1" /></svg>
-                                Stop Server
+                                {t('server.stop')}
                             </button>
                             <button onClick={() => handleContextAction('restart')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm">
                                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                Restart
+                                {t('server.restart')}
                             </button>
                         </>
                     ) : (
                         <button onClick={() => handleContextAction('start')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm text-primary">
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
-                            Start Server
+                            {t('server.start')}
                         </button>
                     )}
                     <div className="border-t border-white/5 my-1"></div>
                     <button onClick={() => handleContextAction('console')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm">
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        Console
+                        {t('server.console')}
                     </button>
                     <button onClick={() => handleContextAction('duplicate')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm">
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                        Duplicate
+                        {t('server.duplicate')}
                     </button>
                     <button onClick={() => handleContextAction('backup')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm">
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-                        Create Backup
+                        {t('server.backup_create')}
                     </button>
                     <button onClick={() => handleContextAction('folder')} className="w-full px-4 py-2 text-left hover:bg-white/5 flex items-center gap-3 text-sm">
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                        Open folder
+                        {t('server.folder')}
                     </button>
                     <div className="border-t border-white/5 my-1"></div>
                     <button onClick={() => handleContextAction('delete')} className="w-full px-4 py-2 text-left hover:bg-red-500/20 text-red-400 flex items-center gap-3 text-sm">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        Delete
+                        {t('server.delete')}
                     </button>
                 </div>,
                 document.body
@@ -672,24 +673,24 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
             {showNameConflictModal && (
                 <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 999999, background: 'transparent' }}>
                     <div className="bg-surface border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl">
-                        <h3 className="text-xl font-bold text-white mb-2">Name already exists</h3>
-                        <p className="text-sm text-gray-400 mb-4">A server named "{conflictServer?.name}" already exists. Choose how to proceed:</p>
+                        <h3 className="text-xl font-bold text-white mb-2">{t('server.conflict.title')}</h3>
+                        <p className="text-sm text-gray-400 mb-4">{t('server.conflict.desc', { name: conflictServer?.name })}</p>
 
                         <div className="grid grid-cols-1 gap-3 mb-4">
-                            <button onClick={performOverwrite} className="w-full bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold">Overwrite existing</button>
-                            <button onClick={performRename} className="w-full bg-primary/20 text-primary px-4 py-2 rounded-xl font-bold">Create with folder suffix (rename folder)</button>
+                            <button onClick={performOverwrite} className="w-full bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-bold">{t('server.conflict.overwrite')}</button>
+                            <button onClick={performRename} className="w-full bg-primary/20 text-primary px-4 py-2 rounded-xl font-bold">{t('server.conflict.rename')}</button>
                         </div>
 
                         <div className="pt-2 border-t border-white/5">
-                            <label className="block text-gray-400 text-sm font-bold mb-2">Choose another name</label>
+                            <label className="block text-gray-400 text-sm font-bold mb-2">{t('server.conflict.another')}</label>
                             <div className="flex gap-2">
                                 <input value={conflictOtherName} onChange={(e) => setConflictOtherName(e.target.value)} className="flex-1 bg-background border border-white/10 rounded-xl p-3 text-white" />
-                                <button onClick={performUseOtherName} className="bg-primary px-4 py-2 rounded-xl font-bold">Use Name</button>
+                                <button onClick={performUseOtherName} className="bg-primary px-4 py-2 rounded-xl font-bold">{t('server.conflict.use_name')}</button>
                             </div>
                         </div>
 
                         <div className="flex justify-end mt-4">
-                            <button onClick={() => { setShowNameConflictModal(false); setPendingServerData(null); setConflictServer(null); }} className="px-4 py-2 rounded-xl text-gray-400">Cancel</button>
+                            <button onClick={() => { setShowNameConflictModal(false); setPendingServerData(null); setConflictServer(null); }} className="px-4 py-2 rounded-xl text-gray-400">{t('common.cancel')}</button>
                         </div>
                     </div>
                 </div>
@@ -699,7 +700,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-surface border border-white/10 rounded-2xl w-full max-w-2xl p-8 shadow-2xl transform transition-all scale-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
-                        <h2 className="text-2xl font-bold mb-6 text-white text-center">Create New Server</h2>
+                        <h2 className="text-2xl font-bold mb-6 text-white text-center">{t('server.create_title')}</h2>
                         <form onSubmit={handleCreate} className="space-y-6">
                             { }
                             <div className="flex flex-col items-center gap-4">
@@ -717,12 +718,12 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                                         className="hidden"
                                     />
                                 </div>
-                                <span className="text-xs text-gray-400 uppercase tracking-wide font-bold">Click to upload server icon</span>
+                                <span className="text-xs text-gray-400 uppercase tracking-wide font-bold">{t('server.icon_label')}</span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="col-span-2">
-                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Server Name</label>
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">{t('server.name_label')}</label>
                                     <input
                                         type="text"
                                         value={newServerName}
@@ -733,7 +734,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                                 </div>
 
                                 <div>
-                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Server Port</label>
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">{t('server.port_label')}</label>
                                     <input
                                         type="number"
                                         value={serverPort}
@@ -745,7 +746,7 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                                 </div>
 
                                 <div>
-                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Max Players</label>
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">{t('server.players_label')}</label>
                                     <input
                                         type="number"
                                         value={maxPlayers}
@@ -757,38 +758,38 @@ function ServerDashboard({ onServerClick, runningInstances = {} }) {
                                 </div>
 
                                 <div>
-                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Memory (RAM)</label>
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">{t('server.memory_label')}</label>
                                     <Dropdown
                                         options={memoryOptions}
                                         value={serverMemory}
                                         onChange={setServerMemory}
-                                        placeholder="Select Memory"
+                                        placeholder={t('server.memory_label')}
                                     />
                                 </div>
 
                                 <div className="col-span-2">
-                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Server Software</label>
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">{t('server.software_label')}</label>
                                     <Dropdown
                                         options={serverSoftware}
                                         value={selectedSoftware}
                                         onChange={setSelectedSoftware}
-                                        placeholder="Select Software"
+                                        placeholder={t('server.software_label')}
                                     />
                                 </div>
 
                                 <div className="col-span-2">
-                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Minecraft Version</label>
+                                    <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">{t('server.version_label')}</label>
                                     {loadingVersions ? (
                                         <div className="p-3 text-gray-500 bg-background border border-white/10 rounded-xl flex items-center gap-2">
                                             <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-                                            Loading versions...
+                                            {t('server.versions_loading')}
                                         </div>
                                     ) : (
                                         <Dropdown
                                             options={versionOptions}
                                             value={selectedVersion}
                                             onChange={setSelectedVersion}
-                                            placeholder="Select Version"
+                                            placeholder={t('server.version_label')}
                                         />
                                     )}
                                 </div>
