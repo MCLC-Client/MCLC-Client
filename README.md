@@ -61,64 +61,118 @@
 
 ### For Users
 
-1. Download the latest `.exe` installer from the [Releases](https://github.com/MCLC-Client/MCLC-Client/releases) page.
-2. Run the installer and follow the on-screen instructions.
-3. Launch **MCLC** from your desktop or start menu.
+1. **Download** the latest installer for your operating system from the [official website](https://mclc.pluginhub.de). Choose between:
+    - `.appimage` (Linux)
+    - `.deb` (Debian/Ubuntu)
+    - `.rpm` (Fedora/RedHat)
+    - `.exe` (Windows)
+2. **Install**: Open the downloaded file and follow the provided installation steps.
+3. **Launch MCLC**: Start the launcher from your desktop, applications menu, or Start menu.
 
 ### For Developers
 
 #### Prerequisites
 
-- [Node.js](https://nodejs.org/) (Latest LTS recommended)
-- npm or yarn
+- [Node.js](https://nodejs.org/) (Latest LTS version is recommended)
+- Package manager: [npm](https://www.npmjs.com/) (comes with Node.js) or [yarn](https://yarnpkg.com/)
 
-#### Installation
+#### Getting Started
 
-1. **Clone the repository**
+1. **Clone the Repository**
 
    ```bash
    git clone https://github.com/MCLC-Client/MCLC-Client.git
    cd MCLC-Client
    ```
 
-2. **Install dependencies**
+2. **Install Dependencies**
 
+   Using npm:
    ```bash
    npm install
    ```
 
-3. **Run in development mode**
+   Or, if you prefer yarn:
+   ```bash
+   yarn install
+   ```
 
+3. **Start the Development Server**
+
+   Run the app in development mode for live reloading:
+
+   With npm:
    ```bash
    npm run dev
    ```
 
-4. **Build for production**
+   With yarn:
+   ```bash
+   yarn dev
+   ```
 
+4. **Build for Production**
+
+   Create optimized builds for production release:
+
+   Using npm:
    ```bash
    npm run dist
    ```
+
+   Using yarn:
+   ```bash
+   yarn dist
+   ```
+
+5. **Additional Scripts**
+
+   - **Lint the codebase**  
+     ```bash
+     npm run lint
+     ```
+   - **Test locally**  
+     ```bash
+     npm run dev
+     ```
+
+6. **Useful Tips**
+
+   - If you encounter issues with native modules (e.g., `node-gyp`), ensure your Node version matches the Electron version used.
+   - The project uses [Vite](https://vitejs.dev/) for fast refresh and build times.
+
+---
+
+Feel free to open an issue or discussion if you run into setup problems!
 
 ---
 
 ## Tech Stack
 
-- **Core**: [Electron](https://www.electronjs.org/)
-- **Frontend**: [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Minecraft Core**: [minecraft-launcher-core](https://github.com/Pierce01/Minecraft-Launcher-Core)
-- **3D Rendering**: [skinview3d](https://github.com/bs-community/skinview3d)
-- **State Management**: React Hooks & Context API
+- **Electron** – Cross-platform desktop application runtime ([electronjs.org](https://www.electronjs.org/))
+- **React** – Modern component-based UI library ([reactjs.org](https://reactjs.org/))
+- **Vite** – Lightning-fast development/build tooling ([vitejs.dev](https://vitejs.dev/))
+- **Tailwind CSS** – Utility-first CSS framework for rapid UI development ([tailwindcss.com](https://tailwindcss.com/))
+- **Minecraft Integration**:  
+  - [skinview3d](https://github.com/bs-community/skinview3d) (real-time 3D skin/model previews)
+- **State Management**: React Context API & Hooks (efficient and scalable local state handling)
+- **Other**:  
+  - JavaScript
+  - ESLint & Prettier (code quality and formatting)
+
+*The stack is designed for performance, extensibility, and visually rich Minecraft integrations.*
 
 ---
 
 ## Screenshots
 
-> Coming soon!
+Below are example screenshots showcasing MCLC's interface and features.
+
+> *Screenshots will be posted soon! Stay updated for a visual walkthrough of the latest version.*
 
 ---
 
-## License & Credits
+## Contributors
 
-- Developed by **Fernsehheft, Mobilestars, ItzzMateo**
-- Icons by [Heroicons](https://heroicons.com/)
+- Core team: **Fernsehheft, Mobilestars, ItzzMateo**
+- Contributors to the latest version: **Tamino112, Foxof7207, blaxk**
