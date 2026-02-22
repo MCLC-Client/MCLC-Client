@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNotification } from "../context/NotificationContext";
 import ColorPicker from "../components/ColorPicker";
 import SliderControl from "../components/SliderControl";
@@ -81,6 +82,7 @@ const PRESETS = [
 ];
 
 function Styling() {
+  const { t } = useTranslation();
   const { addNotification } = useNotification();
   const [theme, setTheme] = useState({
     primaryColor: "#1bd96a",
@@ -182,7 +184,7 @@ function Styling() {
   const handleDeletePreset = async (handle) => {
     const res = await window.electronAPI.deleteCustomPreset(handle);
     if (res.success) {
-      addNotification("Preset deleted", "success");
+      addNotification(t('styling.preset_deleted'), "success");
       loadCustomPresets();
     }
   };
@@ -201,19 +203,19 @@ function Styling() {
 
     const res = await window.electronAPI.exportCustomPreset(presetData);
     if (res.success) {
-      addNotification(`Theme exported to ${res.path}`, "success");
+      addNotification(t('styling.exported_to', { path: res.path }), "success");
     } else if (res.error !== 'Cancelled') {
-      addNotification(`Export failed: ${res.error}`, "error");
+      addNotification(`${t('styling.export')} failed: ${res.error}`, "error");
     }
   };
 
   const handleImportTheme = async () => {
     const res = await window.electronAPI.importCustomPreset();
     if (res.success) {
-      addNotification("Theme imported successfully!", "success");
+      addNotification(t('styling.imported_success'), "success");
       loadCustomPresets();
     } else if (res.error !== 'Cancelled') {
-      addNotification(`Import failed: ${res.error}`, "error");
+      addNotification(`${t('styling.import')} failed: ${res.error}`, "error");
     }
   };
 
@@ -324,7 +326,7 @@ function Styling() {
       const newSettings = { ...res.settings, theme };
       const saveRes = await window.electronAPI.saveSettings(newSettings);
       if (saveRes.success) {
-        addNotification("Styling preferences saved!", "success");
+        addNotification(t('styling.saved_success'), "success");
       }
     }
   };
@@ -334,10 +336,10 @@ function Styling() {
       { }
       <header className="mb-10">
         <h1 className="text-4xl font-black text-white tracking-tight mb-2">
-          Launcher Customization
+          {t('styling.title')}
         </h1>
         <p className="text-gray-400">
-          Design your workspace exactly how you want it.
+          {t('styling.desc')}
         </p>
       </header>
 
@@ -349,21 +351,21 @@ function Styling() {
           { }
           <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
             <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6">
-              Accent & Base
+              {t('styling.accent_base')}
             </h2>
             <div className="space-y-5">
               <ColorPicker
-                label="Accent Color"
+                label={t('styling.accent_color')}
                 value={theme.primaryColor}
                 onChange={(val) => handleUpdate("primaryColor", val)}
               />
               <ColorPicker
-                label="Background"
+                label={t('styling.background')}
                 value={theme.backgroundColor}
                 onChange={(val) => handleUpdate("backgroundColor", val)}
               />
               <ColorPicker
-                label="Panels"
+                label={t('styling.panels')}
                 value={theme.surfaceColor}
                 onChange={(val) => handleUpdate("surfaceColor", val)}
               />
@@ -374,7 +376,7 @@ function Styling() {
           <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em]">
-                Quick Themes
+                {t('styling.quick_themes')}
               </h2>
               <button
                 onClick={handleImportTheme}
@@ -383,7 +385,7 @@ function Styling() {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Import
+                {t('styling.import')}
               </button>
             </div>
 
@@ -391,7 +393,7 @@ function Styling() {
               { }
               {customPresets.length > 0 && (
                 <div className="space-y-3">
-                  <span className="text-[10px] font-bold text-gray-600 uppercase">Custom</span>
+                  <span className="text-[10px] font-bold text-gray-600 uppercase">{t('styling.custom')}</span>
                   <div className="grid grid-cols-1 gap-2">
                     {customPresets.map((p) => (
                       <ThemeCard
@@ -408,7 +410,7 @@ function Styling() {
 
               { }
               <div className="space-y-3">
-                <span className="text-[10px] font-bold text-gray-600 uppercase">Presets</span>
+                <span className="text-[10px] font-bold text-gray-600 uppercase">{t('styling.presets')}</span>
                 <div className="grid grid-cols-1 gap-2">
                   {PRESETS.map((p) => (
                     <ThemeCard
@@ -428,7 +430,7 @@ function Styling() {
           { }
           <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
             <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6">
-              Live Preview
+              {t('styling.live_preview')}
             </h2>
             <MiniPreview theme={theme} />
           </section>
@@ -438,11 +440,11 @@ function Styling() {
             { }
             <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
               <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6">
-                Interactive Effects
+                {t('styling.interactive_effects')}
               </h2>
               <div className="space-y-5">
                 <SliderControl
-                  label="Corner Roundness"
+                  label={t('styling.corner_roundness')}
                   value={theme.borderRadius || 12}
                   min={0}
                   max={32}
@@ -451,7 +453,7 @@ function Styling() {
                   onChange={(val) => handleUpdate("borderRadius", val)}
                 />
                 <SliderControl
-                  label="Glass Blur"
+                  label={t('styling.glass_blur')}
                   value={theme.glassBlur}
                   min={0}
                   max={40}
@@ -460,7 +462,7 @@ function Styling() {
                   onChange={(val) => handleUpdate("glassBlur", val)}
                 />
                 <SliderControl
-                  label="Sidebar Glow"
+                  label={t('styling.sidebar_glow')}
                   value={Math.round((theme.sidebarGlow || 0.3) * 100)}
                   min={0}
                   max={100}
@@ -469,7 +471,7 @@ function Styling() {
                   onChange={(val) => handleUpdate("sidebarGlow", val / 100)}
                 />
                 <SliderControl
-                  label="Panel Opacity"
+                  label={t('styling.panel_opacity')}
                   value={Math.round((theme.panelOpacity || 0.85) * 100)}
                   min={10}
                   max={100}
@@ -478,7 +480,7 @@ function Styling() {
                   onChange={(val) => handleUpdate("panelOpacity", val / 100)}
                 />
                 <SliderControl
-                  label="Console Opacity"
+                  label={t('styling.console_opacity')}
                   value={Math.round((theme.consoleOpacity || 0.8) * 100)}
                   min={10}
                   max={100}
@@ -492,7 +494,7 @@ function Styling() {
             { }
             <section className="bg-surface/50 backdrop-blur-md p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
               <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6">
-                Atmosphere
+                {t('styling.atmosphere')}
               </h2>
               <div className="space-y-5">
                 <div
@@ -519,7 +521,7 @@ function Styling() {
                       )}
                       <div className="relative z-10 text-center">
                         <div className="text-[10px] font-black uppercase text-white tracking-widest bg-black/50 px-3 py-1 rounded-full border border-white/20">
-                          Change Background
+                          {t('styling.change_bg')}
                         </div>
                       </div>
                     </>
@@ -540,7 +542,7 @@ function Styling() {
                         />
                       </svg>
                       <div className="text-[10px] font-black text-gray-500 uppercase">
-                        Select Image/GIF/Video
+                        {t('styling.select_media')}
                       </div>
                     </>
                   )}
@@ -549,7 +551,7 @@ function Styling() {
                 {theme.bgMedia?.url && (
                   <div className="space-y-4">
                     <SliderControl
-                      label="Overlay Intensity"
+                      label={t('styling.overlay_intensity')}
                       value={Math.round((theme.bgOverlay || 0.4) * 100)}
                       min={0}
                       max={100}
@@ -569,7 +571,7 @@ function Styling() {
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
-                      Remove Background
+                      {t('styling.remove_bg')}
                     </button>
                   </div>
                 )}
@@ -583,7 +585,7 @@ function Styling() {
               onClick={loadTheme}
               className="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-6 py-3 rounded-xl font-bold transition-all text-sm border border-white/5 hover:border-white/10"
             >
-              Reset
+              {t('styling.reset')}
             </button>
             <button
               onClick={handleExportTheme}
@@ -592,13 +594,13 @@ function Styling() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
-              Export Theme
+              {t('styling.export')}
             </button>
             <button
               onClick={handleSave}
               className="bg-primary hover:bg-primary-hover text-black px-8 py-3 rounded-xl font-black shadow-lg shadow-primary/30 transition-all text-sm hover:scale-[1.02] active:scale-95"
             >
-              Save Theme
+              {t('styling.save')}
             </button>
           </div>
         </div>

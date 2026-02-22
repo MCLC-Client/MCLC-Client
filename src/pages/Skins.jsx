@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { SkinViewer, WalkingAnimation, IdleAnimation } from 'skinview3d';
+import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 const SkinPreview = ({ src, className, model = 'classic' }) => {
     const canvasRef = useRef(null);
@@ -97,6 +98,7 @@ const CapePreview = ({ src, className }) => {
 };
 
 function Skins({ onLogout, onProfileUpdate }) {
+    const { t } = useTranslation();
     const { addNotification } = useNotification();
     const canvasRef = useRef(null);
     const skinViewerRef = useRef(null);
@@ -214,16 +216,16 @@ function Skins({ onLogout, onProfileUpdate }) {
                         await updateSkinInViewer(skinUrl, model);
                     } else {
                         if (res.authError) {
-                            addNotification('Session expired. Please login again.', 'error');
+                            addNotification(t('login.failed') + '. ' + t('common.restart_app'), 'error');
                             if (onLogout) onLogout();
                             return;
                         }
-                        addNotification(`Skin error: ${res.error}`, 'info');
+                        addNotification(t('skins.upload_failed', { error: res.error }), 'info');
                         setIsSkinLoaded(true);
                     }
                 } catch (e) {
                     console.error("Failed to load skin", e);
-                    addNotification('Failed to fetch skin from Mojang.', 'error');
+                    addNotification(t('skins.upload_failed', { error: 'Mojang' }), 'error');
                 }
             }
 
@@ -231,7 +233,7 @@ function Skins({ onLogout, onProfileUpdate }) {
             if (onProfileUpdate) onProfileUpdate(profile);
         } catch (e) {
             console.error("Failed to load profile/skin", e);
-            addNotification('Error loading profile.', 'error');
+            addNotification(t('skins.upload_failed', { error: t('common.error_title') }), 'error');
         }
         setIsLoading(false);
     };
@@ -251,10 +253,10 @@ function Skins({ onLogout, onProfileUpdate }) {
         try {
             const res = await window.electronAPI.saveLocalSkin();
             if (res.success) {
-                addNotification('Skin imported successfully', 'success');
+                addNotification(t('skins.import_success'), 'success');
                 loadLocalSkins();
             } else if (res.error !== 'Cancelled') {
-                addNotification(`Import failed: ${res.error}`, 'error');
+                addNotification(t('skins.import_failed', { error: res.error }), 'error');
             }
         } catch (e) {
             console.error("Import failed", e);
@@ -283,7 +285,7 @@ function Skins({ onLogout, onProfileUpdate }) {
     const handleApplySkin = async () => {
         if (!pendingSkin) return;
         if (!userProfile) {
-            addNotification('You must be logged in to upload a skin', 'error');
+            addNotification(t('skins.upload_failed', { error: 'Auth' }), 'error');
             return;
         }
 
@@ -299,21 +301,16 @@ function Skins({ onLogout, onProfileUpdate }) {
             }
 
             if (res.success) {
-                addNotification('Skin uploaded! It may take a minute to update.', 'success');
+                addNotification(t('skins.upload_success'), 'success');
                 setPendingSkin(null);
 
                 loadProfileAndSkin();
             } else {
-                if (res.authError) {
-                    addNotification('Session expired. Please login again.', 'error');
-                    if (onLogout) onLogout();
-                } else {
-                    addNotification(`Upload failed: ${res.error}`, 'error');
-                }
+                addNotification(t('skins.upload_failed', { error: res.error }), 'error');
             }
         } catch (e) {
             console.error(e);
-            addNotification('Upload failed due to an error.', 'error');
+            addNotification(t('skins.upload_failed', { error: e.message }), 'error');
         }
 
         setIsLoading(false);
@@ -332,14 +329,9 @@ function Skins({ onLogout, onProfileUpdate }) {
                 skinViewerRef.current.loadCape(cape ? cape.url : null);
             }
             setShowCapeModal(false);
-            addNotification(capeId ? 'Cape activated' : 'Cape removed', 'success');
+            addNotification(capeId ? t('skins.cape_activated') : t('skins.cape_removed'), 'success');
         } else {
-            if (res.authError) {
-                addNotification('Session expired. Please login again.', 'error');
-                if (onLogout) onLogout();
-            } else {
-                addNotification(`Failed to set cape: ${res.error}`, 'error');
-            }
+            addNotification(t('skins.upload_failed', { error: res.error }), 'error');
         }
     };
 
@@ -347,7 +339,7 @@ function Skins({ onLogout, onProfileUpdate }) {
         e.stopPropagation();
         const res = await window.electronAPI.deleteLocalSkin(id);
         if (res.success) {
-            addNotification('Skin deleted', 'info');
+            addNotification(t('skins.delete_success'), 'info');
             if (pendingSkin?.id === id) {
                 setPendingSkin(null);
 
@@ -357,7 +349,7 @@ function Skins({ onLogout, onProfileUpdate }) {
             }
             loadLocalSkins();
         } else {
-            addNotification(`Delete failed: ${res.error}`, 'error');
+            addNotification(t('skins.delete_failed', { error: res.error }), 'error');
         }
     };
 
@@ -368,10 +360,10 @@ function Skins({ onLogout, onProfileUpdate }) {
         }
         const res = await window.electronAPI.renameLocalSkin(id, editName);
         if (res.success) {
-            addNotification('Skin renamed', 'success');
+            addNotification(t('skins.rename_success'), 'success');
             loadLocalSkins();
         } else {
-            addNotification(`Rename failed: ${res.error}`, 'error');
+            addNotification(t('skins.rename_failed', { error: res.error }), 'error');
         }
         setEditingSkinId(null);
     };
@@ -383,7 +375,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                 <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center p-8 backdrop-blur-sm">
                     <div className="bg-[#151515] border border-white/10 rounded-2xl p-6 w-full max-w-2xl max-h-full flex flex-col">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-white">Select a Cape</h2>
+                            <h2 className="text-2xl font-bold text-white">{t('skins.select_cape')}</h2>
                             <button onClick={() => setShowCapeModal(false)} className="text-gray-400 hover:text-white transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -397,7 +389,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                                 onClick={() => handleSetCape(null)}
                                 className={`aspect-[3/4] rounded-xl border-2 flex flex-col items-center justify-center cursor-pointer transition-all ${activeCapeId === null ? 'border-primary bg-primary/10' : 'border-white/10 hover:border-white/30 bg-black/20'}`}
                             >
-                                <div className="text-gray-400 font-bold">No Cape</div>
+                                <div className="text-gray-400 font-bold">{t('skins.no_cape')}</div>
                             </div>
 
                             {capes.map(cape => (
@@ -412,7 +404,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                                     <span className="text-sm font-medium text-white text-center px-2">{cape.alias}</span>
                                     {activeCapeId === cape.id && (
                                         <div className="absolute top-2 right-2 bg-primary text-black text-xs font-bold px-2 py-0.5 rounded-full">
-                                            Active
+                                            {t('skins.active')}
                                         </div>
                                     )}
                                 </div>
@@ -425,11 +417,11 @@ function Skins({ onLogout, onProfileUpdate }) {
             { }
             <div className="w-1/3 min-w-[300px] bg-background-dark border-r border-white/5 flex flex-col items-center justify-center relative p-6">
                 <div className="absolute top-4 left-4 bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                    Beta
+                    {t('common.beta')}
                 </div>
 
                 <h2 className="absolute top-4 right-4 text-xl font-bold text-white drop-shadow-md">
-                    {userProfile?.name || 'Guest'}
+                    {userProfile?.name || t('skins.guest')}
                 </h2>
 
                 <div className={`relative w-full h-[400px] flex items-center justify-center transition-opacity duration-300 ${isSkinLoaded ? 'opacity-100' : 'opacity-0'}`}>
@@ -447,7 +439,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                     <button
                         onClick={() => setIsAnimating(!isAnimating)}
                         className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-colors text-white"
-                        title={isAnimating ? "Pause" : "Play"}
+                        title={isAnimating ? t('skins.pause') : t('skins.play')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             {isAnimating ? (
@@ -470,7 +462,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                         }}
                         className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-colors text-white text-sm font-medium"
                     >
-                        Model: {variant === 'classic' ? '(Wide)' : '(Slim)'}
+                        {t('skins.model')}: {variant === 'classic' ? `(${t('skins.wide')})` : `(${t('skins.slim')})`}
                     </button>
 
                     <button
@@ -478,7 +470,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                         disabled={!capes.length}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${!capes.length ? 'bg-white/5 text-gray-500 cursor-not-allowed' : 'bg-white/10 hover:bg-white/20 text-white'}`}
                     >
-                        {capes.length ? 'Change Cape' : 'No Capes'}
+                        {capes.length ? t('skins.change_cape') : t('skins.no_capes')}
                     </button>
                 </div>
             </div>
@@ -487,8 +479,8 @@ function Skins({ onLogout, onProfileUpdate }) {
             <div className="flex-1 bg-background p-8 overflow-y-auto custom-scrollbar">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-white">Skins</h1>
-                        <p className="text-gray-400">Manage your appearance</p>
+                        <h1 className="text-3xl font-bold text-white">{t('skins.title')}</h1>
+                        <p className="text-gray-400">{t('skins.desc')}</p>
                     </div>
                     {pendingSkin && (
                         <button
@@ -496,14 +488,14 @@ function Skins({ onLogout, onProfileUpdate }) {
                             disabled={isLoading}
                             className="bg-primary hover:bg-primary-hover text-black font-bold px-6 py-2 rounded-xl shadow-lg transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-wait"
                         >
-                            {isLoading ? 'Uploading...' : 'Apply to Account'}
+                            {isLoading ? t('skins.uploading') : t('skins.apply')}
                         </button>
                     )}
                 </div>
 
                 { }
                 <div>
-                    <h3 className="text-lg font-bold text-gray-300 mb-4">Saved Skins</h3>
+                    <h3 className="text-lg font-bold text-gray-300 mb-4">{t('skins.saved_skins')}</h3>
                     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         { }
                         <div
@@ -515,7 +507,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
                             </div>
-                            <span className="text-sm font-medium text-gray-400 group-hover:text-white">Add a skin</span>
+                            <span className="text-sm font-medium text-gray-400 group-hover:text-white">{t('skins.add_skin')}</span>
                         </div>
 
                         { }
@@ -586,7 +578,7 @@ function Skins({ onLogout, onProfileUpdate }) {
 
                 { }
                 <div className="mt-8">
-                    <h3 className="text-lg font-bold text-gray-300 mb-4">Default Skins</h3>
+                    <h3 className="text-lg font-bold text-gray-300 mb-4">{t('skins.default_skins')}</h3>
                     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {['Steve', 'Alex'].map(name => (
                             <div

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 function Login({ onLoginSuccess }) {
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -12,7 +14,7 @@ function Login({ onLoginSuccess }) {
             if (result.success) {
                 onLoginSuccess(result.profile);
             } else {
-                setError(result.error || 'Login failed');
+                setError(result.error || t('login.failed'));
             }
         } catch (e) {
             setError(e.message);
@@ -24,8 +26,8 @@ function Login({ onLoginSuccess }) {
     return (
         <div className="flex h-full items-center justify-center bg-background">
             <div className="w-full max-w-md p-8 bg-surface rounded-lg shadow-xl border border-gray-800 text-center">
-                <h1 className="text-3xl font-bold mb-2 text-primary">Minecraft Launcher</h1>
-                <p className="text-gray-400 mb-8">Sign in with your Microsoft Account</p>
+                <h1 className="text-3xl font-bold mb-2 text-primary">{t('login.title')}</h1>
+                <p className="text-gray-400 mb-8">{t('login.microsoft_sign_in')}</p>
 
                 {error && (
                     <div className="mb-4 p-3 bg-red-900/20 border border-red-500/50 rounded text-red-200 text-sm">
@@ -39,7 +41,7 @@ function Login({ onLoginSuccess }) {
                     className={`w-full py-3 px-4 rounded font-bold text-white transition-all transform hover:scale-[1.02] ${loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500 shadow-lg shadow-green-900/20'
                         }`}
                 >
-                    {loading ? 'Logging in...' : 'Sign in with Microsoft'}
+                    {loading ? t('login.logging_in') : t('login.sign_in_button')}
                 </button>
             </div>
         </div>

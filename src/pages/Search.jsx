@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '../context/NotificationContext';
+import { useTranslation } from 'react-i18next';
 import { Analytics } from '../services/Analytics';
 import ModDependencyModal from '../components/ModDependencyModal';
 
 function Search({ initialCategory, onCategoryConsumed }) {
+    const { t } = useTranslation();
     const { addNotification } = useNotification();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
@@ -59,7 +61,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
 
     const handlePreview = async (mod) => {
         try {
-            addNotification(`Loading preview for ${mod.title}...`, 'info');
+            addNotification(t('search.loading_preview', { title: mod.title }), 'info');
             const res = await window.electronAPI.getModrinthProject(mod.project_id);
             if (res.success) {
                 const fullProject = {
@@ -70,11 +72,11 @@ function Search({ initialCategory, onCategoryConsumed }) {
                 setPreviewProject(fullProject);
                 setShowPreviewModal(true);
             } else {
-                addNotification('Failed to load preview: ' + res.error, 'error');
+                addNotification(t('search.failed_preview', { error: res.error }), 'error');
             }
         } catch (e) {
             console.error(e);
-            addNotification('Error loading preview.', 'error');
+            addNotification(t('search.error_preview'), 'error');
         }
     };
     const formatDownloads = (downloads) => {
@@ -112,10 +114,10 @@ function Search({ initialCategory, onCategoryConsumed }) {
                 setResults(res.results);
                 setTotalHits(res.total_hits);
             } else {
-                addNotification('Search failed: ' + res.error, 'error');
+                addNotification(t('search.search_failed', { error: res.error }), 'error');
             }
         } catch (err) {
-            addNotification('Search error: ' + err.message, 'error');
+            addNotification(t('search.search_error', { error: err.message }), 'error');
         } finally {
             setLoading(false);
         }
@@ -174,12 +176,12 @@ function Search({ initialCategory, onCategoryConsumed }) {
         if (installing) return;
         setInstalling(true);
         try {
-            addNotification(`Fetching versions for ${mod.title}...`, 'info');
+            addNotification(t('search.fetching_versions', { title: mod.title }), 'info');
 
             const res = await window.electronAPI.getModVersions(mod.slug, [], []);
 
             if (!res || !res.success || !res.versions || res.versions.length === 0) {
-                addNotification("No versions found for this modpack.", 'error');
+                addNotification(t('search.no_versions'), 'error');
                 return;
             }
             const versions = res.versions;
@@ -187,26 +189,26 @@ function Search({ initialCategory, onCategoryConsumed }) {
             const primaryFile = latestVersion.files.find(f => f.primary) || latestVersion.files[0];
 
             if (!primaryFile) {
-                addNotification("No file found for the latest version.", 'error');
+                addNotification(t('search.no_files'), 'error');
                 return;
             }
-            addNotification(`Starting installation of ${mod.title}...`, 'info');
+            addNotification(t('search.starting_install', { title: mod.title }), 'info');
             const installRes = await window.electronAPI.installModpack(primaryFile.url, mod.title);
 
             if (installRes.success) {
-                addNotification(`Successfully started installing ${mod.title}. Check Dashboard.`, 'success');
+                addNotification(t('search.install_success', { title: mod.title }), 'success');
 
                 setInstalledIds(prev => new Set(prev).add(mod.project_id));
                 Analytics.trackDownload('modpack', mod.title, mod.project_id);
 
                 Analytics.trackInstanceCreation('modpack', 'latest');
             } else {
-                addNotification(`Failed to install: ${installRes.error}`, 'error');
+                addNotification(t('search.install_failed', { error: installRes.error }), 'error');
             }
 
         } catch (e) {
             console.error("Modpack install error:", e);
-            addNotification("An error occurred during installation.", 'error');
+            addNotification(t('common.error_desc'), 'error');
         } finally {
             setInstalling(false);
         }
@@ -233,7 +235,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
 
         setInstalling(true);
         try {
-            addNotification(`Resolving dependencies for ${selectedMod.title}...`, 'info');
+            addNotification(t('search.resolving_deps', { title: selectedMod.title }), 'info');
             const loaders = (selectedMod.project_type === 'shader' || selectedMod.project_type === 'resourcepack' || !instance.loader || instance.loader.toLowerCase() === 'vanilla')
                 ? []
                 : [instance.loader];
@@ -263,10 +265,10 @@ function Search({ initialCategory, onCategoryConsumed }) {
                     }]);
                 }
             } else {
-                addNotification(`No compatible versions found for ${instance.version} (${instance.loader})`, 'error');
+                addNotification(t('search.no_compat', { version: instance.version, loader: instance.loader }), 'error');
             }
         } catch (e) {
-            addNotification('Resolution failed: ' + e.message, 'error');
+            addNotification(t('common.error_desc') + ': ' + e.message, 'error');
         } finally {
             setInstalling(false);
         }
@@ -279,7 +281,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
         try {
             for (let i = 0; i < installList.length; i++) {
                 const item = installList[i];
-                addNotification(`Installing ${item.title} (${i + 1}/${installList.length})...`, 'info');
+                addNotification(t('search.installing_item', { title: item.title, current: i + 1, total: installList.length }), 'info');
 
                 const res = await window.electronAPI.installMod({
                     instanceName: item.instanceName,
@@ -295,14 +297,14 @@ function Search({ initialCategory, onCategoryConsumed }) {
                     setInstanceInstalledIds(prev => new Set(prev).add(item.projectId));
                     Analytics.trackDownload(item.projectType, item.title, item.projectId);
                 } else {
-                    addNotification(`Failed to install ${item.title}: ${res.error}`, 'error');
+                    addNotification(t('search.failed_install_single', { title: item.title, error: res.error }), 'error');
                 }
             }
-            addNotification(`Successfully installed ${installList.length} item(s)!`, 'success');
+            addNotification(t('search.batch_success', { count: installList.length }), 'success');
             setShowInstallModal(false);
             setShowDependencyModal(false);
         } catch (e) {
-            addNotification('Batch installation failed: ' + e.message, 'error');
+            addNotification(t('common.error_desc') + ': ' + e.message, 'error');
         } finally {
             setInstalling(false);
         }
@@ -327,31 +329,31 @@ function Search({ initialCategory, onCategoryConsumed }) {
     return (
         <div className="h-full p-8 flex flex-col overflow-hidden">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-white">Find Content</h1>
+                <h1 className="text-3xl font-bold text-white">{t('search.title')}</h1>
                 <div className="flex bg-surface rounded-xl p-1 border border-white/5">
                     <button
                         onClick={() => toggleProjectType('mod')}
                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${projectType === 'mod' ? 'bg-primary text-black shadow-primary-glow' : 'text-gray-400 hover:text-white'}`}
                     >
-                        Mods
+                        {t('instance_details.content.mods')}
                     </button>
                     <button
                         onClick={() => toggleProjectType('resourcepack')}
                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${projectType === 'resourcepack' ? 'bg-primary text-black shadow-primary-glow' : 'text-gray-400 hover:text-white'}`}
                     >
-                        Resource Packs
+                        {t('instance_details.content.resourcepacks')}
                     </button>
                     <button
                         onClick={() => toggleProjectType('modpack')}
                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${projectType === 'modpack' ? 'bg-primary text-black shadow-primary-glow' : 'text-gray-400 hover:text-white'}`}
                     >
-                        Modpacks
+                        {t('home.discover_modpack')}
                     </button>
                     <button
                         onClick={() => toggleProjectType('shader')}
                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${projectType === 'shader' ? 'bg-primary text-black shadow-primary-glow' : 'text-gray-400 hover:text-white'}`}
                     >
-                        Shaders
+                        {t('instance_details.content.shaders')}
                     </button>
                 </div>
             </div>
@@ -361,30 +363,30 @@ function Search({ initialCategory, onCategoryConsumed }) {
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={`Search for ${projectType === 'mod' ? 'mods' : projectType === 'resourcepack' ? 'resource packs' : projectType === 'modpack' ? 'modpacks' : 'shaders'}...`}
+                    placeholder={t('search.placeholder', { type: projectType === 'mod' ? t('instance_details.content.mods') : projectType === 'resourcepack' ? t('instance_details.content.resourcepacks') : projectType === 'modpack' ? 'Modpacks' : t('instance_details.content.shaders') })}
                     className="flex-1 bg-background-dark border border-white/10 rounded-xl p-4 text-white focus:border-primary outline-none shadow-inner"
                 />
                 <button
                     type="submit"
                     className="bg-primary text-black font-bold px-8 py-3 rounded-xl hover:scale-105 transition-transform"
                 >
-                    Search
+                    {t('search.search_btn')}
                 </button>
             </form>
 
             <div className="flex justify-between items-center mb-4 px-1">
                 <div className="text-sm text-gray-400">
-                    Found {totalHits} {projectType === 'mod' ? 'mods' : 'packs'}
+                    {t('search.found_results', { count: totalHits, type: projectType === 'mod' ? t('instance_details.content.mods') : t('instance_details.content.packs_short') })}
                 </div>
                 <select
                     value={sortMethod}
                     onChange={(e) => setSortMethod(e.target.value)}
                     className="bg-surface border-none rounded-lg px-4 py-2 text-white outline-none appearance-none cursor-pointer focus:outline-none focus:border-none focus:ring-0"
                 >
-                    <option value="relevance">Relevance</option>
-                    <option value="downloads">Downloads</option>
-                    <option value="newest">Newest</option>
-                    <option value="updated">Updated</option>
+                    <option value="relevance">{t('search.relevance')}</option>
+                    <option value="downloads">{t('search.downloads')}</option>
+                    <option value="newest">{t('search.newest')}</option>
+                    <option value="updated">{t('search.updated')}</option>
                 </select>
 
             </div>
@@ -429,7 +431,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
-                                        Preview
+                                        {t('search.preview')}
                                     </button>
                                 )}
                                 <button
@@ -443,12 +445,12 @@ function Search({ initialCategory, onCategoryConsumed }) {
                                     {installedIds.has(mod.project_id) ? (
                                         <>
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-bounce" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                                            {projectType === 'modpack' ? 'Installing...' : 'Installed'}
+                                            {projectType === 'modpack' ? t('search.installing_dots') : t('search.installed')}
                                         </>
                                     ) : (
                                         <>
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transition-transform group-hover:scale-110" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" /></svg>
-                                            {projectType === 'modpack' ? 'Create Instance' : 'Install'}
+                                            {projectType === 'modpack' ? t('search.create_instance') : t('search.install')}
                                         </>
                                     )}
                                 </button>
@@ -465,15 +467,15 @@ function Search({ initialCategory, onCategoryConsumed }) {
                     disabled={offset === 0}
                     className="px-6 py-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-bold"
                 >
-                    Previous
+                    {t('search.previous')}
                 </button>
                 <div className="flex items-center gap-4">
                     <span className="text-gray-400 font-mono text-sm uppercase tracking-wider">
-                        Page {Math.floor(offset / limit) + 1}
+                        {t('search.page_of', { current: Math.floor(offset / limit) + 1 })}
                     </span>
                     <div className="h-4 w-[1px] bg-white/10" />
                     <span className="text-gray-500 text-xs">
-                        of {Math.ceil(totalHits / limit)}
+                        {t('search.page_of_total', { total: Math.ceil(totalHits / limit) })}
                     </span>
                 </div>
                 <button
@@ -481,7 +483,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
                     disabled={offset + limit >= totalHits}
                     className="px-6 py-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-bold"
                 >
-                    Next
+                    {t('search.next')}
                 </button>
             </div>
 
@@ -490,10 +492,10 @@ function Search({ initialCategory, onCategoryConsumed }) {
                 showInstallModal && (
                     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                         <div className="bg-surface w-full max-w-md rounded-2xl p-6 border border-white/10 shadow-primary-glow animate-scale-in">
-                            <h2 className="text-2xl font-bold mb-4">Install {selectedMod?.title}</h2>
+                            <h2 className="text-2xl font-bold mb-4">{t('search.install_title', { title: selectedMod?.title })}</h2>
 
                             <div className="mb-6">
-                                <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">Select Instance</label>
+                                <label className="block text-gray-400 text-sm font-bold mb-2 uppercase tracking-wide">{t('search.select_instance')}</label>
                                 <select
                                     value={selectedInstance}
                                     onChange={(e) => setSelectedInstance(e.target.value)}
@@ -510,7 +512,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
                                     onClick={() => setShowInstallModal(false)}
                                     className="px-6 py-2 rounded-xl hover:bg-white/5 text-gray-300 font-bold transition-colors"
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button
                                     onClick={handleInstall}
@@ -518,7 +520,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
                                     className={`bg-primary text-black font-bold px-6 py-2 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 ${instanceInstalledIds.has(selectedMod?.project_id) ? 'bg-[#10b981] text-white hover:bg-[#059669]' : 'hover:bg-primary-hover'}`}
                                 >
                                     {installing && <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>}
-                                    {installing ? 'Installing...' : (instanceInstalledIds.has(selectedMod?.project_id) ? 'Already Installed' : 'Install')}
+                                    {installing ? t('search.installing_dots') : (instanceInstalledIds.has(selectedMod?.project_id) ? t('search.already_installed') : t('search.install'))}
                                 </button>
                             </div>
                         </div>
@@ -581,7 +583,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
-                                        <p>No gallery images available for this project.</p>
+                                        <p>{t('search.no_gallery')}</p>
                                     </div>
                                 )}
                             </div>
@@ -592,7 +594,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
                                     onClick={() => setShowPreviewModal(false)}
                                     className="px-6 py-3 rounded-xl hover:bg-white/5 text-white font-bold transition-colors"
                                 >
-                                    Close
+                                    {t('instance_details.logs.clear').toLowerCase().includes('clear') ? 'Close' : 'Schließen'}
                                 </button>
                                 <button
                                     onClick={() => {
@@ -608,7 +610,7 @@ function Search({ initialCategory, onCategoryConsumed }) {
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                                     </svg>
-                                    {installedIds.has(previewProject.id) ? 'Installed' : 'Install'}
+                                    {installedIds.has(previewProject.id) ? t('search.installed') : t('search.install')}
                                 </button>
                             </div>
                         </div>

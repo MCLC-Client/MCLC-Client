@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import Dropdown from '../components/Dropdown';
 import InstanceSettingsModal from '../components/InstanceSettingsModal';
 import ModpackCodeModal from '../components/ModpackCodeModal';
@@ -8,6 +9,7 @@ import ToggleBox from '../components/ToggleBox';
 import ExtensionSlot from '../components/Extensions/ExtensionSlot';
 import BackupManagerModal from '../components/BackupManagerModal';
 function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate }) {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState('content');
     const [contentView, setContentView] = useState('mods');
     const [searchCategory, setSearchCategory] = useState('mod');
@@ -88,7 +90,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
 
     const handlePreview = async (project) => {
         try {
-            addNotification(`Loading preview for ${project.title}...`, 'info');
+            addNotification(t('instance_details.actions.loading_preview', { title: project.title }), 'info');
             const res = await window.electronAPI.getModrinthProject(project.project_id);
             if (res.success) {
                 const fullProject = {
@@ -177,7 +179,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
         try {
             const res = await window.electronAPI.getResourcePacks(instance.name);
             if (res.success) setResourcePacks(res.packs);
-            else addNotification("Failed to load resource packs", 'error');
+            else addNotification(t('instance_details.content.failed_packs'), 'error');
         } catch (e) {
             console.error(e);
         } finally {
@@ -190,7 +192,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
         try {
             const res = await window.electronAPI.getShaders(instance.name);
             if (res.success) setShaders(res.shaders);
-            else addNotification("Failed to load shaders", 'error');
+            else addNotification(t('instance_details.content.failed_shaders'), 'error');
         } catch (e) {
             console.error(e);
         } finally {
@@ -707,7 +709,6 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                     </h1>
                     <div className="flex items-center gap-3 text-gray-400">
                         <span className="flex items-center gap-1.5 bg-surface px-3 py-1 rounded-full border border-white/5 text-sm">
-                            {instance.loader === 'Fabric' && <div className="w-2 h-2 rounded-full bg-orange-200"></div>}
                             {instance.loader === 'Forge' && <div className="w-2 h-2 rounded-full bg-blue-200"></div>}
                             {instance.loader || 'Vanilla'}
                         </span>
@@ -723,7 +724,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                             className="px-8 py-3 rounded-xl font-bold flex items-center gap-2 transform transition-all bg-red-500 hover:bg-red-400 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            Stop
+                            {t('common.stop')}
                         </button>
                     ) : (
                         <button
@@ -737,7 +738,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
-                                    {localPending ? 'Starting...' : 'Launching...'}
+                                    {localPending ? t('common.starting') : t('common.launching')}
                                 </>
                             ) : status === 'installing' ? (
                                 <>
@@ -745,19 +746,19 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
-                                    Installing...
+                                    {t('common.installing')}
                                 </>
                             ) : (
                                 <>
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
-                                    Play
+                                    {t('common.play')}
                                 </>
                             )}
                         </button>
                     )}
 
                     { }
-                    <button onClick={() => setShowSettings(true)} className="p-3 rounded-xl bg-surface hover:bg-white/10 text-white font-bold border border-white/5 transition-colors" title="Settings">
+                    <button onClick={() => setShowSettings(true)} className="p-3 rounded-xl bg-surface hover:bg-white/10 text-white font-bold border border-white/5 transition-colors" title={t('settings.title')}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     </button>
 
@@ -781,7 +782,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                                    Open Folder
+                                    {t('common.open_folder')}
                                 </button>
                                 <button
                                     onClick={async () => {
@@ -798,7 +799,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                                    Export as .mcpack
+                                    {t('instance_details.actions.export_mcpack')}
                                 </button>
                                 <button
                                     onClick={async () => {
@@ -829,7 +830,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                     </svg>
-                                    Export as Code
+                                    {t('instance_details.actions.export_code')}
                                 </button>
                                 <button
                                     onClick={() => {
@@ -841,7 +842,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0l-4-4m4-4v12" />
                                     </svg>
-                                    Backup Manager
+                                    {t('instance_details.actions.backup_manager')}
                                 </button>
                                 <button
                                     onClick={() => {
@@ -851,7 +852,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors text-yellow-500"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                    Reinstall Instance
+                                    {t('instance_details.actions.reinstall')}
                                 </button>
                             </div>
                         )}
@@ -866,10 +867,10 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
 
             { }
             <div className="px-8 mt-4 flex gap-2 border-b border-white/5">
-                <button onClick={() => setActiveTab('content')} className={TAB_CLASSES('content')}>Content</button>
+                <button onClick={() => setActiveTab('content')} className={TAB_CLASSES('content')}>{t('instance_details.tabs.content')}</button>
 
-                <button onClick={() => setActiveTab('worlds')} className={TAB_CLASSES('worlds')}>Worlds</button>
-                <button onClick={() => setActiveTab('logs')} className={TAB_CLASSES('logs')}>Logs</button>
+                <button onClick={() => setActiveTab('worlds')} className={TAB_CLASSES('worlds')}>{t('instance_details.tabs.worlds')}</button>
+                <button onClick={() => setActiveTab('logs')} className={TAB_CLASSES('logs')}>{t('instance_details.tabs.logs')}</button>
             </div>
 
             { }
@@ -885,7 +886,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
                                     </svg>
-                                    Mods
+                                    {t('instance_details.content.mods')}
                                 </button>
                                 <button
                                     onClick={() => { setContentView('resourcepacks'); setLocalSearchQuery(''); }}
@@ -894,7 +895,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    Resource Packs
+                                    {t('instance_details.content.resourcepacks')}
                                 </button>
                                 <button
                                     onClick={() => { setContentView('shaders'); setLocalSearchQuery(''); }}
@@ -903,7 +904,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
                                     </svg>
-                                    Shaders
+                                    {t('instance_details.content.shaders')}
                                 </button>
                             </div>
 
@@ -914,19 +915,19 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                             onClick={() => { setSearchCategory('mod'); setSearchOffset(0); }}
                                             className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${searchCategory === 'mod' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-gray-300'}`}
                                         >
-                                            Mods
+                                            {t('instance_details.content.mods')}
                                         </button>
                                         <button
                                             onClick={() => { setSearchCategory('resourcepack'); setSearchOffset(0); }}
                                             className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${searchCategory === 'resourcepack' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-gray-300'}`}
                                         >
-                                            Packs
+                                            {t('instance_details.content.packs_short')}
                                         </button>
                                         <button
                                             onClick={() => { setSearchCategory('shader'); setSearchOffset(0); }}
                                             className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${searchCategory === 'shader' ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'text-gray-500 hover:text-gray-300'}`}
                                         >
-                                            Shaders
+                                            {t('instance_details.content.shaders')}
                                         </button>
                                     </div>
                                 )}
@@ -936,7 +937,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                         <button
                                             onClick={() => { setContentView('search'); setLocalSearchQuery(''); }}
                                             className={`p-2 rounded-xl border transition-all duration-300 flex items-center justify-center ${contentView === 'search' ? 'bg-primary border-primary text-black shadow-lg shadow-primary/20' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10 hover:border-white/20'}`}
-                                            title="Add Content"
+                                            title={t('instance_details.actions.add_content')}
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
@@ -950,14 +951,14 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                 </svg>
-                                                Update All ({Object.keys(updates).length})
+                                                {t('instance_details.actions.update_all')} ({Object.keys(updates).length})
                                             </button>
                                         )}
                                         <button
                                             onClick={() => handleCheckUpdates()}
                                             disabled={checkingUpdates}
                                             className={`p-2 rounded-xl border transition-all flex items-center justify-center ${checkingUpdates ? 'bg-white/5 border-white/5 text-gray-500 cursor-not-allowed' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10 hover:border-white/20'}`}
-                                            title="Check for Updates"
+                                            title={t('instance_details.actions.check_updates')}
                                         >
                                             {checkingUpdates ? (
                                                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -976,7 +977,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                             </svg>
                                             <input
                                                 type="text"
-                                                placeholder="Filter..."
+                                                placeholder={t('instance_details.content.filter_placeholder')}
                                                 value={localSearchQuery}
                                                 onChange={(e) => setLocalSearchQuery(e.target.value)}
                                                 className="bg-white/5 border border-white/10 rounded-xl py-2 pl-9 pr-3 text-sm text-gray-300 w-48 focus:w-64 focus:border-primary focus:bg-white/10 outline-none transition-all shadow-inner"
@@ -989,7 +990,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     <button
                                         onClick={() => { setContentView('mods'); setLocalSearchQuery(''); }}
                                         className="p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center bg-primary text-black shadow-lg shadow-primary/20 scale-110"
-                                        title="Back to Content"
+                                        title={t('instance_details.actions.back_to_content')}
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
@@ -1013,15 +1014,15 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                             </svg>
                                         </div>
-                                        <div className="text-primary font-bold text-lg">Drop mods here to install</div>
-                                        <div className="text-[10px] text-primary/60 uppercase tracking-widest mt-1">Accepting .jar files</div>
+                                        <div className="text-primary font-bold text-lg">{t('instance_details.content.drop_mods')}</div>
+                                        <div className="text-[10px] text-primary/60 uppercase tracking-widest mt-1">{t('instance_details.content.accepting_jars')}</div>
                                     </div>
                                 )}
                                 {mods.filter(m => m.title?.toLowerCase().includes(localSearchQuery.toLowerCase()) || m.name?.toLowerCase().includes(localSearchQuery.toLowerCase())).length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-64 text-gray-600">
                                         <div className="text-4xl mb-4 opacity-50">📂</div>
-                                        <p className="text-lg font-medium">No mods found</p>
-                                        <button onClick={() => setContentView('search')} className="mt-4 text-primary hover:underline">Browse mods</button>
+                                        <p className="text-lg font-medium">{t('instance_details.content.no_mods')}</p>
+                                        <button onClick={() => setContentView('search')} className="mt-4 text-primary hover:underline">{t('instance_details.content.browse_mods')}</button>
                                     </div>
                                 ) : (
                                     mods.filter(m => m.title?.toLowerCase().includes(localSearchQuery.toLowerCase()) || m.name?.toLowerCase().includes(localSearchQuery.toLowerCase()))
@@ -1032,7 +1033,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                     {mod.icon ? (
                                                         <img src={mod.icon} alt="" className="w-10 h-10 rounded-lg bg-background-dark/50 object-cover" />
                                                     ) : (
-                                                        <div className="w-10 h-10 bg-background-dark/50 rounded-lg flex items-center justify-center text-gray-500 font-mono text-xs border border-white/5">jar</div>
+                                                        <div className="w-10 h-10 bg-background-dark/50 rounded-lg flex items-center justify-center text-gray-500 font-mono text-xs border border-white/5">{t('instance.jar_label')}</div>
                                                     )}
                                                     <div>
                                                         <div className={`font-bold ${!mod.enabled ? 'text-gray-500 line-through' : 'text-white'}`}>{mod.title || mod.name}</div>
@@ -1079,14 +1080,14 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                 {loadingResourcePacks ? (
                                     <div className="flex flex-col items-center justify-center h-64 text-gray-600">
                                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-                                        <p>Listing resource packs...</p>
+                                        <p>{t('instance_details.content.listing_packs')}</p>
                                     </div>
                                 ) : resourcePacks.filter(p => p.title?.toLowerCase().includes(localSearchQuery.toLowerCase()) || p.name?.toLowerCase().includes(localSearchQuery.toLowerCase())).length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-64 text-gray-600">
                                         <div className="text-4xl mb-4 opacity-50">🎨</div>
-                                        <p className="text-lg font-medium">No resource packs found</p>
-                                        <p className="text-sm opacity-50 mb-4">Check the `resourcepacks` folder in the instance directory</p>
-                                        <button onClick={() => { setContentView('search'); setSearchCategory('resourcepack'); }} className="mt-4 text-primary hover:underline font-bold">Browse packs</button>
+                                        <p className="text-lg font-medium">{t('instance_details.content.no_packs')}</p>
+                                        <p className="text-sm opacity-50 mb-4">{t('instance_details.content.check_folder_packs')}</p>
+                                        <button onClick={() => { setContentView('search'); setSearchCategory('resourcepack'); }} className="mt-4 text-primary hover:underline font-bold">{t('instance_details.content.browse_packs')}</button>
                                     </div>
                                 ) : (
                                     resourcePacks.filter(p => p.title?.toLowerCase().includes(localSearchQuery.toLowerCase()) || p.name?.toLowerCase().includes(localSearchQuery.toLowerCase()))
@@ -1097,7 +1098,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                     {pack.icon ? (
                                                         <img src={pack.icon} alt="" className="w-10 h-10 rounded-lg bg-background-dark/50 object-cover" />
                                                     ) : (
-                                                        <div className="w-10 h-10 bg-background-dark/50 rounded-lg flex items-center justify-center text-gray-500 font-mono text-[10px] border border-white/5 text-center leading-tight">RES<br />PACK</div>
+                                                        <div className="w-10 h-10 bg-background-dark/50 rounded-lg flex items-center justify-center text-gray-500 font-mono text-[10px] border border-white/5 text-center leading-tight whitespace-pre-line">{t('instance.res_pack_label')}</div>
                                                     )}
                                                     <div>
                                                         <div className="font-bold text-white">{pack.title}</div>
@@ -1140,14 +1141,14 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                 {loadingShaders ? (
                                     <div className="flex flex-col items-center justify-center h-64 text-gray-600">
                                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-                                        <p>Listing shaders...</p>
+                                        <p>{t('instance_details.content.listing_shaders')}</p>
                                     </div>
                                 ) : shaders.filter(s => s.title?.toLowerCase().includes(localSearchQuery.toLowerCase()) || s.name?.toLowerCase().includes(localSearchQuery.toLowerCase())).length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-64 text-gray-600">
                                         <div className="text-4xl mb-4 opacity-50">✨</div>
-                                        <p className="text-lg font-medium">No shaders found</p>
-                                        <p className="text-sm opacity-50 mb-4">Check the `shaderpacks` folder in the instance directory</p>
-                                        <button onClick={() => { setContentView('search'); setSearchCategory('shader'); }} className="mt-4 text-primary hover:underline font-bold">Browse shaders</button>
+                                        <p className="text-lg font-medium">{t('instance_details.content.no_shaders')}</p>
+                                        <p className="text-sm opacity-50 mb-4">{t('instance_details.content.check_folder_shaders')}</p>
+                                        <button onClick={() => { setContentView('search'); setSearchCategory('shader'); }} className="mt-4 text-primary hover:underline font-bold">{t('instance_details.content.browse_shaders')}</button>
                                     </div>
                                 ) : (
                                     shaders.filter(s => s.title?.toLowerCase().includes(localSearchQuery.toLowerCase()) || s.name?.toLowerCase().includes(localSearchQuery.toLowerCase()))
@@ -1155,7 +1156,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                         .map(shader => (
                                             <div key={shader.name} className="flex items-center justify-between p-3 bg-surface rounded-xl border border-white/5 hover:border-white/10 hover:bg-white/5 transition-all group">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center text-primary font-mono text-[10px] border border-primary/20 text-center leading-tight">SHA<br />DER</div>
+                                                    <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center text-primary font-mono text-[10px] border border-primary/20 text-center leading-tight whitespace-pre-line">{t('instance.shader_label')}</div>
                                                     <div>
                                                         <div className="font-bold text-white">{shader.title}</div>
                                                         <div className="flex gap-2 text-[10px] text-gray-500 mt-0.5">
@@ -1166,7 +1167,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                             className="text-[10px] bg-white/5 hover:bg-white/10 text-gray-300 px-2 py-0.5 rounded mt-1 border border-white/5 flex items-center gap-1 transition-colors"
                                                         >
                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                                            Preview
+                                                            {t('instance_details.content.preview')}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1207,25 +1208,25 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                             type="text"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            placeholder="Search Modrinth..."
+                                            placeholder={t('instance_details.search.placeholder')}
                                             className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-3 pl-11 text-white focus:border-primary outline-none shadow-inner transition-all"
                                             autoFocus
                                         />
                                     </div>
-                                    <button type="submit" className="bg-primary hover:bg-primary-hover text-black font-bold px-8 rounded-xl border border-transparent transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20">Search</button>
+                                    <button type="submit" className="bg-primary hover:bg-primary-hover text-black font-bold px-8 rounded-xl border border-transparent transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20">{t('instance_details.search.search_btn')}</button>
                                 </form>
 
                                 <div className="flex justify-between items-center mb-4">
                                     <div className="text-sm text-gray-400">
-                                        Showing {searchResults.length} results
+                                        {t('instance_details.search.showing_results', { count: searchResults.length })}
                                     </div>
                                     <div className="w-48">
                                         <Dropdown
                                             options={[
-                                                { value: 'relevance', label: 'Relevance' },
-                                                { value: 'downloads', label: 'Downloads' },
-                                                { value: 'newest', label: 'Newest' },
-                                                { value: 'updated', label: 'Recently Updated' }
+                                                { value: 'relevance', label: t('instance_details.search.relevance') },
+                                                { value: 'downloads', label: t('instance_details.search.downloads') },
+                                                { value: 'newest', label: t('instance_details.search.newest') },
+                                                { value: 'updated', label: t('instance_details.search.updated') }
                                             ]}
                                             value={sortMethod}
                                             onChange={setSortMethod}
@@ -1239,7 +1240,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     ) : searchResults.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center py-20 text-gray-600">
                                             <div className="text-4xl mb-4">🔍</div>
-                                            <p>No results found for "{searchQuery}"</p>
+                                            <p>{t('instance_details.search.no_results', { query: searchQuery })}</p>
                                         </div>
                                     ) : (
                                         searchResults.map(result => (
@@ -1280,9 +1281,9 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                     ) : (
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                                                     )}
-                                                    {installationStatus[result.project_id] === 'installing' ? 'Installing...' :
-                                                        installationStatus[result.project_id] === 'success' ? 'Installed' :
-                                                            installationStatus[result.project_id] === 'failed' ? 'Failed' : 'Install'}
+                                                    {installationStatus[result.project_id] === 'installing' ? t('instance_details.search.installing') :
+                                                        installationStatus[result.project_id] === 'success' ? t('instance_details.search.installed') :
+                                                            installationStatus[result.project_id] === 'failed' ? t('instance_details.search.failed') : t('instance_details.search.install')}
                                                 </button>
                                             </div>
                                         ))
@@ -1297,14 +1298,14 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                         className={`px-4 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-bold text-xs flex items-center gap-2 ${searchOffset === 0 ? 'invisible' : ''}`}
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                                        Previous
+                                        {t('instance_details.search.previous')}
                                     </button>
                                     <div className="flex flex-col items-center">
                                         <span className="text-white font-bold text-sm">
                                             {Math.floor(searchOffset / limit) + 1}
                                         </span>
                                         <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-                                            of {Math.ceil(totalHits / limit) || 1} Pages
+                                            {t('instance_details.search.page_of', { count: Math.ceil(totalHits / limit) || 1 })}
                                         </span>
                                     </div>
                                     <button
@@ -1312,204 +1313,203 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                         disabled={searchOffset + limit >= totalHits || searching}
                                         className={`px-4 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-bold text-xs flex items-center gap-2 ${searchOffset + limit >= totalHits ? 'invisible' : ''}`}
                                     >
-                                        Next
+                                        {t('instance_details.search.next')}
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                                     </button>
                                 </div>
                             </div>
                         )}
                     </div>
-                )
-                }
-                {
-                    activeTab === 'worlds' && (
-                        <div className="flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">
-                            { }
-                            <div className="space-y-4">
-                                <h2 className="text-white font-bold text-sm uppercase tracking-widest opacity-50 flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                    </svg>
-                                    Local Worlds
+                )}
+                {activeTab === 'worlds' && (
+                    <div className="flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">
+                        { }
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h2 className="text-2xl font-black text-white flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    {t('instance_details.worlds.local_worlds')}
                                 </h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {worlds.length === 0 ? (
-                                        <div className="col-span-full text-center text-gray-500 py-10 bg-white/5 rounded-2xl border border-white/5 border-dashed">
-                                            <p>No local worlds found.</p>
-                                        </div>
-                                    ) : (
-                                        worlds.map(world => (
-                                            <div key={world.folderName} className="bg-surface/40 rounded-2xl border border-white/5 hover:border-white/10 transition-all flex flex-col group overflow-hidden shadow-lg hover:shadow-primary/5">
-                                                { }
-                                                <div className="relative h-32 bg-background-dark/50 overflow-hidden shrink-0">
-                                                    {world.hasIcon ? (
-                                                        <img src={world.iconData} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-green-900/20 to-blue-900/20 text-white/10 group-hover:text-white/20 transition-colors">
-                                                            🌍
-                                                        </div>
-                                                    )}
-                                                    { }
-                                                    <div className="absolute top-3 left-3 flex gap-2">
-                                                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-lg ${world.gameMode === 'Creative' ? 'bg-purple-500/80 text-white' :
-                                                            world.gameMode === 'Survival' ? 'bg-red-500/80 text-white' :
-                                                                world.gameMode === 'Adventure' ? 'bg-orange-500/80 text-white' :
-                                                                    'bg-gray-500/80 text-white'
-                                                            }`}>
-                                                            {world.gameMode || 'Unknown'}
-                                                        </span>
-                                                        {world.hardcore && (
-                                                            <span className="bg-black/80 text-red-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-lg border border-red-500/30">
-                                                                Hardcore
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    { }
-                                                    <div className="absolute bottom-3 right-3">
-                                                        <span className="bg-black/60 backdrop-blur-md text-white/70 px-2 py-0.5 rounded-md text-[10px] font-bold border border-white/5">
-                                                            {world.version || 'Unknown'}
-                                                        </span>
-                                                    </div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {worlds.length === 0 ? (
+                                <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-600 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                    <div className="text-5xl mb-4 opacity-50">🌍</div>
+                                    <p className="text-lg font-medium">{t('instance_details.worlds.no_worlds')}</p>
+                                </div>
+                            ) : (
+                                worlds.map(world => (
+                                    <div key={world.folderName} className="bg-surface/40 rounded-2xl border border-white/5 hover:border-white/10 transition-all flex flex-col group overflow-hidden shadow-lg hover:shadow-primary/5">
+                                        { }
+                                        <div className="relative h-32 bg-background-dark/50 overflow-hidden shrink-0">
+                                            {world.hasIcon ? (
+                                                <img src={world.iconData} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-green-900/20 to-blue-900/20 text-white/10 group-hover:text-white/20 transition-colors">
+                                                    🌍
                                                 </div>
+                                            )}
+                                            { }
+                                            <div className="absolute top-3 left-3 flex gap-2">
+                                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-lg ${world.gameMode === 'Creative' ? 'bg-purple-500/80 text-white' :
+                                                    world.gameMode === 'Survival' ? 'bg-green-500/80 text-white' :
+                                                        world.gameMode === 'Adventure' ? 'bg-orange-500/80 text-white' :
+                                                            world.gameMode === 'Spectator' ? 'bg-blue-500/80 text-white' :
+                                                                'bg-gray-500/80 text-white'
+                                                    }`}>
+                                                    {world.gameMode || 'Unknown'}
+                                                </span>
+                                                {world.hardcore && (
+                                                    <span className="bg-black/80 text-red-500 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-lg border border-red-500/30">
+                                                        {t('instance_details.worlds.hardcore')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            { }
+                                            <div className="absolute bottom-3 right-3">
+                                                <span className="bg-black/60 backdrop-blur-md text-white/70 px-2 py-0.5 rounded-md text-[10px] font-bold border border-white/5">
+                                                    {world.version || 'Unknown'}
+                                                </span>
+                                            </div>
+                                        </div>
 
-                                                { }
-                                                <div className="p-4 flex-1 flex flex-col">
-                                                    <h3 className="text-white font-bold text-lg truncate group-hover:text-primary transition-colors mb-1" title={world.name}>
-                                                        {world.name}
-                                                    </h3>
+                                        { }
+                                        <div className="p-4 flex-1 flex flex-col">
+                                            <h3 className="text-white font-bold text-lg truncate group-hover:text-primary transition-colors mb-1" title={world.name}>
+                                                {world.name}
+                                            </h3>
 
-                                                    <div className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-white/5">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Last Played</span>
-                                                            <span className="text-xs text-gray-300 truncate" title={formatWorldDate(world.lastPlayed)}>
-                                                                {formatWorldDate(world.lastPlayed)}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex flex-col items-end">
-                                                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Size</span>
-                                                            <span className="text-xs text-gray-300">
-                                                                {formatSize(world.size)}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-                                                    { }
-                                                    <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5">
-                                                        <button
-                                                            onClick={() => handleOpenWorldFolder(world)}
-                                                            className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
-                                                            title="Open Folder"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                                            </svg>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleWorldBackupManager(world)}
-                                                            className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
-                                                            title="Backup Manager"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0l-4-4m4-4v12" />
-                                                            </svg>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleExportWorld(world)}
-                                                            className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
-                                                            title="Export World (.zip)"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                                                            </svg>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setWorldToDelete(world)}
-                                                            className="p-2 bg-red-500/5 hover:bg-red-500/20 text-red-500/70 hover:text-red-500 rounded-lg transition-all flex items-center justify-center group/btn"
-                                                            title="Delete World"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
+                                            <div className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-white/5">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('instance_details.worlds.last_played')}</span>
+                                                    <span className="text-xs text-gray-300 truncate" title={formatWorldDate(world.lastPlayed)}>
+                                                        {formatWorldDate(world.lastPlayed)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{t('instance_details.worlds.size')}</span>
+                                                    <span className="text-xs text-gray-300">
+                                                        {formatSize(world.size)}
+                                                    </span>
                                                 </div>
                                             </div>
-                                        ))
-                                    )}
-                                </div>
+
+                                            { }
+                                            <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5">
+                                                <button
+                                                    onClick={() => handleOpenWorldFolder(world)}
+                                                    className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
+                                                    title={t('common.open_folder')}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleWorldBackupManager(world)}
+                                                    className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
+                                                    title={t('instance_details.actions.backup_manager')}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0l-4-4m4-4v12" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleExportWorld(world)}
+                                                    className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn"
+                                                    title={t('instance_details.worlds.export_zip')}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => setWorldToDelete(world)}
+                                                    className="p-2 bg-red-500/5 hover:bg-red-500/20 text-red-500/70 hover:text-red-500 rounded-lg transition-all flex items-center justify-center group/btn"
+                                                    title={t('instance_details.worlds.delete_world')}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+                {activeTab === 'logs' && (
+                    <div
+                        className="flex flex-col h-full bg-background-dark rounded-xl border border-white/5 overflow-hidden shadow-inner"
+                        style={{ backgroundColor: 'rgba(var(--background-dark-color-rgb, 17, 17, 17), var(--console-opacity, 0.8))' }}
+                    >
+                        { }
+                        <div className="flex items-center justify-between p-2 bg-surface/50 border-b border-white/5">
+                            <div className="relative w-48">
+                                <Dropdown
+                                    options={[
+                                        { value: 'latest.log', label: 'latest.log' },
+                                        ...logFiles.filter(f => f !== 'latest.log').map(f => ({ value: f, label: f }))
+                                    ]}
+                                    value={selectedLog}
+                                    onChange={setSelectedLog}
+                                    className=""
+                                />
                             </div>
 
-                        </div>
-                    )
-                }
-                {
-                    activeTab === 'logs' && (
-                        <div
-                            className="flex flex-col h-full bg-background-dark rounded-xl border border-white/5 overflow-hidden shadow-inner"
-                            style={{ backgroundColor: 'rgba(var(--background-dark-color-rgb, 17, 17, 17), var(--console-opacity, 0.8))' }}
-                        >
-                            { }
-                            <div className="flex items-center justify-between p-2 bg-surface/50 border-b border-white/5">
-                                <div className="relative w-48">
-                                    <Dropdown
-                                        options={[
-                                            { value: 'latest.log', label: 'latest.log' },
-                                            ...logFiles.filter(f => f !== 'latest.log').map(f => ({ value: f, label: f }))
-                                        ]}
-                                        value={selectedLog}
-                                        onChange={setSelectedLog}
-                                        className=""
-                                    />
-                                </div>
-
-                                <div className="flex gap-4">
-                                    {['Info', 'Warn', 'Error', 'Debug'].map(level => (
-                                        <label key={level} className="flex items-center gap-2 cursor-pointer select-none group">
-                                            <div className={`w-3 h-3 rounded flex items-center justify-center border ${logFilters[level.toLowerCase()] ? 'bg-primary border-primary' : 'border-gray-600 bg-transparent'}`}>
-                                                {logFilters[level.toLowerCase()] && <svg className="w-2.5 h-2.5 text-black" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
-                                            </div>
-                                            <input
-                                                type="checkbox"
-                                                checked={logFilters[level.toLowerCase()]}
-                                                onChange={() => setLogFilters(prev => ({ ...prev, [level.toLowerCase()]: !prev[level.toLowerCase()] }))}
-                                                className="hidden"
-                                            />
-                                            <span className={`text-xs font-bold uppercase ${logFilters[level.toLowerCase()] ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>{level}</span>
-                                        </label>
-                                    ))}
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <label className="flex items-center gap-2 cursor-pointer select-none group mr-2">
-                                        <div className={`w-3 h-3 rounded flex items-center justify-center border ${autoScroll ? 'bg-primary border-primary' : 'border-gray-600 bg-transparent'}`}>
-                                            {autoScroll && <svg className="w-2.5 h-2.5 text-black" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+                            <div className="flex gap-4">
+                                {['Info', 'Warn', 'Error', 'Debug'].map(level => (
+                                    <label key={level} className="flex items-center gap-2 cursor-pointer select-none group">
+                                        <div className={`w-3 h-3 rounded flex items-center justify-center border ${logFilters[level.toLowerCase()] ? 'bg-primary border-primary' : 'border-gray-600 bg-transparent'}`}>
+                                            {logFilters[level.toLowerCase()] && <svg className="w-2.5 h-2.5 text-black" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
                                         </div>
                                         <input
                                             type="checkbox"
-                                            checked={autoScroll}
-                                            onChange={() => setAutoScroll(prev => !prev)}
+                                            checked={logFilters[level.toLowerCase()]}
+                                            onChange={() => setLogFilters(prev => ({ ...prev, [level.toLowerCase()]: !prev[level.toLowerCase()] }))}
                                             className="hidden"
                                         />
-                                        <span className={`text-xs font-bold uppercase ${autoScroll ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>Auto-Scroll</span>
+                                        <span className={`text-xs font-bold uppercase ${logFilters[level.toLowerCase()] ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>{level}</span>
                                     </label>
-                                    <button onClick={() => { loadLogFiles(); loadLog(); }} className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-gray-300 uppercase tracking-wide border border-white/5 transition-colors">Refresh</button>
-                                    <button onClick={handleCopyLog} className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-gray-300 uppercase tracking-wide border border-white/5 transition-colors">Copy</button>
-                                    <button onClick={() => setLog('')} className="px-3 py-1 bg-white/5 hover:bg-red-500/20 hover:text-red-400 rounded-lg text-xs font-bold text-gray-300 uppercase tracking-wide border border-white/5 transition-colors">Clear</button>
-                                </div>
+                                ))}
                             </div>
 
-                            { }
-                            <div ref={logContainerRef} className="flex-1 overflow-y-auto p-4 font-mono text-xs text-gray-300 custom-scrollbar">
-                                {getFilteredLog().length > 0 ? getFilteredLog().map((line, i) => (
-                                    <div key={i} className={`whitespace-pre-wrap leading-relaxed py-0.5 border-b border-transparent hover:bg-white/5 ${line.toLowerCase().includes('error') ? 'text-red-400 font-bold' : line.toLowerCase().includes('warn') ? 'text-yellow-400' : 'text-gray-400'}`}>
-                                        {line}
+                            <div className="flex gap-2">
+                                <label className="flex items-center gap-2 cursor-pointer select-none group mr-2">
+                                    <div className={`w-3 h-3 rounded flex items-center justify-center border ${autoScroll ? 'bg-primary border-primary' : 'border-gray-600 bg-transparent'}`}>
+                                        {autoScroll && <svg className="w-2.5 h-2.5 text-black" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
                                     </div>
-                                )) : (
-                                    <div className="text-gray-600 italic text-center mt-20">No active log entries.</div>
-                                )}
+                                    <input
+                                        type="checkbox"
+                                        checked={autoScroll}
+                                        onChange={() => setAutoScroll(prev => !prev)}
+                                        className="hidden"
+                                    />
+                                    <span className={`text-xs font-bold uppercase ${autoScroll ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>{t('instance_details.logs.auto_scroll')}</span>
+                                </label>
+                                <button onClick={() => { loadLogFiles(); loadLog(); }} className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-gray-300 uppercase tracking-wide border border-white/5 transition-colors">{t('instance_details.logs.refresh')}</button>
+                                <button onClick={handleCopyLog} className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-gray-300 uppercase tracking-wide border border-white/5 transition-colors">{t('instance_details.logs.copy')}</button>
+                                <button onClick={() => setLog('')} className="px-3 py-1 bg-white/5 hover:bg-red-500/20 hover:text-red-400 rounded-lg text-xs font-bold text-gray-300 uppercase tracking-wide border border-white/5 transition-colors">{t('instance_details.logs.clear')}</button>
                             </div>
                         </div>
-                    )
+
+                        { }
+                        <div ref={logContainerRef} className="flex-1 overflow-y-auto p-4 font-mono text-xs text-gray-300 custom-scrollbar">
+                            {getFilteredLog().length > 0 ? getFilteredLog().map((line, i) => (
+                                <div key={i} className={`whitespace-pre-wrap leading-relaxed py-0.5 border-b border-transparent hover:bg-white/5 ${line.toLowerCase().includes('error') ? 'text-red-400 font-bold' : line.toLowerCase().includes('warn') ? 'text-yellow-400' : 'text-gray-400'}`}>
+                                    {line}
+                                </div>
+                            )) : (
+                                <div className="text-gray-600 italic py-10 text-center">
+                                    {t('instance_details.logs.no_logs')}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )
                 }
             </div >
 
@@ -1563,7 +1563,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                 {loadingVersions ? (
                                     <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
                                 ) : projectVersions.length === 0 ? (
-                                    <div className="text-center text-gray-500 py-20">No versions found</div>
+                                    <div className="text-center text-gray-500 py-20">{t('search.no_versions')}</div>
                                 ) : (
                                     <div className="space-y-2">
                                         {projectVersions.map(version => {
@@ -1576,7 +1576,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                             <span className={`text-xs px-2 py-0.5 rounded ${version.version_type === 'release' ? 'bg-green-500/20 text-green-400' : version.version_type === 'beta' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
                                                                 {version.version_type}
                                                             </span>
-                                                            {isCompatible && <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">Compatible</span>}
+                                                            {isCompatible && <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">{t('instance_details.project.compatible')}</span>}
                                                         </div>
                                                         <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-2">
                                                             <span>MC: {version.game_versions?.slice(0, 5).join(', ')}{version.game_versions?.length > 5 ? '...' : ''}</span>
@@ -1589,7 +1589,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                                         className="bg-white/5 hover:bg-primary hover:text-black text-white px-4 py-2 rounded-lg font-bold text-sm transition-all border border-white/5 flex items-center gap-2 shrink-0"
                                                     >
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                                        Install
+                                                        {t('search.install')}
                                                     </button>
                                                 </div>
                                             );
@@ -1658,7 +1658,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                         </svg>
-                                        <p>No gallery images available for this project.</p>
+                                        <p>{t('search.no_gallery')}</p>
                                     </div>
                                 )}
                             </div>
@@ -1669,7 +1669,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     onClick={() => setShowPreviewModal(false)}
                                     className="px-6 py-3 rounded-xl hover:bg-white/5 text-white font-bold transition-colors"
                                 >
-                                    Close
+                                    {t('instance_details.logs.clear').toLowerCase().includes('clear') ? 'Close' : 'Schließen'}
                                 </button>
                                 <button
                                     onClick={() => {
@@ -1740,7 +1740,7 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                         >
                             <img
                                 src={previewProject.gallery[lightboxIndex].url}
-                                alt={previewProject.gallery[lightboxIndex].title || "Gallery Image"}
+                                alt={previewProject.gallery[lightboxIndex].title || t('instance.lightbox_image')}
                                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-scale-in"
                             />
                             {previewProject.gallery[lightboxIndex].title && (
@@ -1764,24 +1764,24 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                             </div>
-                            <h3 className="text-xl font-bold text-white text-center mb-2">Delete World?</h3>
+                            <h3 className="text-xl font-bold text-white text-center mb-2">{t('instance.delete_world_title')}</h3>
                             <p className="text-gray-400 text-center mb-6">
-                                Are you sure you want to delete <span className="text-white font-bold">"{worldToDelete.name}"</span>?
+                                {t('instance.delete_world_confirm', { name: worldToDelete.name })}
                                 <br />
-                                <span className="text-red-500/80 text-sm mt-2 block">This action cannot be undone.</span>
+                                <span className="text-red-500/80 text-sm mt-2 block">{t('instance.undone_warning')}</span>
                             </p>
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setWorldToDelete(null)}
                                     className="flex-1 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold transition-all"
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button
                                     onClick={handleDeleteWorld}
                                     className="flex-1 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all shadow-lg shadow-red-500/20"
                                 >
-                                    Delete World
+                                    {t('instance.delete_world_btn')}
                                 </button>
                             </div>
                         </div>
@@ -1799,24 +1799,30 @@ function InstanceDetails({ instance, onBack, runningInstances, onInstanceUpdate 
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                             </div>
-                            <h3 className="text-xl font-bold text-white text-center mb-2">Delete {modToDelete.type === 'mod' ? 'Mod' : modToDelete.type === 'shader' ? 'Shader' : 'Resource pack'}?</h3>
+                            <h3 className="text-xl font-bold text-white text-center mb-2">
+                                {modToDelete.type === 'mod' ? t('instance.delete_mod_title') :
+                                    modToDelete.type === 'shader' ? t('instance.delete_shader_title') :
+                                        t('instance.delete_pack_title')}
+                            </h3>
                             <p className="text-gray-400 text-center mb-6">
-                                Are you sure you want to delete <span className="text-white font-bold">"{modToDelete.name}"</span>?
+                                {t('instance.delete_mod_confirm', { name: modToDelete.name || modToDelete.filename })}
                                 <br />
-                                <span className="text-red-500/80 text-sm mt-2 block">This action cannot be undone.</span>
+                                <span className="text-red-500/80 text-sm mt-2 block">{t('instance.undone_warning')}</span>
                             </p>
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setModToDelete(null)}
                                     className="flex-1 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold transition-all"
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button
-                                    onClick={confirmDeleteMod}
+                                    onClick={handleDeleteMod}
                                     className="flex-1 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all shadow-lg shadow-red-500/20"
                                 >
-                                    Delete
+                                    {modToDelete.type === 'mod' ? t('instance.delete_mod_btn') :
+                                        modToDelete.type === 'shader' ? t('instance.delete_shader_btn') :
+                                            t('instance.delete_pack_btn')}
                                 </button>
                             </div>
                         </div>
