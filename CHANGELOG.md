@@ -10,10 +10,8 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 
 ### Added
 
-- Focus mode
 - Server-side mod validation
 - Mod compatibility overview
-- Minimal mode (system tray integration, configurable in settings)
 - Quick server join (partially implemented)
 - Client-side quick join mod
 - Script support (extensions in work, are similar)
@@ -45,8 +43,8 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 ---
 
 ## [1.6.4] - 2026-02-22
-- [ ] Focus mode
-- [ ] Minimal mode
+- [x] Focus mode
+- [x] Minimal mode
 
 ## [1.6.2] - 2026-02-21
 - [ ] Localization (i18n): Full multi-language support system
