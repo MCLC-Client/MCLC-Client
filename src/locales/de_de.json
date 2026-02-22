@@ -344,10 +344,7 @@
             "optimization": "Optimierung aktivieren",
             "optimization_desc": "Installiert automatisch Leistungsoptimierungs-Mods bei der Erstellung einer neuen Instanz.",
             "auto_mod_install": "Auto-Install Mods aktivieren",
-            "auto_mod_install_desc": "Installiert automatisch ausgewählte Mods bei der Erstellung einer neuen Instanz. Nicht verfügbare Mods für bestimmte Versionen werden übersprungen.",
-            "animations_exaggerated": "Übertriebene Animationen",
-            "minimize_on_launch": "Beim Start minimieren",
-            "quit_on_game_exit": "Beim Beenden des Spiels schließen"
+            "auto_mod_install_desc": "Installiert automatisch ausgewählte Mods bei der Erstellung einer neuen Instanz. Nicht verfügbare Mods für bestimmte Versionen werden übersprungen."
         },
         "cloud": {
             "title": "Cloud-Backup-Einstellungen",
