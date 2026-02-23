@@ -39,15 +39,41 @@ MCLC-Client/MCLC Website/client/mclc-client.jar
 MCLC Website/client/mclc-client.jar
 MCLC-Client/MCLC Website/client/
 MCLC Website/client/
+*.tsbuildinfo
+*.blockmap
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+
+# Signing keys / certificates
+*.p12
+*.key
+*.pem
+*.cert
 
 # Operating system and user-specific files
 .DS_Store
 Thumbs.db
 /dist
 
+# Package manager caches
+.pnpm-store/
+.npm/
+.yarn/
+.yarn-cache/
+.yarn-integrity
+.vite/
+
 # Other
 COMMIT.md
 /MCLC-Mod-Source
 flutter/
+coverage/
+*.lcov
 .vscode/
 .vscode/**
+neoforge_profile.json
+run/
+*.minecraft/
