@@ -14,7 +14,7 @@ This project follows the guidelines of [Keep a Changelog](https://keepachangelog
 - Mod compatibility overview
 - Quick server join (partially implemented)
 - Client-side quick join mod
-- Script support (extensions in work, are similar)
+- Script support (partially implemented via extensions)
 - Log analysis utility
 - Mod dependency validation (partially implemented)
 - Mobile application for the administration panel
