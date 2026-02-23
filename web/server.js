@@ -87,7 +87,7 @@ if (!SESSION_SECRET && process.env.NODE_ENV === 'production') {
 }
 
 app.use(session({
-    secret: SESSION_SECRET || 'mclc-super-secret-session-key-2026',
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     proxy: true,
@@ -123,7 +123,7 @@ const {
     generateToken,
     doubleCsrfProtection,
 } = doubleCsrf({
-    getSecret: () => SESSION_SECRET || 'mclc-super-secret-session-key-2026',
+    getSecret: () => SESSION_SECRET,
     cookieName: "x-csrf-token",
     cookieOptions: {
         secure: process.env.NODE_ENV === "production",
