@@ -2,6 +2,63 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SkinViewer, WalkingAnimation, IdleAnimation } from 'skinview3d';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
+const SkinPreview3D = ({ src, className, model = 'classic' }) => {
+    const canvasRef = useRef(null);
+    const containerRef = useRef(null);
+    const viewerRef = useRef(null);
+
+    useEffect(() => {
+        if (!canvasRef.current || !src) return;
+
+        let viewer;
+        try {
+            viewer = new SkinViewer({
+                canvas: canvasRef.current,
+                width: 300,
+                height: 400,
+                skin: src
+            });
+            viewer.model = model?.toLowerCase() === 'slim' ? 'slim' : 'classic';
+            viewer.zoom = 0.85;
+            viewer.fov = 70;
+            viewer.autoRotate = false;
+            viewer.renderer.setPixelRatio(window.devicePixelRatio);
+
+            // Set static angled rotation like in the screenshots
+            viewer.playerObject.rotation.y = 0.5;
+
+            viewerRef.current = viewer;
+
+            // Handle responsiveness
+            const resizeObserver = new ResizeObserver(entries => {
+                for (let entry of entries) {
+                    const { width, height } = entry.contentRect;
+                    if (width > 0 && height > 0) {
+                        viewer.setSize(width, height);
+                    }
+                }
+            });
+
+            if (containerRef.current) {
+                resizeObserver.observe(containerRef.current);
+            }
+
+            return () => {
+                resizeObserver.disconnect();
+                if (viewer) viewer.dispose();
+            };
+        } catch (e) {
+            console.error("Failed to render 3D preview", e);
+        }
+    }, [src, model]);
+
+    return (
+        <div ref={containerRef} className={`w-full h-full min-h-0 ${className}`}>
+            <canvas ref={canvasRef} className="w-full h-full block" />
+        </div>
+    );
+};
+
 const SkinPreview = ({ src, className, model = 'classic' }) => {
     const canvasRef = useRef(null);
 
@@ -159,16 +216,32 @@ function Skins({ onLogout, onProfileUpdate }) {
             viewer.renderer.setPixelRatio(window.devicePixelRatio);
 
             skinViewerRef.current = viewer;
+
+            // Handle responsiveness for the main viewer
+            const resizeObserver = new ResizeObserver(entries => {
+                for (let entry of entries) {
+                    const { width, height } = entry.contentRect;
+                    if (width > 0 && height > 0) {
+                        viewer.setSize(width, height);
+                    }
+                }
+            });
+
+            const container = canvasRef.current.parentElement;
+            if (container) {
+                resizeObserver.observe(container);
+            }
+
+            return () => {
+                resizeObserver.disconnect();
+                if (viewer) {
+                    viewer.dispose();
+                }
+            };
         } catch (e) {
             console.error("Failed to initialize SkinViewer:", e);
             setWebglError(true);
         }
-
-        return () => {
-            if (viewer) {
-                viewer.dispose();
-            }
-        };
     }, []);
     useEffect(() => {
         loadProfileAndSkin();
@@ -182,13 +255,7 @@ function Skins({ onLogout, onProfileUpdate }) {
         });
     }, []);
     useEffect(() => {
-        const handleResize = () => {
-            if (skinViewerRef.current && canvasRef.current) {
-
-            }
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        // We merged resize handling into the main init effect using ResizeObserver
     }, []);
     useEffect(() => {
         if (skinViewerRef.current) {
@@ -564,7 +631,11 @@ function Skins({ onLogout, onProfileUpdate }) {
                                 className={`aspect-[3/4] bg-surface rounded-xl overflow-hidden relative cursor-pointer border-2 transition-all group ${pendingSkin?.id === skin.id ? 'border-primary shadow-primary-glow' : 'border-transparent hover:border-white/20'}`}
                             >
                                 <div className="p-4 flex items-center justify-center h-full bg-[#1a1a1a]">
-                                    <SkinPreview src={skin.data || `file://${skin.path}`} />
+                                    {!webglError ? (
+                                        <SkinPreview3D src={skin.data || `file://${skin.path}`} />
+                                    ) : (
+                                        <SkinPreview src={skin.data || `file://${skin.path}`} />
+                                    )}
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                     {editingSkinId === skin.id ? (
@@ -636,7 +707,11 @@ function Skins({ onLogout, onProfileUpdate }) {
                                 className={`aspect-[3/4] bg-surface rounded-xl overflow-hidden relative cursor-pointer border-2 transition-all group ${pendingSkin?.name === skin.name ? 'border-primary shadow-primary-glow' : 'border-transparent hover:border-white/20'}`}
                             >
                                 <div className="p-4 flex items-center justify-center h-full bg-[#1a1a1a]">
-                                    <SkinPreview src={skin.url} model={skin.model} />
+                                    {!webglError ? (
+                                        <SkinPreview3D src={skin.url} model={skin.model} />
+                                    ) : (
+                                        <SkinPreview src={skin.url} model={skin.model} />
+                                    )}
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <span className="text-white font-medium truncate flex-1">
