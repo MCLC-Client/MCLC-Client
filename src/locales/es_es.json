@@ -63,7 +63,12 @@
             "minutes": "{{minutes}}m"
         },
         "disabled": "Desactivado",
-        "enabled": "Activado"
+        "enabled": "Activado",
+        "save": "Guardar",
+        "refresh": "Actualizar",
+        "name": "Nombre",
+        "size": "Tamaño",
+        "modified": "Modificado"
     },
     "home": {
         "welcome_back": "¡Bienvenido de nuevo!",
@@ -651,5 +656,58 @@
         "download_error": "Error en la descarga: {{error}}",
         "load_platforms_failed": "Error cargando plataformas de servidor",
         "load_versions_failed": "Error al cargar las versiones de {{name}}"
+    },
+    "server_details": {
+        "tabs": {
+            "console": "Consola",
+            "publicity": "Publicidad",
+            "charts": "Gráficos",
+            "players": "Jugadores ({{count}} en línea)",
+            "mods": "Mods",
+            "properties": "Propiedades",
+            "files": "Archivos"
+        },
+        "performance": {
+            "title": "Rendimiento del servidor",
+            "avg_cpu": "CPU promedio",
+            "avg_memory": "Memoria promedio",
+            "peak_players": "Pico de jugadores"
+        },
+        "players": {
+            "management": "Gestión de jugadores",
+            "online": "En línea",
+            "recently_online": "Conectados recientemente",
+            "search_placeholder": "Buscar jugadores...",
+            "selected_count": "{{count}} jugador(es) seleccionado(s)",
+            "no_online": "No hay jugadores en línea",
+            "no_recent": "Nadie se ha conectado aún"
+        },
+        "mods": {
+            "management": "Mod Management"
+        },
+        "properties": {
+            "title": "Server Properties",
+            "server_settings": "Server Settings",
+            "gameplay": "Gameplay",
+            "world": "World",
+            "save_btn": "Save Properties",
+            "saving": "Saving..."
+        },
+        "files": {
+            "error_list": "Error al listar archivos",
+            "error_read": "Error al leer archivo",
+            "error_save": "Error al guardar archivo",
+            "error_delete": "Error al eliminar elemento",
+            "error_create_folder": "Error al crear carpeta",
+            "save_success": "Archivo guardado con éxito",
+            "delete_success": "Elemento eliminado con éxito",
+            "folder_created": "Carpeta creada con éxito",
+            "not_editable": "Este tipo de archivo no se puede editar",
+            "empty": "Esta carpeta está vacía",
+            "new_folder": "Nueva carpeta",
+            "folder_name": "Nombre de la carpeta",
+            "delete_title": "Eliminar elemento",
+            "delete_confirm": "¿Seguro que quieres eliminar \"{{name}}\"?"
+        }
     }
 }

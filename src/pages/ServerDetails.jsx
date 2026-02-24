@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNotification } from '../context/NotificationContext';
+import { useTranslation } from 'react-i18next';
 import LoadingOverlay from '../components/LoadingOverlay';
 import FileBrowser from '../components/FileBrowser';
 
 function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGuest }) {
     const { addNotification } = useNotification();
+    const { t } = useTranslation();
     const [consoleLog, setConsoleLog] = useState([]);
     const [command, setCommand] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -1366,7 +1368,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
-                    Console
+                    {t('server_details.tabs.console')}
                 </button>
                 {(playitAvailable || server.playitPluginInstalled || playitChecking) && (
                     <button
@@ -1376,7 +1378,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                     >
-                        Publicity
+                        {t('server_details.tabs.publicity')}
                     </button>
                 )}
                 <button
@@ -1386,7 +1388,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
-                    Charts
+                    {t('server_details.tabs.charts')}
                 </button>
                 <button
                     onClick={() => setActiveTab('players')}
@@ -1395,7 +1397,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
-                    Players ({serverStats.players?.length || 0} online)
+                    {t('server_details.tabs.players', { count: serverStats.players?.length || 0 })}
                 </button>
                 {shouldShowModTab() && (
                     <button
@@ -1405,7 +1407,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                     >
-                        Mods
+                        {t('server_details.tabs.mods')}
                     </button>
                 )}
 
@@ -1416,7 +1418,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
-                    Properties
+                    {t('server_details.tabs.properties')}
                 </button>
                 <button
                     onClick={() => setActiveTab('files')}
@@ -1425,7 +1427,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
-                    Files
+                    {t('server_details.tabs.files')}
                 </button>
             </div>
 
