@@ -4,21 +4,35 @@ const path = require('path');
 const { app } = require('electron');
 
 const MODRINTH_API = 'https://api.modrinth.com/v2';
+const USER_AGENT = 'MCLCAGENT/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)';
 const appData = app.getPath('userData');
 const instancesDir = path.join(appData, 'instances');
 
+const getFolderForProjectType = (projectType) => {
+    switch (projectType) {
+        case 'resourcepack': return 'resourcepacks';
+        case 'shader': return 'shaderpacks';
+        case 'plugin': return 'plugins';
+        default: return 'mods';
+    }
+};
+
+// Must match sanitizeFileName in servers.js
+function sanitizeFileName(name) {
+    return name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+}
+
 const installModInternal = async (win, { instanceName, projectId, versionId, filename, url, projectType, isServer }) => {
+    let dest;
     try {
-        let folder = 'mods';
-        if (projectType === 'resourcepack') folder = 'resourcepacks';
-        if (projectType === 'shader') folder = 'shaderpacks';
-        if (projectType === 'plugin') folder = 'plugins';
+        const folder = getFolderForProjectType(projectType);
 
         const baseDir = isServer ? path.join(appData, 'servers') : instancesDir;
-        const contentDir = path.join(baseDir, instanceName, folder);
+        const resolvedName = isServer ? sanitizeFileName(instanceName) : instanceName;
+        const contentDir = path.join(baseDir, resolvedName, folder);
         await fs.ensureDir(contentDir);
 
-        const dest = path.join(contentDir, filename);
+        dest = path.join(contentDir, filename);
         if (await fs.pathExists(dest)) {
             if (win) {
                 win.webContents.send('install:progress', {
@@ -34,9 +48,7 @@ const installModInternal = async (win, { instanceName, projectId, versionId, fil
             url,
             method: 'GET',
             responseType: 'stream',
-            headers: {
-                'User-Agent': 'MCLCAGENT/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)'
-            },
+            headers: { 'User-Agent': USER_AGENT },
             timeout: 30000
         });
 
@@ -99,9 +111,7 @@ const installModInternal = async (win, { instanceName, projectId, versionId, fil
                                     loaders: JSON.stringify([loader]),
                                     game_versions: JSON.stringify([version])
                                 },
-                                headers: {
-                                    'User-Agent': 'MCLCAGENT/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)'
-                                }
+                                headers: { 'User-Agent': USER_AGENT }
                             });
 
                             if (res.data && res.data.length > 0) {
@@ -111,7 +121,12 @@ const installModInternal = async (win, { instanceName, projectId, versionId, fil
                                 if (!currentFiles.includes(file.filename)) {
                                     const softwareDest = path.join(modsDir, file.filename);
                                     const swWriter = fs.createWriteStream(softwareDest);
-                                    const swRes = await axios({ url: file.url, method: 'GET', responseType: 'stream' });
+                                    const swRes = await axios({
+                                        url: file.url,
+                                        method: 'GET',
+                                        responseType: 'stream',
+                                        headers: { 'User-Agent': USER_AGENT }
+                                    });
                                     swRes.data.pipe(swWriter);
                                     await new Promise((resolve) => swWriter.on('finish', resolve));
 
@@ -140,7 +155,7 @@ const installModInternal = async (win, { instanceName, projectId, versionId, fil
         console.error("Modrinth Install Error:", e);
 
         if (dest && await fs.pathExists(dest)) {
-            try { await fs.unlink(dest); } catch (delErr) { }
+            try { await fs.unlink(dest); } catch (delErr) { console.warn('[Modrinth] Failed to clean up partial download:', delErr.message); }
         }
         return { success: false, error: e.message };
     }
@@ -155,11 +170,11 @@ const resolveDependenciesInternal = async (versionId, loaders = [], gameVersions
         while (queue.length > 0) {
             const currentId = queue.shift();
             if (visited.has(currentId)) continue;
-            const vRes = await axios.get(`${MODRINTH_API}/version/${currentId}`);
+            const vRes = await axios.get(`${MODRINTH_API}/version/${currentId}`, { headers: { 'User-Agent': USER_AGENT } });
             const version = vRes.data;
             if (!resolved.has(version.project_id)) {
 
-                const pRes = await axios.get(`${MODRINTH_API}/project/${version.project_id}`);
+                const pRes = await axios.get(`${MODRINTH_API}/project/${version.project_id}`, { headers: { 'User-Agent': USER_AGENT } });
                 resolved.set(version.project_id, {
                     projectId: version.project_id,
                     versionId: version.id,
@@ -187,7 +202,10 @@ const resolveDependenciesInternal = async (versionId, loaders = [], gameVersions
                                 game_versions: JSON.stringify(gameVersions)
                             };
                             try {
-                                const vListRes = await axios.get(`${MODRINTH_API}/project/${dep.project_id}/version`, { params });
+                                const vListRes = await axios.get(`${MODRINTH_API}/project/${dep.project_id}/version`, {
+                                    params,
+                                    headers: { 'User-Agent': USER_AGENT }
+                                });
                                 if (vListRes.data && vListRes.data.length > 0) {
                                     queue.push(vListRes.data[0].id);
                                 }
@@ -218,7 +236,7 @@ module.exports = (ipcMain, win) => {
 
             const response = await axios.get(`${MODRINTH_API}/search`, {
                 params,
-                headers: { 'User-Agent': 'MCLCAGENT/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)' }
+                headers: { 'User-Agent': USER_AGENT }
             });
             return {
                 success: true,
@@ -241,7 +259,7 @@ module.exports = (ipcMain, win) => {
 
                 if (data.isServer) {
                     const serversDir = path.join(appData, 'servers');
-                    const serverJsonPath = path.join(serversDir, data.instanceName, 'server.json');
+                    const serverJsonPath = path.join(serversDir, sanitizeFileName(data.instanceName), 'server.json');
                     if (await fs.pathExists(serverJsonPath)) {
                         const serverConfig = await fs.readJson(serverJsonPath);
                         loader = serverConfig.software ? serverConfig.software.toLowerCase() : 'vanilla';
@@ -280,8 +298,7 @@ module.exports = (ipcMain, win) => {
                             else failCount++;
                         }
 
-                        if (failCount === 0) return { success: true };
-                        return { success: true };
+                        return { success: failCount === 0 };
                     }
                 }
             } catch (err) {
@@ -296,7 +313,10 @@ module.exports = (ipcMain, win) => {
             const params = {};
             if (loaders.length) params.loaders = JSON.stringify(loaders);
             if (gameVersions.length) params.game_versions = JSON.stringify(gameVersions);
-            const response = await axios.get(`${MODRINTH_API}/project/${projectId}/version`, { params });
+            const response = await axios.get(`${MODRINTH_API}/project/${projectId}/version`, {
+                params,
+                headers: { 'User-Agent': USER_AGENT }
+            });
             return { success: true, versions: response.data };
         } catch (e) {
             return { success: false, error: e.message };
@@ -305,18 +325,22 @@ module.exports = (ipcMain, win) => {
 
     ipcMain.handle('modrinth:update-file', async (_, { instanceName, projectType, oldFileName, newFileName, url, isServer }) => {
         try {
-            let folder = 'mods';
-            if (projectType === 'resourcepack') folder = 'resourcepacks';
-            if (projectType === 'shader') folder = 'shaderpacks';
-            if (projectType === 'plugin') folder = 'plugins';
+            const folder = getFolderForProjectType(projectType);
 
             const baseDir = isServer ? path.join(appData, 'servers') : instancesDir;
-            const contentDir = path.join(baseDir, instanceName, folder);
+            const resolvedName = isServer ? sanitizeFileName(instanceName) : instanceName;
+            const contentDir = path.join(baseDir, resolvedName, folder);
             const oldPath = path.join(contentDir, oldFileName);
             const newPath = path.join(contentDir, newFileName);
 
             const writer = fs.createWriteStream(newPath);
-            const response = await axios({ url, method: 'GET', responseType: 'stream', timeout: 30000 });
+            const response = await axios({
+                url,
+                method: 'GET',
+                responseType: 'stream',
+                headers: { 'User-Agent': USER_AGENT },
+                timeout: 30000
+            });
 
             const totalSize = parseInt(response.headers['content-length'], 10);
             let downloadedSize = 0;
@@ -349,13 +373,13 @@ module.exports = (ipcMain, win) => {
     ipcMain.handle('modrinth:get-project', async (_, projectId) => {
         try {
             const response = await axios.get(`${MODRINTH_API}/project/${projectId}`, {
-                headers: { 'User-Agent': 'Antigravity/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)' }
+                headers: { 'User-Agent': USER_AGENT }
             });
             const project = response.data;
             if (project.team) {
                 try {
                     const teamRes = await axios.get(`${MODRINTH_API}/team/${project.team}/members`, {
-                        headers: { 'User-Agent': 'Antigravity/MinecraftLauncher/1.0 (fernsehheft@pluginhub.de)' }
+                        headers: { 'User-Agent': USER_AGENT }
                     });
                     if (teamRes.data && teamRes.data.length > 0) {
                         const owner = teamRes.data.find(m => m.role === 'Owner') || teamRes.data[0];

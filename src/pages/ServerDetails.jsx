@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNotification } from '../context/NotificationContext';
+import { useTranslation } from 'react-i18next';
 import LoadingOverlay from '../components/LoadingOverlay';
+import FileBrowser from '../components/FileBrowser';
 
 function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGuest }) {
     const { addNotification } = useNotification();
+    const { t } = useTranslation();
     const [consoleLog, setConsoleLog] = useState([]);
     const [command, setCommand] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -517,6 +520,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
         }
     }, [server.software, server.version]);
 
+
     const checkServerStatus = async () => {
         try {
             if (!window.electronAPI.getServerStatus) return;
@@ -821,10 +825,6 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
         return type === 'fabric-like' || type === 'hybrid';
     };
 
-    const shouldShowPluginTab = () => {
-        const type = getLoaderType();
-        return type === 'paper-like' || type === 'hybrid';
-    };
 
     const getLoaderForModrinth = (tabType) => {
         const software = server.software || 'vanilla';
@@ -850,7 +850,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
 
         setIsSearchingMods(true);
         try {
-            const isPlugin = activeTab === 'plugins' || getLoaderType() === 'paper-like';
+            const isPlugin = getLoaderType() === 'paper-like';
             const loader = getLoaderForModrinth(activeTab);
             const facets = [];
 
@@ -890,7 +890,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
 
         setLoadingVersions(prev => new Set(prev).add(projectId));
         try {
-            const isPlugin = activeTab === 'plugins' || getLoaderType() === 'paper-like';
+            const isPlugin = getLoaderType() === 'paper-like';
             const loaders = isPlugin
                 ? ['bukkit', 'spigot', 'paper', 'purpur', 'folia']
                 : [getLoaderForModrinth(activeTab)];
@@ -947,12 +947,17 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                 versionId: versionId,
                 filename: file.filename,
                 url: file.url,
-                projectType: activeTab === 'plugins' || getLoaderType() === 'paper-like' ? 'plugin' : 'mod',
+                projectType: getLoaderType() === 'paper-like' ? 'plugin' : 'mod',
                 isServer: true
             });
 
             if (result.success) {
-                addNotification(`${projectTitle} installed successfully`, 'success');
+                const isPlugin = getLoaderType() === 'paper-like';
+                if (isPlugin && isRunning) {
+                    addNotification(`${projectTitle} installed. Please restart the server to apply changes.`, 'warning');
+                } else {
+                    addNotification(`${projectTitle} installed successfully`, 'success');
+                }
                 setModSearch('');
                 setModSearchResults([]);
                 setSelectedModVersion({});
@@ -1363,7 +1368,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
-                    Console
+                    {t('server_details.tabs.console')}
                 </button>
                 {(playitAvailable || server.playitPluginInstalled || playitChecking) && (
                     <button
@@ -1373,7 +1378,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                     >
-                        Publicity
+                        {t('server_details.tabs.publicity')}
                     </button>
                 )}
                 <button
@@ -1383,7 +1388,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
-                    Charts
+                    {t('server_details.tabs.charts')}
                 </button>
                 <button
                     onClick={() => setActiveTab('players')}
@@ -1392,7 +1397,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
-                    Players ({serverStats.players?.length || 0} online)
+                    {t('server_details.tabs.players', { count: serverStats.players?.length || 0 })}
                 </button>
                 {shouldShowModTab() && (
                     <button
@@ -1402,20 +1407,10 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                     >
-                        Mods
+                        {t('server_details.tabs.mods')}
                     </button>
                 )}
-                {shouldShowPluginTab() && (
-                    <button
-                        onClick={() => setActiveTab('plugins')}
-                        className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeTab === 'plugins'
-                            ? 'bg-primary/20 text-primary border-b-2 border-primary'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
-                            }`}
-                    >
-                        Plugins
-                    </button>
-                )}
+
                 <button
                     onClick={() => setActiveTab('properties')}
                     className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeTab === 'properties'
@@ -1423,7 +1418,16 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
-                    Properties
+                    {t('server_details.tabs.properties')}
+                </button>
+                <button
+                    onClick={() => setActiveTab('files')}
+                    className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeTab === 'files'
+                        ? 'bg-primary/20 text-primary border-b-2 border-primary'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        }`}
+                >
+                    {t('server_details.tabs.files')}
                 </button>
             </div>
 
@@ -2073,17 +2077,17 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                     </div>
                 )}
 
-                {['mods', 'plugins'].includes(activeTab) && (
+                {activeTab === 'mods' && (
                     <div className="flex flex-col h-full">
                         <div className="mb-4">
-                            <h2 className="text-lg font-bold text-white mb-3">{activeTab === 'plugins' ? 'Plugin' : 'Mod'} Management</h2>
+                            <h2 className="text-lg font-bold text-white mb-3">Mod Management</h2>
 
                             <div className="flex gap-2 mb-4">
                                 <input
                                     type="text"
                                     value={modSearch}
                                     onChange={(e) => setModSearch(e.target.value)}
-                                    placeholder={`Search ${activeTab === 'plugins' ? 'plugins' : 'mods'}...`}
+                                    placeholder={`Search ${getLoaderType() === 'paper-like' ? 'plugins' : 'mods'}...`}
                                     className="flex-1 bg-background border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                     onKeyUp={(e) => {
                                         if (e.key === 'Enter') {
@@ -2168,13 +2172,13 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
 
                             {modSearch && !isSearchingMods && modSearchResults.length === 0 && (
                                 <div className="flex items-center justify-center h-48 text-gray-400">
-                                    No {activeTab === 'plugins' ? 'plugins' : 'mods'} found matching your search
+                                    No {getLoaderType() === 'paper-like' ? 'plugins' : 'mods'} found matching your search
                                 </div>
                             )}
 
                             {!modSearch && modSearchResults.length === 0 && (
                                 <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-                                    <p>Search for {activeTab === 'plugins' ? 'plugins' : 'mods'} to install</p>
+                                    <p>Search for {getLoaderType() === 'paper-like' ? 'plugins' : 'mods'} to install</p>
                                 </div>
                             )}
                         </div>
@@ -2565,6 +2569,11 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
+                {activeTab === 'files' && (
+                    <div className="h-full">
+                        <FileBrowser serverName={server.name} />
                     </div>
                 )}
             </div>

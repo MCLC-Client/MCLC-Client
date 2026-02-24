@@ -472,6 +472,28 @@ eula=true
             return [];
         }
     });
+    // Alias for server:get-console (called by getServerLogs in preload)
+    ipcMain.handle('server:get-logs', async (event, serverName) => {
+        try {
+            const buffer = serverConsoleBuffers.get(serverName) || [];
+            if (buffer.length > 0) return buffer;
+
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const logPath = path.join(serversDir, safeName, 'logs', 'latest.log');
+
+            if (await fs.pathExists(logPath)) {
+                const log = await fs.readFile(logPath, 'utf-8');
+                const lines = log.split('\n').filter(line => line.trim()).slice(-100);
+                serverConsoleBuffers.set(serverName, lines);
+                return lines;
+            }
+            return [];
+        } catch (error) {
+            console.error('[Servers] Error getting logs:', error);
+            return [];
+        }
+    });
     ipcMain.handle('server:get-stats', async (event, serverName) => {
         try {
             const process = serverProcesses.get(serverName);
@@ -1511,6 +1533,140 @@ eula=false
             return { success: true };
         } catch (error) {
             console.error(`[Servers] Error saving properties for ${serverName}:`, error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('server:list-files', async (event, serverName, relativePath = '') => {
+        try {
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const targetDir = path.normalize(path.join(serverDir, relativePath));
+
+            if (!targetDir.startsWith(serverDir)) {
+                return { success: false, error: 'Access denied' };
+            }
+
+            if (!await fs.pathExists(targetDir)) {
+                return { success: false, error: 'Directory not found' };
+            }
+
+            const files = await fs.readdir(targetDir);
+            const items = await Promise.all(files.map(async (file) => {
+                const filePath = path.join(targetDir, file);
+                const stats = await fs.stat(filePath);
+                return {
+                    name: file,
+                    isDirectory: stats.isDirectory(),
+                    size: stats.size,
+                    mtime: stats.mtime
+                };
+            }));
+
+            return { success: true, files: items };
+        } catch (error) {
+            console.error(`[Servers] Error listing files for ${serverName}:`, error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('server:read-file', async (event, serverName, relativePath) => {
+        try {
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const filePath = path.normalize(path.join(serverDir, relativePath));
+
+            if (!filePath.startsWith(serverDir)) {
+                return { success: false, error: 'Access denied' };
+            }
+
+            if (!await fs.pathExists(filePath)) {
+                return { success: false, error: 'File not found' };
+            }
+
+            const content = await fs.readFile(filePath, 'utf-8');
+            return { success: true, content };
+        } catch (error) {
+            console.error(`[Servers] Error reading file for ${serverName}:`, error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('server:write-file', async (event, serverName, relativePath, content) => {
+        try {
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const filePath = path.normalize(path.join(serverDir, relativePath));
+
+            if (!filePath.startsWith(serverDir)) {
+                return { success: false, error: 'Access denied' };
+            }
+
+            await fs.writeFile(filePath, content, 'utf-8');
+            return { success: true };
+        } catch (error) {
+            console.error(`[Servers] Error writing file for ${serverName}:`, error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('server:delete-file', async (event, serverName, relativePath) => {
+        try {
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const filePath = path.normalize(path.join(serverDir, relativePath));
+
+            if (!filePath.startsWith(serverDir) || filePath === serverDir) {
+                return { success: false, error: 'Access denied' };
+            }
+
+            await fs.remove(filePath);
+            return { success: true };
+        } catch (error) {
+            console.error(`[Servers] Error deleting file for ${serverName}:`, error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('server:create-directory', async (event, serverName, relativePath) => {
+        try {
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const dirPath = path.normalize(path.join(serverDir, relativePath));
+
+            if (!dirPath.startsWith(serverDir)) {
+                return { success: false, error: 'Access denied' };
+            }
+
+            await fs.ensureDir(dirPath);
+            return { success: true };
+        } catch (error) {
+            console.error(`[Servers] Error creating directory for ${serverName}:`, error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('server:rename-file', async (event, serverName, oldRelativePath, newRelativePath) => {
+        try {
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const oldPath = path.normalize(path.join(serverDir, oldRelativePath));
+            const newPath = path.normalize(path.join(serverDir, newRelativePath));
+
+            if (!oldPath.startsWith(serverDir) || !newPath.startsWith(serverDir) || oldPath === serverDir) {
+                return { success: false, error: 'Access denied' };
+            }
+
+            await fs.move(oldPath, newPath);
+            return { success: true };
+        } catch (error) {
+            console.error(`[Servers] Error renaming file for ${serverName}:`, error);
             return { success: false, error: error.message };
         }
     });

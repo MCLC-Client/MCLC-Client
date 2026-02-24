@@ -63,7 +63,12 @@
             "minutes": "{{minutes}}м"
         },
         "disabled": "Disabled",
-        "enabled": "Enabled"
+        "enabled": "Enabled",
+        "save": "Save",
+        "refresh": "Refresh",
+        "name": "Name",
+        "size": "Size",
+        "modified": "Modified"
     },
     "home": {
         "welcome_back": "С возвращением!",
@@ -651,5 +656,58 @@
         "download_error": "Ошибка скачивания: {{error}}",
         "load_platforms_failed": "Не удалось загрузить платформы серверов",
         "load_versions_failed": "Не удалось загрузить версии для {{name}}"
+    },
+    "server_details": {
+        "tabs": {
+            "console": "Console",
+            "publicity": "Publicity",
+            "charts": "Charts",
+            "players": "Players ({{count}} online)",
+            "mods": "Mods",
+            "properties": "Properties",
+            "files": "Files"
+        },
+        "performance": {
+            "title": "Server Performance",
+            "avg_cpu": "Avg CPU",
+            "avg_memory": "Avg Memory",
+            "peak_players": "Peak Players"
+        },
+        "players": {
+            "management": "Player Management",
+            "online": "Online",
+            "recently_online": "Recently Online",
+            "search_placeholder": "Search players...",
+            "selected_count": "{{count}} player(s) selected",
+            "no_online": "No players online",
+            "no_recent": "No players have joined yet"
+        },
+        "mods": {
+            "management": "Mod Management"
+        },
+        "properties": {
+            "title": "Server Properties",
+            "server_settings": "Server Settings",
+            "gameplay": "Gameplay",
+            "world": "World",
+            "save_btn": "Save Properties",
+            "saving": "Saving..."
+        },
+        "files": {
+            "error_list": "Failed to list files",
+            "error_read": "Failed to read file",
+            "error_save": "Failed to save file",
+            "error_delete": "Failed to delete item",
+            "error_create_folder": "Failed to create folder",
+            "save_success": "File saved successfully",
+            "delete_success": "Item deleted successfully",
+            "folder_created": "Folder created successfully",
+            "not_editable": "This file type cannot be edited in the browser",
+            "empty": "This folder is empty",
+            "new_folder": "New Folder",
+            "folder_name": "Folder name",
+            "delete_title": "Delete Item",
+            "delete_confirm": "Are you sure you want to delete \"{{name}}\"?"
+        }
     }
 }

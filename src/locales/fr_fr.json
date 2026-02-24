@@ -62,8 +62,13 @@
             "hours_minutes": "{{hours}}h {{minutes}}m",
             "minutes": "{{minutes}}m"
         },
-        "disabled": "Disabled",
-        "enabled": "Enabled"
+        "disabled": "Désactivé",
+        "enabled": "Activé",
+        "save": "Enregistrer",
+        "refresh": "Actualiser",
+        "name": "Nom",
+        "size": "Taille",
+        "modified": "Modifié"
     },
     "home": {
         "welcome_back": "Bon retour !",
@@ -651,5 +656,58 @@
         "download_error": "Erreur de téléchargement : {{error}}",
         "load_platforms_failed": "Échec du chargement des plateformes de serveur",
         "load_versions_failed": "Échec du chargement des versions pour {{name}}"
+    },
+    "server_details": {
+        "tabs": {
+            "console": "Console",
+            "publicity": "Publicité",
+            "charts": "Graphiques",
+            "players": "Joueurs ({{count}} en ligne)",
+            "mods": "Mods",
+            "properties": "Propriétés",
+            "files": "Fichiers"
+        },
+        "performance": {
+            "title": "Performance du Serveur",
+            "avg_cpu": "CPU moyen",
+            "avg_memory": "Mémoire moyenne",
+            "peak_players": "Record de joueurs"
+        },
+        "players": {
+            "management": "Gestion des joueurs",
+            "online": "En ligne",
+            "recently_online": "Récemment connectés",
+            "search_placeholder": "Rechercher des joueurs...",
+            "selected_count": "{{count}} joueur(s) sélectionné(s)",
+            "no_online": "Aucun joueur en ligne",
+            "no_recent": "Aucun joueur ne s'est encore connecté"
+        },
+        "mods": {
+            "management": "Gestion des mods"
+        },
+        "properties": {
+            "title": "Propriétés du serveur",
+            "server_settings": "Paramètres du serveur",
+            "gameplay": "Gameplay",
+            "world": "Monde",
+            "save_btn": "Enregistrer les propriétés",
+            "saving": "Enregistrement..."
+        },
+        "files": {
+            "error_list": "Échec de la liste des fichiers",
+            "error_read": "Échec de la lecture du fichier",
+            "error_save": "Échec de l'enregistrement du fichier",
+            "error_delete": "Échec de la suppression",
+            "error_create_folder": "Échec de la création du dossier",
+            "save_success": "Fichier enregistré avec succès",
+            "delete_success": "Élément supprimé avec succès",
+            "folder_created": "Dossier créé avec succès",
+            "not_editable": "Ce type de fichier ne peut pas être édité",
+            "empty": "Ce dossier est vide",
+            "new_folder": "Nouveau dossier",
+            "folder_name": "Nom du dossier",
+            "delete_title": "Supprimer l'élément",
+            "delete_confirm": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ?"
+        }
     }
 }
