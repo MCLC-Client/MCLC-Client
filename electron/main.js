@@ -179,8 +179,37 @@ function setupAppMediaProtocol() {
     protocol.handle('app-media', (request) => {
         try {
             const url = new URL(request.url);
-            // Combine host and pathname to handle drive letters (e.g., host="C:", pathname="/Users/...")
-            let decodedPath = decodeURIComponent(url.host + url.pathname);
+            let decodedPath = decodeURIComponent(url.pathname);
+
+            if (process.platform === 'win32') {
+                // Remove leading slash if it exists
+                if (decodedPath.startsWith('/')) {
+                    decodedPath = decodedPath.substring(1);
+                }
+                // Remove leading colon if it exists (e.g. from /:C:/...)
+                if (decodedPath.startsWith(':')) {
+                    decodedPath = decodedPath.substring(1);
+                }
+
+                if (url.host) {
+                    const host = decodeURIComponent(url.host);
+                    if (host.endsWith(':')) {
+                        decodedPath = host + (decodedPath.startsWith('/') ? '' : '/') + decodedPath;
+                    } else {
+                        decodedPath = host + ':/' + (decodedPath.startsWith('/') ? '' : '/') + decodedPath;
+                    }
+                } else {
+                    // If it's c/Path or c:/Path, ensure it has the colon
+                    if (decodedPath.length > 1 && /^[a-zA-Z]$/.test(decodedPath[0]) && (decodedPath[1] === '/' || decodedPath[1] === '\\' || decodedPath[1] === ':')) {
+                        if (decodedPath[1] !== ':') {
+                            decodedPath = decodedPath[0] + ':' + decodedPath.substring(1);
+                        }
+                    }
+                }
+            } else {
+                // Posix: Combine host and pathname (pathname already starts with /)
+                decodedPath = decodeURIComponent(url.host + url.pathname);
+            }
 
             console.log(`[Main] app-media request: ${request.url} -> decodedPath: ${decodedPath}`);
 

@@ -404,10 +404,12 @@ app.post('/api/extensions/upload', ensureAuthenticated, upload.fields([
 
         try {
             const [extResult] = await connection.query(
-                'INSERT INTO extensions (user_id, name, identifier, summary, description, type, visibility, banner_path, file_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [req.user.id, name, identifier, summary, description, type || 'extension', visibility || 'public', bannerFilename, extensionFilename]
+                'INSERT INTO extensions (user_id, name, identifier, summary, description, type, visibility, banner_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [req.user.id, name, identifier, summary, description, type || 'extension', visibility || 'public', bannerFilename]
             );
             const extensionId = extResult.insertId;
+
+            console.log(`[Upload] Created extension record: ${extensionId} for ${identifier}. File: ${extensionFilename}`);
 
             await connection.query(
                 'INSERT INTO extension_versions (extension_id, version, changelog, file_path, downloads, status) VALUES (?, ?, ?, ?, ?, ?)',
@@ -1026,6 +1028,8 @@ app.use((err, req, res, next) => {
     });
 });
 
+// --- STATIC SERVING ---
+
 const websitePath = fs.existsSync(path.join(__dirname, 'website'))
     ? path.join(__dirname, 'website')
     : __dirname;
@@ -1034,30 +1038,37 @@ const adminPublicPath = fs.existsSync(path.join(__dirname, 'public'))
     ? path.join(__dirname, 'public')
     : path.join(__dirname, 'news-admin/public');
 
+const uploadPath = path.resolve(__dirname, 'public/uploads');
+
 console.log(`[Static] Serving website from: ${path.resolve(websitePath)}`);
 console.log(`[Static] Serving admin from: ${path.resolve(adminPublicPath)}`);
+console.log(`[Static] Serving uploads from: ${uploadPath}`);
 
 const staticOptions = {
     setHeaders: (res, filePath) => {
         if (filePath.endsWith('.html')) {
             res.setHeader('Cache-Control', 'no-cache, must-revalidate');
         }
+        if (filePath.endsWith('.mclcextension')) {
+            res.setHeader('Content-Type', 'application/octet-stream');
+        }
     }
 };
 
-app.use(express.static(websitePath, staticOptions));
-app.use(express.static(adminPublicPath, staticOptions));
-
-const uploadPath = path.resolve(__dirname, 'public/uploads');
-console.log(`[Static] Serving uploads from: ${uploadPath}`);
+// Order matters: more specific first if there are overlaps, but here they seem distinct enough
 app.use('/uploads', express.static(uploadPath, {
     maxAge: '1d',
-    setHeaders: (res, path) => {
-        if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+    ...staticOptions,
+    setHeaders: (res, filePath) => {
+        staticOptions.setHeaders(res, filePath);
+        if (filePath.endsWith('.png') || filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
             res.setHeader('Cache-Control', 'public, max-age=86400');
         }
     }
 }));
+
+app.use(express.static(websitePath, staticOptions));
+app.use(express.static(adminPublicPath, staticOptions));
 
 app.get('/extensions/:identifier', (req, res) => {
     res.sendFile(path.join(__dirname, 'extension_detail.html'), { headers: { 'Cache-Control': 'no-cache, must-revalidate' } });
