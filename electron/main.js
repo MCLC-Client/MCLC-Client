@@ -14,6 +14,7 @@ if (process.platform === 'linux') {
     // app.commandLine.appendSwitch('use-gl', 'desktop'); 
 }
 app.commandLine.appendSwitch('enable-webgl-draft-extensions');
+app.commandLine.appendSwitch('disable-features', 'NetworkServiceSandbox');
 
 const path = require('path');
 console.log('NUCLEAR STARTUP CHECK: main.js is running!');
@@ -356,7 +357,7 @@ app.whenReady().then(() => {
         console.error('[AutoUpdater] Error Message String:', msg);
 
         const lowerMsg = msg.toLowerCase();
-        if (lowerMsg.includes('latest.yml') || lowerMsg.includes('dev-app-update.yml') || lowerMsg.includes('could not find latest.yml')) {
+        if (lowerMsg.includes('latest.yml') || lowerMsg.includes('latest-linux.yml') || lowerMsg.includes('dev-app-update.yml') || lowerMsg.includes('could not find latest.yml')) {
             console.log('[AutoUpdater] 🛑 Suppressing known non-critical update error:', msg);
             return;
         }

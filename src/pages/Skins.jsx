@@ -175,6 +175,7 @@ function Skins({ onLogout, onProfileUpdate }) {
 
     const [capes, setCapes] = useState([]);
     const [activeCapeId, setActiveCapeId] = useState(null);
+    const [originalVariant, setOriginalVariant] = useState('classic');
     const [showCapeModal, setShowCapeModal] = useState(false);
     const [webglError, setWebglError] = useState(false);
 
@@ -302,11 +303,12 @@ function Skins({ onLogout, onProfileUpdate }) {
                     const res = await window.electronAPI.getCurrentSkin(profile.access_token);
                     if (res.success) {
                         const skinUrl = res.url;
-                        const model = res.variant || 'classic';
+                        const model = (res.variant || 'classic').toLowerCase();
 
                         profile.skinUrl = skinUrl;
                         setCurrentSkinUrl(skinUrl);
                         setVariant(model);
+                        setOriginalVariant(model);
                         setCapes(res.capes || []);
 
                         const activeCape = (res.capes || []).find(c => c.state === 'ACTIVE');
@@ -382,7 +384,7 @@ function Skins({ onLogout, onProfileUpdate }) {
     };
 
     const handleApplySkin = async () => {
-        if (!pendingSkin) return;
+        if (!pendingSkin && variant === originalVariant) return;
         if (!userProfile) {
             addNotification(t('skins.upload_failed', { error: 'Auth' }), 'error');
             return;
@@ -392,11 +394,15 @@ function Skins({ onLogout, onProfileUpdate }) {
         let res;
 
         try {
-            if (pendingSkin.type === 'local') {
-                res = await window.electronAPI.uploadSkin(userProfile.access_token, pendingSkin.path, variant);
-            } else if (pendingSkin.type === 'url') {
-
-                res = await window.electronAPI.uploadSkinFromUrl(userProfile.access_token, pendingSkin.url, variant);
+            if (pendingSkin) {
+                if (pendingSkin.type === 'local') {
+                    res = await window.electronAPI.uploadSkin(userProfile.access_token, pendingSkin.path, variant);
+                } else if (pendingSkin.type === 'url') {
+                    res = await window.electronAPI.uploadSkinFromUrl(userProfile.access_token, pendingSkin.url, variant);
+                }
+            } else if (variant !== originalVariant && currentSkinUrl) {
+                // Only variant changed, re-upload current skin URL with new variant
+                res = await window.electronAPI.uploadSkinFromUrl(userProfile.access_token, currentSkinUrl, variant);
             }
 
             if (res.success) {
@@ -595,7 +601,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                         <h1 className="text-3xl font-bold text-white">{t('skins.title')}</h1>
                         <p className="text-gray-400">{t('skins.desc')}</p>
                     </div>
-                    {pendingSkin && (
+                    {(pendingSkin || (variant !== originalVariant && currentSkinUrl)) && (
                         <button
                             onClick={handleApplySkin}
                             disabled={isLoading}

@@ -57,7 +57,7 @@ function RightPanel({ userProfile, onProfileUpdate }) {
             const res = await window.electronAPI.getNews();
 
             if (res.success) {
-                setNewsItems(res.news);
+                setNewsItems(res.news?.slice(0, 4) || []);
             } else {
                 console.error("Frontend: News failed to load", res.error);
             }
