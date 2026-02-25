@@ -66,11 +66,11 @@
         },
         "disabled": "Deaktiviert",
         "enabled": "Aktiv",
-        "save": "Save",
-        "refresh": "Refresh",
+        "save": "Speichern",
+        "refresh": "Aktualisieren",
         "name": "Name",
-        "size": "Size",
-        "modified": "Modified"
+        "size": "Größe",
+        "modified": "Geändert"
     },
     "home": {
         "welcome_back": "Willkommen zurück!",
@@ -133,7 +133,7 @@
         "tabs": {
             "content": "Inhalt",
             "worlds": "Welten",
-            "logs": "Logs",
+            "logs": "Protokolle",
             "screenshots": "Screenshots"
         },
         "actions": {
@@ -196,7 +196,7 @@
             "delete_world": "Welt löschen"
         },
         "logs": {
-            "auto_scroll": "Auto-Scroll",
+            "auto_scroll": "Automatisches Scrollen",
             "refresh": "Aktualisieren",
             "copy": "Kopieren",
             "clear": "Leeren",
@@ -270,7 +270,7 @@
         "imported_success": "Design erfolgreich importiert!"
     },
     "login": {
-        "title": "Minecraft Launcher",
+        "title": "Anmeldung",
         "microsoft_sign_in": "Melde dich mit deinem Microsoft-Konto an",
         "sign_in_button": "Mit Microsoft anmelden",
         "logging_in": "Anmeldung läuft...",
@@ -328,8 +328,8 @@
         },
         "memory": {
             "title": "Speicherzuweisung",
-            "min": "Minimum (MB)",
-            "max": "Maximum (MB)"
+            "min": "Minimaler Speicher",
+            "max": "Maximaler Speicher"
         },
         "resolution": {
             "title": "Auflösung",
@@ -344,7 +344,7 @@
         },
         "integration": {
             "title": "Launcher-Integration",
-            "discord_rpc": "Discord Rich Presence",
+            "discord_rpc": "Discord RPC",
             "discord_rpc_desc": "Zeige auf Discord, was du gerade spielst",
             "auto_logs": "Logs bei Absturz automatisch hochladen",
             "auto_logs_desc": "Lädt Logs bei Abstürzen automatisch zu mclo.gs hoch",
@@ -482,7 +482,7 @@
         "start": "Server starten",
         "stop": "Server stoppen",
         "restart": "Server neu starten",
-        "uptime": "Uptime",
+        "uptime": "Betriebszeit",
         "no_servers": "Keine Server gefunden",
         "create_prompt": "Lege einen Server an, um loszulegen",
         "name_label": "Servername",
@@ -590,8 +590,8 @@
             "path_label": "Java-Pfad (optional)",
             "path_placeholder": "Leer lassen für Standard",
             "memory_label": "Speicherzuweisung (MB)",
-            "min_memory": "Minimum",
-            "max_memory": "Maximum"
+            "min_memory": "Minimaler Speicher",
+            "max_memory": "Maximaler Speicher"
         },
         "hooks": {
             "title": "Start-Hooks",
@@ -663,55 +663,55 @@
     },
     "server_details": {
         "tabs": {
-            "console": "Console",
-            "publicity": "Publicity",
-            "charts": "Charts",
-            "players": "Players ({{count}} online)",
+            "console": "Konsole",
+            "publicity": "Öffentlichkeit",
+            "charts": "Diagramme",
+            "players": "Spieler",
             "mods": "Mods",
-            "properties": "Properties",
-            "files": "Files"
+            "properties": "Eigenschaften",
+            "files": "Dateien"
         },
         "performance": {
-            "title": "Server Performance",
-            "avg_cpu": "Avg CPU",
-            "avg_memory": "Avg Memory",
-            "peak_players": "Peak Players"
+            "title": "Leistung",
+            "avg_cpu": "Durchschnittliche CPU",
+            "avg_memory": "Durchschnittlicher Speicher",
+            "peak_players": "Maximale Spieler"
         },
         "players": {
-            "management": "Player Management",
+            "management": "Spielerverwaltung",
             "online": "Online",
-            "recently_online": "Recently Online",
-            "search_placeholder": "Search players...",
-            "selected_count": "{{count}} player(s) selected",
-            "no_online": "No players online",
-            "no_recent": "No players have joined yet"
+            "recently_online": "Zuletzt Online",
+            "search_placeholder": "Suchen",
+            "selected_count": "Ausgewählte Anzahl",
+            "no_online": "Keine Online",
+            "no_recent": "Keine Kürzlichen"
         },
         "mods": {
-            "management": "Mod Management"
+            "management": "Mod-Verwaltung"
         },
         "properties": {
-            "title": "Server Properties",
-            "server_settings": "Server Settings",
-            "gameplay": "Gameplay",
-            "world": "World",
-            "save_btn": "Save Properties",
-            "saving": "Saving..."
+            "title": "Eigenschaften",
+            "server_settings": "Servereinstellungen",
+            "gameplay": "Spielweise",
+            "world": "Welt",
+            "save_btn": "Speichern",
+            "saving": "Wird gespeichert"
         },
         "files": {
-            "error_list": "Failed to list files",
-            "error_read": "Failed to read file",
-            "error_save": "Failed to save file",
-            "error_delete": "Failed to delete item",
-            "error_create_folder": "Failed to create folder",
-            "save_success": "File saved successfully",
-            "delete_success": "Item deleted successfully",
-            "folder_created": "Folder created successfully",
-            "not_editable": "This file type cannot be edited in the browser",
-            "empty": "This folder is empty",
-            "new_folder": "New Folder",
-            "folder_name": "Folder name",
-            "delete_title": "Delete Item",
-            "delete_confirm": "Are you sure you want to delete \"{{name}}\"?"
+            "error_list": "Fehlerliste",
+            "error_read": "Fehler beim Lesen",
+            "error_save": "Fehler beim Speichern",
+            "error_delete": "Fehler beim Löschen",
+            "error_create_folder": "Fehler beim Erstellen des Ordners",
+            "save_success": "Erfolgreich gespeichert",
+            "delete_success": "Erfolgreich gelöscht",
+            "folder_created": "Ordner erstellt",
+            "not_editable": "Nicht bearbeitbar",
+            "empty": "Leer",
+            "new_folder": "Neuer Ordner",
+            "folder_name": "Ordnername",
+            "delete_title": "Löschen?",
+            "delete_confirm": "Möchten Sie diese Datei wirklich löschen?"
         }
     }
 }

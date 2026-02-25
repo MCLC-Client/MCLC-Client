@@ -62,15 +62,15 @@
             "hours_minutes": "{{hours}}ч {{minutes}}м",
             "minutes": "{{minutes}}м"
         },
-        "disabled": "Disabled",
-        "enabled": "Enabled",
-        "save": "Save",
-        "refresh": "Refresh",
-        "name": "Name",
-        "size": "Size",
-        "modified": "Modified",
-        "switch_to_client": "Switch to Client",
-        "switch_to_server": "Switch to Server"
+        "disabled": "Отключено",
+        "enabled": "Включено",
+        "save": "Сохранить",
+        "refresh": "Обновить",
+        "name": "Имя",
+        "size": "Размер",
+        "modified": "Изменено",
+        "switch_to_client": "Переключиться на Клиент",
+        "switch_to_server": "Переключиться на Сервер"
     },
     "home": {
         "welcome_back": "С возвращением!",
@@ -270,7 +270,7 @@
         "imported_success": "Тема успешно импортирована!"
     },
     "login": {
-        "title": "Minecraft Launcher",
+        "title": "Вход",
         "microsoft_sign_in": "Войдите с помощью аккаунта Microsoft",
         "sign_in_button": "Войти через Microsoft",
         "logging_in": "Вход...",
@@ -304,8 +304,8 @@
             "slovak": "Словацкий (SK)",
             "slovenian": "Словенский (SI)",
             "swedish": "Шведский (SE)",
-            "quick_switch_button": "Quick Switch Button",
-            "quick_switch_button_desc": "Show a button next to the logo to quickly switch between client and server"
+            "quick_switch_button": "Кнопка быстрого переключения",
+            "quick_switch_button_desc": "Кнопка быстрого переключения"
         },
         "java": {
             "title": "Среда выполнения Java",
@@ -663,55 +663,55 @@
     },
     "server_details": {
         "tabs": {
-            "console": "Console",
-            "publicity": "Publicity",
-            "charts": "Charts",
-            "players": "Players ({{count}} online)",
-            "mods": "Mods",
-            "properties": "Properties",
-            "files": "Files"
+            "console": "Консоль",
+            "publicity": "Гласность",
+            "charts": "Диаграммы",
+            "players": "Игроки",
+            "mods": "Моды",
+            "properties": "Свойства",
+            "files": "Файлы"
         },
         "performance": {
-            "title": "Server Performance",
-            "avg_cpu": "Avg CPU",
-            "avg_memory": "Avg Memory",
-            "peak_players": "Peak Players"
+            "title": "Производительность",
+            "avg_cpu": "Средний ЦПУ",
+            "avg_memory": "Средняя память",
+            "peak_players": "Пиковое количество игроков"
         },
         "players": {
-            "management": "Player Management",
-            "online": "Online",
-            "recently_online": "Recently Online",
-            "search_placeholder": "Search players...",
-            "selected_count": "{{count}} player(s) selected",
-            "no_online": "No players online",
-            "no_recent": "No players have joined yet"
+            "management": "Управление игроками",
+            "online": "Онлайн",
+            "recently_online": "Недавно в сети",
+            "search_placeholder": "Поиск",
+            "selected_count": "Выбранное количество",
+            "no_online": "Нет в сети",
+            "no_recent": "Нет недавних"
         },
         "mods": {
-            "management": "Mod Management"
+            "management": "Управление модами"
         },
         "properties": {
-            "title": "Server Properties",
-            "server_settings": "Server Settings",
-            "gameplay": "Gameplay",
-            "world": "World",
-            "save_btn": "Save Properties",
-            "saving": "Saving..."
+            "title": "Свойства",
+            "server_settings": "Настройки сервера",
+            "gameplay": "Игровой процесс",
+            "world": "Мир",
+            "save_btn": "Сохранить",
+            "saving": "Сохранение"
         },
         "files": {
-            "error_list": "Failed to list files",
-            "error_read": "Failed to read file",
-            "error_save": "Failed to save file",
-            "error_delete": "Failed to delete item",
-            "error_create_folder": "Failed to create folder",
-            "save_success": "File saved successfully",
-            "delete_success": "Item deleted successfully",
-            "folder_created": "Folder created successfully",
-            "not_editable": "This file type cannot be edited in the browser",
-            "empty": "This folder is empty",
-            "new_folder": "New Folder",
-            "folder_name": "Folder name",
-            "delete_title": "Delete Item",
-            "delete_confirm": "Are you sure you want to delete \"{{name}}\"?"
+            "error_list": "Список ошибок",
+            "error_read": "Ошибка чтения",
+            "error_save": "Ошибка сохранения",
+            "error_delete": "Ошибка удаления",
+            "error_create_folder": "Ошибка создания папки",
+            "save_success": "Успешно сохранено",
+            "delete_success": "Успешно удалено",
+            "folder_created": "Папка создана",
+            "not_editable": "Не редактируется",
+            "empty": "Пусто",
+            "new_folder": "Новая папка",
+            "folder_name": "Имя папки",
+            "delete_title": "Удалить?",
+            "delete_confirm": "Вы уверены, что хотите удалить этот файл?"
         }
     }
 }

@@ -13,11 +13,11 @@
         "delete_pack_btn": "Elimina Resource Pack",
         "jar_label": "jar",
         "res_pack_label": "RES\nPACK",
-        "shader_label": "SHA\nDER",
+        "shader_label": "Shader",
         "lightbox_image": "Immagine Galleria"
     },
     "common": {
-        "dashboard": "Dashboard",
+        "dashboard": "Pannello",
         "library": "Libreria",
         "search": "Cerca",
         "skins": "Skin",
@@ -62,15 +62,15 @@
             "hours_minutes": "{{hours}}h {{minutes}}m",
             "minutes": "{{minutes}}m"
         },
-        "disabled": "Disabled",
-        "enabled": "Enabled",
-        "save": "Save",
-        "refresh": "Refresh",
-        "name": "Name",
-        "size": "Size",
-        "modified": "Modified",
-        "switch_to_client": "Switch to Client",
-        "switch_to_server": "Switch to Server"
+        "disabled": "Disabilitato",
+        "enabled": "Abilitato",
+        "save": "Salva",
+        "refresh": "Aggiorna",
+        "name": "Nome",
+        "size": "Dimensione",
+        "modified": "Modificato",
+        "switch_to_client": "Passa al Client",
+        "switch_to_server": "Passa al Server"
     },
     "home": {
         "welcome_back": "Bentornato!",
@@ -270,7 +270,7 @@
         "imported_success": "Tema importato con successo!"
     },
     "login": {
-        "title": "Minecraft Launcher",
+        "title": "Accedi",
         "microsoft_sign_in": "Accedi con il tuo Account Microsoft",
         "sign_in_button": "Accedi con Microsoft",
         "logging_in": "Accesso in corso...",
@@ -304,8 +304,8 @@
             "slovak": "Slovacco (SK)",
             "slovenian": "Sloveno (SI)",
             "swedish": "Svedese (SE)",
-            "quick_switch_button": "Quick Switch Button",
-            "quick_switch_button_desc": "Show a button next to the logo to quickly switch between client and server"
+            "quick_switch_button": "Pulsante di cambio rapido",
+            "quick_switch_button_desc": "Pulsante di cambio rapido"
         },
         "java": {
             "title": "Runtime Java",
@@ -344,7 +344,7 @@
         },
         "integration": {
             "title": "Integrazione Launcher",
-            "discord_rpc": "Discord Rich Presence",
+            "discord_rpc": "Discord RPC",
             "discord_rpc_desc": "Mostra a cosa stai giocando su Discord",
             "auto_logs": "Carica log automaticamente in caso di crash",
             "auto_logs_desc": "Carica automaticamente i log su mclo.gs se il gioco si chiude in modo anomalo",
@@ -664,54 +664,54 @@
     "server_details": {
         "tabs": {
             "console": "Console",
-            "publicity": "Publicity",
-            "charts": "Charts",
-            "players": "Players ({{count}} online)",
-            "mods": "Mods",
-            "properties": "Properties",
-            "files": "Files"
+            "publicity": "Pubblicità",
+            "charts": "Grafici",
+            "players": "Giocatori",
+            "mods": "Mod",
+            "properties": "Proprietà",
+            "files": "File"
         },
         "performance": {
-            "title": "Server Performance",
-            "avg_cpu": "Avg CPU",
-            "avg_memory": "Avg Memory",
-            "peak_players": "Peak Players"
+            "title": "Prestazioni",
+            "avg_cpu": "CPU media",
+            "avg_memory": "Memoria media",
+            "peak_players": "Picco giocatori"
         },
         "players": {
-            "management": "Player Management",
+            "management": "Gestione giocatori",
             "online": "Online",
-            "recently_online": "Recently Online",
-            "search_placeholder": "Search players...",
-            "selected_count": "{{count}} player(s) selected",
-            "no_online": "No players online",
-            "no_recent": "No players have joined yet"
+            "recently_online": "Recentemente online",
+            "search_placeholder": "Cerca",
+            "selected_count": "Numero selezionato",
+            "no_online": "Non online",
+            "no_recent": "Nessun recente"
         },
         "mods": {
-            "management": "Mod Management"
+            "management": "Gestione mod"
         },
         "properties": {
-            "title": "Server Properties",
-            "server_settings": "Server Settings",
+            "title": "Proprietà",
+            "server_settings": "Impostazioni server",
             "gameplay": "Gameplay",
-            "world": "World",
-            "save_btn": "Save Properties",
-            "saving": "Saving..."
+            "world": "Mondo",
+            "save_btn": "Salva",
+            "saving": "Salvataggio"
         },
         "files": {
-            "error_list": "Failed to list files",
-            "error_read": "Failed to read file",
-            "error_save": "Failed to save file",
-            "error_delete": "Failed to delete item",
-            "error_create_folder": "Failed to create folder",
-            "save_success": "File saved successfully",
-            "delete_success": "Item deleted successfully",
-            "folder_created": "Folder created successfully",
-            "not_editable": "This file type cannot be edited in the browser",
-            "empty": "This folder is empty",
-            "new_folder": "New Folder",
-            "folder_name": "Folder name",
-            "delete_title": "Delete Item",
-            "delete_confirm": "Are you sure you want to delete \"{{name}}\"?"
+            "error_list": "Elenco errori",
+            "error_read": "Errore lettura",
+            "error_save": "Errore salvataggio",
+            "error_delete": "Errore eliminazione",
+            "error_create_folder": "Errore creazione cartella",
+            "save_success": "Salvato con successo",
+            "delete_success": "Eliminato con successo",
+            "folder_created": "Cartella creata",
+            "not_editable": "Non modificabile",
+            "empty": "Vuoto",
+            "new_folder": "Nuova cartella",
+            "folder_name": "Nome cartella",
+            "delete_title": "Elimina?",
+            "delete_confirm": "Sei sicuro di voler eliminare questo file?"
         }
     }
 }

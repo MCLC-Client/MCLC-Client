@@ -13,7 +13,7 @@
         "delete_pack_btn": "Ta bort resurspaket",
         "jar_label": "jar",
         "res_pack_label": "RES\nPAK",
-        "shader_label": "SHA\nDER",
+        "shader_label": "Shader",
         "lightbox_image": "Galleribild"
     },
     "common": {
@@ -62,15 +62,15 @@
             "hours_minutes": "{{hours}}h {{minutes}}m",
             "minutes": "{{minutes}}m"
         },
-        "disabled": "Disabled",
-        "enabled": "Enabled",
-        "save": "Save",
-        "refresh": "Refresh",
-        "name": "Name",
-        "size": "Size",
-        "modified": "Modified",
-        "switch_to_client": "Switch to Client",
-        "switch_to_server": "Switch to Server"
+        "disabled": "Inaktiverad",
+        "enabled": "Aktiverad",
+        "save": "Spara",
+        "refresh": "Uppdatera",
+        "name": "Namn",
+        "size": "Storlek",
+        "modified": "Ändrad",
+        "switch_to_client": "Växla till Klient",
+        "switch_to_server": "Växla till Server"
     },
     "home": {
         "welcome_back": "Välkommen tillbaka!",
@@ -189,7 +189,7 @@
             "local_worlds": "Lokala världar",
             "no_worlds": "Inga lokala världar hittades.",
             "game_mode": "Spelläge",
-            "hardcore": "Hardcore",
+            "hardcore": "Hardcore-läge",
             "last_played": "Senast spelad",
             "size": "Storlek",
             "export_zip": "Exportera värld (.zip)",
@@ -209,7 +209,7 @@
         }
     },
     "skins": {
-        "title": "Skins",
+        "title": "Skinn",
         "desc": "Hantera ditt utseende",
         "uploading": "Laddar upp...",
         "apply": "Tillämpa på konto",
@@ -270,7 +270,7 @@
         "imported_success": "Temat importerades framgångsrikt!"
     },
     "login": {
-        "title": "Minecraft Launcher",
+        "title": "Logga in",
         "microsoft_sign_in": "Logga in med ditt Microsoft-konto",
         "sign_in_button": "Logga in med Microsoft",
         "logging_in": "Loggar in...",
@@ -304,11 +304,11 @@
             "slovak": "Slovakiska (SK)",
             "slovenian": "Slovenska (SI)",
             "swedish": "Svenska (SE)",
-            "quick_switch_button": "Quick Switch Button",
-            "quick_switch_button_desc": "Show a button next to the logo to quickly switch between client and server"
+            "quick_switch_button": "Knapp för snabb växling",
+            "quick_switch_button_desc": "Knapp för snabb växling"
         },
         "java": {
-            "title": "Java Runtime",
+            "title": "Java",
             "path": "Sökväg till körbar Java",
             "detecting": "Identifierar...",
             "browse": "Bläddra",
@@ -328,8 +328,8 @@
         },
         "memory": {
             "title": "Minnesallokering",
-            "min": "Minimum (MB)",
-            "max": "Maximum (MB)"
+            "min": "Minsta minne",
+            "max": "Maximalt minne"
         },
         "resolution": {
             "title": "Upplösning",
@@ -344,7 +344,7 @@
         },
         "integration": {
             "title": "Integration av Launcher",
-            "discord_rpc": "Discord Rich Presence",
+            "discord_rpc": "Discord RPC",
             "discord_rpc_desc": "Visa vad du spelar på Discord",
             "auto_logs": "Ladda upp loggar automatiskt vid krasch",
             "auto_logs_desc": "Laddar automatiskt upp loggar till mclo.gs om spelet kraschar",
@@ -576,7 +576,7 @@
             "show_snapshots": "Visa Snapshots",
             "show_snapshots_desc": "Inkludera experimentella och utvecklarversioner i versionslistan.",
             "game_version": "Spelversion",
-            "mod_loader": "Mod Loader",
+            "mod_loader": "Mod-inläsare",
             "migrate_btn": "Migrera & Uppdatera moddar",
             "migrate_note": "Befintliga moddar kommer att ersättas med kompatibla versioner eller tas bort om de inte hittas."
         },
@@ -590,8 +590,8 @@
             "path_label": "Java-sökväg (Valfritt)",
             "path_placeholder": "Lämna tomt för att använda global standard",
             "memory_label": "Minnesallokering (MB)",
-            "min_memory": "Minimum",
-            "max_memory": "Maximum"
+            "min_memory": "Minsta minne",
+            "max_memory": "Maximalt minne"
         },
         "hooks": {
             "title": "Startkrokar (Hooks)",
@@ -620,7 +620,7 @@
     "server_search": {
         "title": "Hitta innehåll",
         "mods": "Moddar",
-        "plugins": "Plugins",
+        "plugins": "Insticksprogram",
         "placeholder": "Sök efter {{type}}...",
         "search_btn": "Sök",
         "found_results": "Hittade {{count}} {{type}}",
@@ -663,55 +663,55 @@
     },
     "server_details": {
         "tabs": {
-            "console": "Console",
-            "publicity": "Publicity",
-            "charts": "Charts",
-            "players": "Players ({{count}} online)",
-            "mods": "Mods",
-            "properties": "Properties",
-            "files": "Files"
+            "console": "Konsol",
+            "publicity": "Publicitet",
+            "charts": "Diagram",
+            "players": "Spelare",
+            "mods": "Moddar",
+            "properties": "Egenskaper",
+            "files": "Filer"
         },
         "performance": {
-            "title": "Server Performance",
-            "avg_cpu": "Avg CPU",
-            "avg_memory": "Avg Memory",
-            "peak_players": "Peak Players"
+            "title": "Prestanda",
+            "avg_cpu": "Genomsnittlig CPU",
+            "avg_memory": "Genomsnittligt minne",
+            "peak_players": "Maximala spelare"
         },
         "players": {
-            "management": "Player Management",
+            "management": "Spelarvervaltning",
             "online": "Online",
-            "recently_online": "Recently Online",
-            "search_placeholder": "Search players...",
-            "selected_count": "{{count}} player(s) selected",
-            "no_online": "No players online",
-            "no_recent": "No players have joined yet"
+            "recently_online": "Nyligen online",
+            "search_placeholder": "Sök",
+            "selected_count": "Antal valda",
+            "no_online": "Ingen online",
+            "no_recent": "Inget nyligen"
         },
         "mods": {
-            "management": "Mod Management"
+            "management": "Moddarvervaltning"
         },
         "properties": {
-            "title": "Server Properties",
-            "server_settings": "Server Settings",
-            "gameplay": "Gameplay",
-            "world": "World",
-            "save_btn": "Save Properties",
-            "saving": "Saving..."
+            "title": "Egenskaper",
+            "server_settings": "Serverinställningar",
+            "gameplay": "Spelbarheten",
+            "world": "Värld",
+            "save_btn": "Spara",
+            "saving": "Sparar"
         },
         "files": {
-            "error_list": "Failed to list files",
-            "error_read": "Failed to read file",
-            "error_save": "Failed to save file",
-            "error_delete": "Failed to delete item",
-            "error_create_folder": "Failed to create folder",
-            "save_success": "File saved successfully",
-            "delete_success": "Item deleted successfully",
-            "folder_created": "Folder created successfully",
-            "not_editable": "This file type cannot be edited in the browser",
-            "empty": "This folder is empty",
-            "new_folder": "New Folder",
-            "folder_name": "Folder name",
-            "delete_title": "Delete Item",
-            "delete_confirm": "Are you sure you want to delete \"{{name}}\"?"
+            "error_list": "Fellista",
+            "error_read": "Fel vid läsning",
+            "error_save": "Fel vid sparning",
+            "error_delete": "Fel vid borttagning",
+            "error_create_folder": "Fel när mapp skapas",
+            "save_success": "Sparat framgångsrikt",
+            "delete_success": "Borttaget framgångsrikt",
+            "folder_created": "Mapp skapad",
+            "not_editable": "Inte redigerbar",
+            "empty": "Tom",
+            "new_folder": "Ny mapp",
+            "folder_name": "Mappnamn",
+            "delete_title": "Radera?",
+            "delete_confirm": "Är du säker på att du vill radera denna fil?"
         }
     }
 }

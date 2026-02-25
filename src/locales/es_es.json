@@ -13,7 +13,7 @@
         "delete_pack_btn": "Borrar paquete de recursos",
         "jar_label": "jar",
         "res_pack_label": "PAQ\nREC",
-        "shader_label": "SHA\nDER",
+        "shader_label": "Shader",
         "lightbox_image": "Imagen de galería"
     },
     "common": {
@@ -69,8 +69,8 @@
         "name": "Nombre",
         "size": "Tamaño",
         "modified": "Modificado",
-        "switch_to_client": "Switch to Client",
-        "switch_to_server": "Switch to Server"
+        "switch_to_client": "Cambiar al Cliente",
+        "switch_to_server": "Cambiar al Servidor"
     },
     "home": {
         "welcome_back": "¡Bienvenido de nuevo!",
@@ -270,7 +270,7 @@
         "imported_success": "¡Tema importado correctamente!"
     },
     "login": {
-        "title": "Minecraft Launcher",
+        "title": "Iniciar sesión",
         "microsoft_sign_in": "Inicia sesión con tu cuenta de Microsoft",
         "sign_in_button": "Entrar con Microsoft",
         "logging_in": "Iniciando sesión...",
@@ -304,8 +304,8 @@
             "slovak": "Eslovaco (SK)",
             "slovenian": "Esloveno (SI)",
             "swedish": "Sueco (SE)",
-            "quick_switch_button": "Quick Switch Button",
-            "quick_switch_button_desc": "Show a button next to the logo to quickly switch between client and server"
+            "quick_switch_button": "Botón de cambio rápido",
+            "quick_switch_button_desc": "Botón de cambio rápido"
         },
         "java": {
             "title": "Entorno de Java",
@@ -344,7 +344,7 @@
         },
         "integration": {
             "title": "Integraciones",
-            "discord_rpc": "Discord Rich Presence",
+            "discord_rpc": "Discord RPC",
             "discord_rpc_desc": "Muestra tu estado de juego en Discord",
             "auto_logs": "Subir logs ante fallos",
             "auto_logs_desc": "Sube logs a mclo.gs si el juego se bloquea",
@@ -687,15 +687,15 @@
             "no_recent": "Nadie se ha conectado aún"
         },
         "mods": {
-            "management": "Mod Management"
+            "management": "Gestión de Mods"
         },
         "properties": {
-            "title": "Server Properties",
-            "server_settings": "Server Settings",
-            "gameplay": "Gameplay",
-            "world": "World",
-            "save_btn": "Save Properties",
-            "saving": "Saving..."
+            "title": "Propiedades",
+            "server_settings": "Configuración del servidor",
+            "gameplay": "Jugabilidad",
+            "world": "Mundo",
+            "save_btn": "Guardar",
+            "saving": "Guardando"
         },
         "files": {
             "error_list": "Error al listar archivos",

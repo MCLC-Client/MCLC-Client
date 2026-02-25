@@ -13,7 +13,7 @@
         "delete_pack_btn": "Supprimer le pack",
         "jar_label": "jar",
         "res_pack_label": "PACK\nRES",
-        "shader_label": "SHA\nDER",
+        "shader_label": "Shader",
         "lightbox_image": "Image de la galerie"
     },
     "common": {
@@ -69,8 +69,8 @@
         "name": "Nom",
         "size": "Taille",
         "modified": "Modifié",
-        "switch_to_client": "Switch to Client",
-        "switch_to_server": "Switch to Server"
+        "switch_to_client": "Passer au Client",
+        "switch_to_server": "Passer au Serveur"
     },
     "home": {
         "welcome_back": "Bon retour !",
@@ -182,14 +182,14 @@
             "failed": "Échoué",
             "install": "Installer",
             "previous": "Précédent",
-            "page_of": "Page {{count}}",
+            "page_of": "Page {{page}} de {{total}}",
             "next": "Suivant"
         },
         "worlds": {
             "local_worlds": "Mondes locaux",
             "no_worlds": "Aucun monde local trouvé.",
             "game_mode": "Mode de jeu",
-            "hardcore": "Hardcore",
+            "hardcore": "Mode Hardcore",
             "last_played": "Dernière partie",
             "size": "Taille",
             "export_zip": "Exporter le monde (.zip)",
@@ -270,7 +270,7 @@
         "imported_success": "Thème importé avec succès !"
     },
     "login": {
-        "title": "Minecraft Launcher",
+        "title": "Connexion",
         "microsoft_sign_in": "Connectez-vous avec votre compte Microsoft",
         "sign_in_button": "Se connecter avec Microsoft",
         "logging_in": "Connexion en cours...",
@@ -304,8 +304,8 @@
             "slovak": "Slovaque (SK)",
             "slovenian": "Slovène (SI)",
             "swedish": "Suédois (SE)",
-            "quick_switch_button": "Quick Switch Button",
-            "quick_switch_button_desc": "Show a button next to the logo to quickly switch between client and server"
+            "quick_switch_button": "Bouton de changement rapide",
+            "quick_switch_button_desc": "Bouton de changement rapide"
         },
         "java": {
             "title": "Environnement d'exécution Java",
@@ -445,7 +445,7 @@
         "create_instance": "Créer une instance",
         "previous": "Précédent",
         "next": "Suivant",
-        "page_of": "Page {{current}}",
+        "page_of": "Page {{page}} de {{total}}",
         "page_of_total": "sur {{total}}",
         "install_title": "Installer {{title}}",
         "select_instance": "Sélectionner une instance",
@@ -590,8 +590,8 @@
             "path_label": "Chemin Java (Optionnel)",
             "path_placeholder": "Laissez vide pour utiliser la valeur globale par défaut",
             "memory_label": "Allocation de mémoire (Mo)",
-            "min_memory": "Minimum",
-            "max_memory": "Maximum"
+            "min_memory": "Mémoire minimale",
+            "max_memory": "Mémoire maximale"
         },
         "hooks": {
             "title": "Crochets de lancement",

@@ -13,7 +13,7 @@
         "delete_pack_btn": "Vymazať balíček",
         "jar_label": "jar",
         "res_pack_label": "BAL\nTEXT",
-        "shader_label": "SHA\nDER",
+        "shader_label": "Shader",
         "lightbox_image": "Obrázok z galérie"
     },
     "common": {
@@ -62,15 +62,15 @@
             "hours_minutes": "{{hours}}h {{minutes}}m",
             "minutes": "{{minutes}}m"
         },
-        "disabled": "Disabled",
-        "enabled": "Enabled",
-        "save": "Save",
-        "refresh": "Refresh",
-        "name": "Name",
-        "size": "Size",
-        "modified": "Modified",
-        "switch_to_client": "Switch to Client",
-        "switch_to_server": "Switch to Server"
+        "disabled": "Zakázané",
+        "enabled": "Povolené",
+        "save": "Uložiť",
+        "refresh": "Obnoviť",
+        "name": "Meno",
+        "size": "Veľkosť",
+        "modified": "Zmenené",
+        "switch_to_client": "Prepnúť na Klienta",
+        "switch_to_server": "Prepnúť na Server"
     },
     "home": {
         "welcome_back": "Vitajte späť!",
@@ -117,7 +117,7 @@
         },
         "version": "Verzia",
         "dev_builds": "Vývojárske zostavy",
-        "loader": "Loader",
+        "loader": "Nástroj na načítavanie",
         "select_version": "Vybrať verziu",
         "select_loader_version": "Vybrať verziu {{loader}}",
         "select_loader_version_placeholder": "Vybrať verziu loadera",
@@ -189,7 +189,7 @@
             "local_worlds": "Lokálne svety",
             "no_worlds": "Nenašli sa žiadne lokálne svety.",
             "game_mode": "Herný mód",
-            "hardcore": "Hardcore",
+            "hardcore": "Hardcore režim",
             "last_played": "Naposledy hrané",
             "size": "Veľkosť",
             "export_zip": "Exportovať svet (.zip)",
@@ -270,7 +270,7 @@
         "imported_success": "Motív bol úspešne importovaný!"
     },
     "login": {
-        "title": "Minecraft Launcher",
+        "title": "Prihlásiť sa",
         "microsoft_sign_in": "Prihláste sa pomocou účtu Microsoft",
         "sign_in_button": "Prihlásiť sa cez Microsoft",
         "logging_in": "Prihlasovanie...",
@@ -304,8 +304,8 @@
             "slovak": "Slovenčina (SK)",
             "slovenian": "Slovinčina (SI)",
             "swedish": "Švédčina (SE)",
-            "quick_switch_button": "Quick Switch Button",
-            "quick_switch_button_desc": "Show a button next to the logo to quickly switch between client and server"
+            "quick_switch_button": "Tlačidlo rýchleho prepnutia",
+            "quick_switch_button_desc": "Tlačidlo rýchleho prepnutia"
         },
         "java": {
             "title": "Prostredie Java (Runtime)",
@@ -328,8 +328,8 @@
         },
         "memory": {
             "title": "Pridelenie pamäte",
-            "min": "Minimum (MB)",
-            "max": "Maximum (MB)"
+            "min": "Minimálna pamäť",
+            "max": "Maximálna pamäť"
         },
         "resolution": {
             "title": "Rozlíšenie",
@@ -344,7 +344,7 @@
         },
         "integration": {
             "title": "Integrácia launcheru",
-            "discord_rpc": "Discord Rich Presence",
+            "discord_rpc": "Discord RPC",
             "discord_rpc_desc": "Zobrazuje, čo práve hráte na Discorde",
             "auto_logs": "Automaticky nahrávať záznamy pri páde",
             "auto_logs_desc": "Automaticky nahrá záznamy na mclo.gs, ak hra spadne",
@@ -590,8 +590,8 @@
             "path_label": "Cesta k Jave (Voliteľné)",
             "path_placeholder": "Nechajte prázdne pre použitie globálnej hodnoty",
             "memory_label": "Pridelenie pamäte (MB)",
-            "min_memory": "Minimum",
-            "max_memory": "Maximum"
+            "min_memory": "Minimálna pamäť",
+            "max_memory": "Maximálna pamäť"
         },
         "hooks": {
             "title": "Spúšťacie skripty (Hooks)",
@@ -663,55 +663,55 @@
     },
     "server_details": {
         "tabs": {
-            "console": "Console",
-            "publicity": "Publicity",
-            "charts": "Charts",
-            "players": "Players ({{count}} online)",
-            "mods": "Mods",
-            "properties": "Properties",
-            "files": "Files"
+            "console": "Konzola",
+            "publicity": "Publicita",
+            "charts": "Grafy",
+            "players": "Hráči",
+            "mods": "Mody",
+            "properties": "Vlastnosti",
+            "files": "Súbory"
         },
         "performance": {
-            "title": "Server Performance",
-            "avg_cpu": "Avg CPU",
-            "avg_memory": "Avg Memory",
-            "peak_players": "Peak Players"
+            "title": "Výkon",
+            "avg_cpu": "Priemerný CPU",
+            "avg_memory": "Priemerná pamäť",
+            "peak_players": "Maximálny počet hráčov"
         },
         "players": {
-            "management": "Player Management",
+            "management": "Správa hráčov",
             "online": "Online",
-            "recently_online": "Recently Online",
-            "search_placeholder": "Search players...",
-            "selected_count": "{{count}} player(s) selected",
-            "no_online": "No players online",
-            "no_recent": "No players have joined yet"
+            "recently_online": "Nedávno online",
+            "search_placeholder": "Hľadať",
+            "selected_count": "Počet vybraných",
+            "no_online": "Žiadný online",
+            "no_recent": "Žiadny nedávny"
         },
         "mods": {
-            "management": "Mod Management"
+            "management": "Správa módov"
         },
         "properties": {
-            "title": "Server Properties",
-            "server_settings": "Server Settings",
-            "gameplay": "Gameplay",
-            "world": "World",
-            "save_btn": "Save Properties",
-            "saving": "Saving..."
+            "title": "Vlastnosti",
+            "server_settings": "Nastavenia servera",
+            "gameplay": "Hrateľnosť",
+            "world": "Svet",
+            "save_btn": "Uložiť",
+            "saving": "Ukladanie"
         },
         "files": {
-            "error_list": "Failed to list files",
-            "error_read": "Failed to read file",
-            "error_save": "Failed to save file",
-            "error_delete": "Failed to delete item",
-            "error_create_folder": "Failed to create folder",
-            "save_success": "File saved successfully",
-            "delete_success": "Item deleted successfully",
-            "folder_created": "Folder created successfully",
-            "not_editable": "This file type cannot be edited in the browser",
-            "empty": "This folder is empty",
-            "new_folder": "New Folder",
-            "folder_name": "Folder name",
-            "delete_title": "Delete Item",
-            "delete_confirm": "Are you sure you want to delete \"{{name}}\"?"
+            "error_list": "Zoznam chýb",
+            "error_read": "Chyba čítania",
+            "error_save": "Chyba ukladania",
+            "error_delete": "Chyba vymazávania",
+            "error_create_folder": "Chyba pri vytváraní priečinka",
+            "save_success": "Úspešne uložené",
+            "delete_success": "Úspešne zmazané",
+            "folder_created": "Priečinok vytvorený",
+            "not_editable": "Nie je možné upravovať",
+            "empty": "Prázdny",
+            "new_folder": "Nový priečinok",
+            "folder_name": "Meno priečinka",
+            "delete_title": "Vymazať?",
+            "delete_confirm": "Ste si istí, že chcete vymazať tento súbor?"
         }
     }
 }

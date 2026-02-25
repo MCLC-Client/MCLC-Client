@@ -62,15 +62,15 @@
             "hours_minutes": "{{hours}}h {{minutes}}m",
             "minutes": "{{minutes}}m"
         },
-        "disabled": "Disabled",
-        "enabled": "Enabled",
-        "save": "Save",
-        "refresh": "Refresh",
-        "name": "Name",
-        "size": "Size",
-        "modified": "Modified",
-        "switch_to_client": "Switch to Client",
-        "switch_to_server": "Switch to Server"
+        "disabled": "Onemogočeno",
+        "enabled": "Omogočeno",
+        "save": "Shrani",
+        "refresh": "Osveži",
+        "name": "Ime",
+        "size": "Velikost",
+        "modified": "Spremenjeno",
+        "switch_to_client": "Preklopi na odjemalca",
+        "switch_to_server": "Preklopi na strežnik"
     },
     "home": {
         "welcome_back": "Dobrodošli nazaj!",
@@ -189,7 +189,7 @@
             "local_worlds": "Lokalni svetovi",
             "no_worlds": "Lokalnih svetov ni bilo mogoče najti.",
             "game_mode": "Igralni način",
-            "hardcore": "Hardcore",
+            "hardcore": "Hardcore način",
             "last_played": "Nazadnje igrano",
             "size": "Velikost",
             "export_zip": "Izvozi svet (.zip)",
@@ -270,7 +270,7 @@
         "imported_success": "Tema uspešno uvožena!"
     },
     "login": {
-        "title": "Minecraft Launcher",
+        "title": "Prijava",
         "microsoft_sign_in": "Prijavite se s svojim Microsoftovim računom",
         "sign_in_button": "Prijavite se z Microsoftom",
         "logging_in": "Prijavljanje...",
@@ -304,8 +304,8 @@
             "slovak": "Slovaščina (SK)",
             "slovenian": "Slovenščina (SI)",
             "swedish": "Švedščina (SE)",
-            "quick_switch_button": "Quick Switch Button",
-            "quick_switch_button_desc": "Show a button next to the logo to quickly switch between client and server"
+            "quick_switch_button": "Gumb za hitro spreminjanje",
+            "quick_switch_button_desc": "Gumb za hitro spreminjanje"
         },
         "java": {
             "title": "Okolje Java (Runtime)",
@@ -344,7 +344,7 @@
         },
         "integration": {
             "title": "Integracija zaganjalnika",
-            "discord_rpc": "Discord Rich Presence",
+            "discord_rpc": "Discord RPC",
             "discord_rpc_desc": "Pokaži, kaj igraš na Discordu",
             "auto_logs": "Samodejno naloži dnevnike ob sesutju",
             "auto_logs_desc": "Samodejno naloži dnevnike na mclo.gs, če se igra sesuje",
@@ -663,55 +663,55 @@
     },
     "server_details": {
         "tabs": {
-            "console": "Console",
-            "publicity": "Publicity",
-            "charts": "Charts",
-            "players": "Players ({{count}} online)",
-            "mods": "Mods",
-            "properties": "Properties",
-            "files": "Files"
+            "console": "Konzola",
+            "publicity": "Javnost",
+            "charts": "Grafi",
+            "players": "Igralci",
+            "mods": "Modifikacije",
+            "properties": "Lastnosti",
+            "files": "Datoteke"
         },
         "performance": {
-            "title": "Server Performance",
-            "avg_cpu": "Avg CPU",
-            "avg_memory": "Avg Memory",
-            "peak_players": "Peak Players"
+            "title": "Zmogljivost",
+            "avg_cpu": "Povprečna CPU",
+            "avg_memory": "Povprečni pomnilnik",
+            "peak_players": "Največje število igralcev"
         },
         "players": {
-            "management": "Player Management",
+            "management": "Upravljanje igralcev",
             "online": "Online",
-            "recently_online": "Recently Online",
-            "search_placeholder": "Search players...",
-            "selected_count": "{{count}} player(s) selected",
-            "no_online": "No players online",
-            "no_recent": "No players have joined yet"
+            "recently_online": "Nedavno online",
+            "search_placeholder": "Iskanje",
+            "selected_count": "Izbrano število",
+            "no_online": "Brez online",
+            "no_recent": "Brez nedavnega"
         },
         "mods": {
-            "management": "Mod Management"
+            "management": "Upravljanje modifikacij"
         },
         "properties": {
-            "title": "Server Properties",
-            "server_settings": "Server Settings",
-            "gameplay": "Gameplay",
-            "world": "World",
-            "save_btn": "Save Properties",
-            "saving": "Saving..."
+            "title": "Lastnosti",
+            "server_settings": "Nastavitve strežnika",
+            "gameplay": "Igrivost",
+            "world": "Svet",
+            "save_btn": "Shrani",
+            "saving": "Shranjevanje"
         },
         "files": {
-            "error_list": "Failed to list files",
-            "error_read": "Failed to read file",
-            "error_save": "Failed to save file",
-            "error_delete": "Failed to delete item",
-            "error_create_folder": "Failed to create folder",
-            "save_success": "File saved successfully",
-            "delete_success": "Item deleted successfully",
-            "folder_created": "Folder created successfully",
-            "not_editable": "This file type cannot be edited in the browser",
-            "empty": "This folder is empty",
-            "new_folder": "New Folder",
-            "folder_name": "Folder name",
-            "delete_title": "Delete Item",
-            "delete_confirm": "Are you sure you want to delete \"{{name}}\"?"
+            "error_list": "Seznam napak",
+            "error_read": "Napaka pri branju",
+            "error_save": "Napaka pri shranjevanju",
+            "error_delete": "Napaka pri brisanju",
+            "error_create_folder": "Napaka pri ustvarjanju mape",
+            "save_success": "Uspešno shranjeno",
+            "delete_success": "Uspešno izbrisano",
+            "folder_created": "Mapa ustvarjena",
+            "not_editable": "Ni mogoče urejati",
+            "empty": "Prazno",
+            "new_folder": "Nova mapa",
+            "folder_name": "Ime mape",
+            "delete_title": "Izbrisati?",
+            "delete_confirm": "Ali ste prepričani, da želite izbrisati to datoteko?"
         }
     }
 }

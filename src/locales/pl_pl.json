@@ -13,7 +13,7 @@
         "delete_pack_btn": "Usuń paczkę zasobów",
         "jar_label": "jar",
         "res_pack_label": "PACZ\nZAS",
-        "shader_label": "SHA\nDER",
+        "shader_label": "Shader",
         "lightbox_image": "Zdjęcie z galerii"
     },
     "common": {
@@ -62,15 +62,15 @@
             "hours_minutes": "{{hours}}h {{minutes}}m",
             "minutes": "{{minutes}}m"
         },
-        "disabled": "Disabled",
-        "enabled": "Enabled",
-        "save": "Save",
-        "refresh": "Refresh",
-        "name": "Name",
-        "size": "Size",
-        "modified": "Modified",
-        "switch_to_client": "Switch to Client",
-        "switch_to_server": "Switch to Server"
+        "disabled": "Wyłączony",
+        "enabled": "Włączony",
+        "save": "Zapisz",
+        "refresh": "Odśwież",
+        "name": "Nazwa",
+        "size": "Rozmiar",
+        "modified": "Zmodyfikowano",
+        "switch_to_client": "Przejdź do Klienta",
+        "switch_to_server": "Przejdź do Serwera"
     },
     "home": {
         "welcome_back": "Witaj ponownie!",
@@ -270,7 +270,7 @@
         "imported_success": "Motyw pomyślnie zaimportowany!"
     },
     "login": {
-        "title": "Minecraft Launcher",
+        "title": "Logowanie",
         "microsoft_sign_in": "Zaloguj się kontem Microsoft",
         "sign_in_button": "Zaloguj się z Microsoft",
         "logging_in": "Logowanie...",
@@ -304,8 +304,8 @@
             "slovak": "Słowacki (SK)",
             "slovenian": "Słoweński (SI)",
             "swedish": "Szwedzki (SE)",
-            "quick_switch_button": "Quick Switch Button",
-            "quick_switch_button_desc": "Show a button next to the logo to quickly switch between client and server"
+            "quick_switch_button": "Przycisk szybkiego przełączania",
+            "quick_switch_button_desc": "Przycisk szybkiego przełączania"
         },
         "java": {
             "title": "Środowisko Java",
@@ -328,7 +328,7 @@
         },
         "memory": {
             "title": "Alokacja pamięci RAM",
-            "min": "Minimum (MB)",
+            "min": "Minimalna pamięć",
             "max": "Maksimum (MB)"
         },
         "resolution": {
@@ -590,7 +590,7 @@
             "path_label": "Ścieżka Java (Opcjonalnie)",
             "path_placeholder": "Pozostaw puste, aby użyć globalnej wartości",
             "memory_label": "Alokacja pamięci RAM (MB)",
-            "min_memory": "Minimum",
+            "min_memory": "Minimalna pamięć",
             "max_memory": "Maksimum"
         },
         "hooks": {
@@ -663,55 +663,55 @@
     },
     "server_details": {
         "tabs": {
-            "console": "Console",
-            "publicity": "Publicity",
-            "charts": "Charts",
-            "players": "Players ({{count}} online)",
-            "mods": "Mods",
-            "properties": "Properties",
-            "files": "Files"
+            "console": "Konsola",
+            "publicity": "Publicyzm",
+            "charts": "Wykresy",
+            "players": "Gracze",
+            "mods": "Mody",
+            "properties": "Właściwości",
+            "files": "Pliki"
         },
         "performance": {
-            "title": "Server Performance",
-            "avg_cpu": "Avg CPU",
-            "avg_memory": "Avg Memory",
-            "peak_players": "Peak Players"
+            "title": "Wydajność",
+            "avg_cpu": "Średnia CPU",
+            "avg_memory": "Średnia pamięci",
+            "peak_players": "Szczyt graczy"
         },
         "players": {
-            "management": "Player Management",
+            "management": "Zarządzanie graczami",
             "online": "Online",
-            "recently_online": "Recently Online",
-            "search_placeholder": "Search players...",
-            "selected_count": "{{count}} player(s) selected",
-            "no_online": "No players online",
-            "no_recent": "No players have joined yet"
+            "recently_online": "Ostatnio online",
+            "search_placeholder": "Szukaj",
+            "selected_count": "Liczba wybranych",
+            "no_online": "Brak online",
+            "no_recent": "Brak ostatnich"
         },
         "mods": {
-            "management": "Mod Management"
+            "management": "Zarządzanie modami"
         },
         "properties": {
-            "title": "Server Properties",
-            "server_settings": "Server Settings",
-            "gameplay": "Gameplay",
-            "world": "World",
-            "save_btn": "Save Properties",
-            "saving": "Saving..."
+            "title": "Właściwości",
+            "server_settings": "Ustawienia serwera",
+            "gameplay": "Rozgrywka",
+            "world": "Świat",
+            "save_btn": "Zapisz",
+            "saving": "Zapisywanie"
         },
         "files": {
-            "error_list": "Failed to list files",
-            "error_read": "Failed to read file",
-            "error_save": "Failed to save file",
-            "error_delete": "Failed to delete item",
-            "error_create_folder": "Failed to create folder",
-            "save_success": "File saved successfully",
-            "delete_success": "Item deleted successfully",
-            "folder_created": "Folder created successfully",
-            "not_editable": "This file type cannot be edited in the browser",
-            "empty": "This folder is empty",
-            "new_folder": "New Folder",
-            "folder_name": "Folder name",
-            "delete_title": "Delete Item",
-            "delete_confirm": "Are you sure you want to delete \"{{name}}\"?"
+            "error_list": "Lista błędów",
+            "error_read": "Błąd odczytu",
+            "error_save": "Błąd zapisu",
+            "error_delete": "Błąd usunięcia",
+            "error_create_folder": "Błąd tworzenia folderu",
+            "save_success": "Pomyślnie zapisano",
+            "delete_success": "Pomyślnie usunięto",
+            "folder_created": "Folder utworzony",
+            "not_editable": "Nie można edytować",
+            "empty": "Pusty",
+            "new_folder": "Nowy folder",
+            "folder_name": "Nazwa folderu",
+            "delete_title": "Usunąć?",
+            "delete_confirm": "Czy na pewno chcesz usunąć ten plik?"
         }
     }
 }

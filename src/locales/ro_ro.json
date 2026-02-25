@@ -13,7 +13,7 @@
         "delete_pack_btn": "Șterge Pachetul",
         "jar_label": "jar",
         "res_pack_label": "PACHET\nRES",
-        "shader_label": "SHA\nDER",
+        "shader_label": "Shader",
         "lightbox_image": "Imagine Galerie"
     },
     "common": {
@@ -62,15 +62,15 @@
             "hours_minutes": "{{hours}}h {{minutes}}m",
             "minutes": "{{minutes}}m"
         },
-        "disabled": "Disabled",
-        "enabled": "Enabled",
-        "save": "Save",
-        "refresh": "Refresh",
-        "name": "Name",
-        "size": "Size",
-        "modified": "Modified",
-        "switch_to_client": "Switch to Client",
-        "switch_to_server": "Switch to Server"
+        "disabled": "Dezactivat",
+        "enabled": "Activat",
+        "save": "Salvează",
+        "refresh": "Reîmprospătă",
+        "name": "Nume",
+        "size": "Dimensiune",
+        "modified": "Modificat",
+        "switch_to_client": "Comutați la Client",
+        "switch_to_server": "Comutați la Server"
     },
     "home": {
         "welcome_back": "Bine ai revenit!",
@@ -117,7 +117,7 @@
         },
         "version": "Versiune",
         "dev_builds": "Versiuni Dev",
-        "loader": "Loader",
+        "loader": "Încărcător",
         "select_version": "Selectează Versiunea",
         "select_loader_version": "Selectează Versiunea {{loader}}",
         "select_loader_version_placeholder": "Selectează Versiunea Loader-ului",
@@ -270,7 +270,7 @@
         "imported_success": "Temă importată cu succes!"
     },
     "login": {
-        "title": "Minecraft Launcher",
+        "title": "Conectare",
         "microsoft_sign_in": "Conectează-te cu Contul tău Microsoft",
         "sign_in_button": "Conectează-te cu Microsoft",
         "logging_in": "Se conectează...",
@@ -304,8 +304,8 @@
             "slovak": "Slovacă (SK)",
             "slovenian": "Slovenă (SI)",
             "swedish": "Suedeză (SE)",
-            "quick_switch_button": "Quick Switch Button",
-            "quick_switch_button_desc": "Show a button next to the logo to quickly switch between client and server"
+            "quick_switch_button": "Buton de comutare rapidă",
+            "quick_switch_button_desc": "Buton de comutare rapidă"
         },
         "java": {
             "title": "Runtime Java",
@@ -344,7 +344,7 @@
         },
         "integration": {
             "title": "Integrare Launcher",
-            "discord_rpc": "Discord Rich Presence",
+            "discord_rpc": "Discord RPC",
             "discord_rpc_desc": "Arată ce joci pe Discord",
             "auto_logs": "Încărcare automată a jurnalelor la blocare",
             "auto_logs_desc": "Încarcă automat jurnalele pe mclo.gs dacă jocul se blochează (crash)",
@@ -663,55 +663,55 @@
     },
     "server_details": {
         "tabs": {
-            "console": "Console",
-            "publicity": "Publicity",
-            "charts": "Charts",
-            "players": "Players ({{count}} online)",
-            "mods": "Mods",
-            "properties": "Properties",
-            "files": "Files"
+            "console": "Consolă",
+            "publicity": "Publicitate",
+            "charts": "Grafice",
+            "players": "Jucători",
+            "mods": "Modificări",
+            "properties": "Proprietăți",
+            "files": "Fișiere"
         },
         "performance": {
-            "title": "Server Performance",
-            "avg_cpu": "Avg CPU",
-            "avg_memory": "Avg Memory",
-            "peak_players": "Peak Players"
+            "title": "Performanță",
+            "avg_cpu": "CPU mediu",
+            "avg_memory": "Memorie medie",
+            "peak_players": "Vârf de jucători"
         },
         "players": {
-            "management": "Player Management",
+            "management": "Gestionare jucători",
             "online": "Online",
-            "recently_online": "Recently Online",
-            "search_placeholder": "Search players...",
-            "selected_count": "{{count}} player(s) selected",
-            "no_online": "No players online",
-            "no_recent": "No players have joined yet"
+            "recently_online": "Recent conectat",
+            "search_placeholder": "Căutare",
+            "selected_count": "Număr selectat",
+            "no_online": "Fără online",
+            "no_recent": "Fără recent"
         },
         "mods": {
-            "management": "Mod Management"
+            "management": "Gestionare modificări"
         },
         "properties": {
-            "title": "Server Properties",
-            "server_settings": "Server Settings",
+            "title": "Proprietăți",
+            "server_settings": "Setări server",
             "gameplay": "Gameplay",
-            "world": "World",
-            "save_btn": "Save Properties",
-            "saving": "Saving..."
+            "world": "Lume",
+            "save_btn": "Salvează",
+            "saving": "Se salvează"
         },
         "files": {
-            "error_list": "Failed to list files",
-            "error_read": "Failed to read file",
-            "error_save": "Failed to save file",
-            "error_delete": "Failed to delete item",
-            "error_create_folder": "Failed to create folder",
-            "save_success": "File saved successfully",
-            "delete_success": "Item deleted successfully",
-            "folder_created": "Folder created successfully",
-            "not_editable": "This file type cannot be edited in the browser",
-            "empty": "This folder is empty",
-            "new_folder": "New Folder",
-            "folder_name": "Folder name",
-            "delete_title": "Delete Item",
-            "delete_confirm": "Are you sure you want to delete \"{{name}}\"?"
+            "error_list": "Lista de erori",
+            "error_read": "Eroare la citire",
+            "error_save": "Eroare la salvare",
+            "error_delete": "Eroare la ștergere",
+            "error_create_folder": "Eroare la crearea folderului",
+            "save_success": "Salvat cu succes",
+            "delete_success": "Șters cu succes",
+            "folder_created": "Folder creat",
+            "not_editable": "Nu se poate edita",
+            "empty": "Gol",
+            "new_folder": "Folder nou",
+            "folder_name": "Nume folder",
+            "delete_title": "Ștergeți?",
+            "delete_confirm": "Sunteți sigur că doriți să ștergeți acest fișier?"
         }
     }
 }

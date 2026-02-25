@@ -13,7 +13,7 @@
         "delete_pack_btn": "Eliminar Pacote de Recursos",
         "jar_label": "jar",
         "res_pack_label": "PACOTE\nREC",
-        "shader_label": "SHA\nDER",
+        "shader_label": "Shader",
         "lightbox_image": "Imagem da Galeria"
     },
     "common": {
@@ -62,15 +62,15 @@
             "hours_minutes": "{{hours}}h {{minutes}}m",
             "minutes": "{{minutes}}m"
         },
-        "disabled": "Disabled",
-        "enabled": "Enabled",
-        "save": "Save",
-        "refresh": "Refresh",
-        "name": "Name",
-        "size": "Size",
-        "modified": "Modified",
-        "switch_to_client": "Switch to Client",
-        "switch_to_server": "Switch to Server"
+        "disabled": "Desativado",
+        "enabled": "Ativado",
+        "save": "Salvar",
+        "refresh": "Atualizar",
+        "name": "Nome",
+        "size": "Tamanho",
+        "modified": "Modificado",
+        "switch_to_client": "Mudar para Cliente",
+        "switch_to_server": "Mudar para Servidor"
     },
     "home": {
         "welcome_back": "Bem-vindo de volta!",
@@ -117,7 +117,7 @@
         },
         "version": "Versão",
         "dev_builds": "Versões de Desenvolvimento",
-        "loader": "Loader",
+        "loader": "Carregador",
         "select_version": "Selecionar Versão",
         "select_loader_version": "Selecionar Versão do {{loader}}",
         "select_loader_version_placeholder": "Selecionar Versão do Loader",
@@ -270,7 +270,7 @@
         "imported_success": "Tema importado com sucesso!"
     },
     "login": {
-        "title": "Minecraft Launcher",
+        "title": "Entrar",
         "microsoft_sign_in": "Inicie sessão com a sua Conta Microsoft",
         "sign_in_button": "Iniciar sessão com a Microsoft",
         "logging_in": "A iniciar sessão...",
@@ -290,7 +290,6 @@
             "language_desc": "Escolha o seu idioma preferido.",
             "select_language": "Selecionar Idioma",
             "english": "Inglês (US)",
-            "english_unitedkingdom": "Inglês (UK)",
             "german": "Alemão (DE)",
             "swiss_german": "Alemão Suíço (CH)",
             "spanish": "Espanhol (ES)",
@@ -304,8 +303,9 @@
             "slovak": "Eslovaco (SK)",
             "slovenian": "Esloveno (SI)",
             "swedish": "Sueco (SE)",
-            "quick_switch_button": "Quick Switch Button",
-            "quick_switch_button_desc": "Show a button next to the logo to quickly switch between client and server"
+            "quick_switch_button": "Botão de Troca Rápida",
+            "quick_switch_button_desc": "Botão de Troca Rápida",
+            "english_uk": "English (UK)"
         },
         "java": {
             "title": "Ambiente de Execução Java",
@@ -664,54 +664,54 @@
     "server_details": {
         "tabs": {
             "console": "Console",
-            "publicity": "Publicity",
-            "charts": "Charts",
-            "players": "Players ({{count}} online)",
+            "publicity": "Publicidade",
+            "charts": "Gráficos",
+            "players": "Jogadores",
             "mods": "Mods",
-            "properties": "Properties",
-            "files": "Files"
+            "properties": "Propriedades",
+            "files": "Arquivos"
         },
         "performance": {
-            "title": "Server Performance",
-            "avg_cpu": "Avg CPU",
-            "avg_memory": "Avg Memory",
-            "peak_players": "Peak Players"
+            "title": "Desempenho",
+            "avg_cpu": "CPU Médio",
+            "avg_memory": "Memória Média",
+            "peak_players": "Pico de Jogadores"
         },
         "players": {
-            "management": "Player Management",
+            "management": "Gerenciamento de Jogadores",
             "online": "Online",
-            "recently_online": "Recently Online",
-            "search_placeholder": "Search players...",
-            "selected_count": "{{count}} player(s) selected",
-            "no_online": "No players online",
-            "no_recent": "No players have joined yet"
+            "recently_online": "Recentemente Online",
+            "search_placeholder": "Pesquisar",
+            "selected_count": "Contagem Seleccionada",
+            "no_online": "Sem Online",
+            "no_recent": "Sem Recentes"
         },
         "mods": {
-            "management": "Mod Management"
+            "management": "Gerenciamento de Mods"
         },
         "properties": {
-            "title": "Server Properties",
-            "server_settings": "Server Settings",
-            "gameplay": "Gameplay",
-            "world": "World",
-            "save_btn": "Save Properties",
-            "saving": "Saving..."
+            "title": "Propriedades",
+            "server_settings": "Configurações do Servidor",
+            "gameplay": "Jogabilidade",
+            "world": "Mundo",
+            "save_btn": "Salvar",
+            "saving": "Salvando"
         },
         "files": {
-            "error_list": "Failed to list files",
-            "error_read": "Failed to read file",
-            "error_save": "Failed to save file",
-            "error_delete": "Failed to delete item",
-            "error_create_folder": "Failed to create folder",
-            "save_success": "File saved successfully",
-            "delete_success": "Item deleted successfully",
-            "folder_created": "Folder created successfully",
-            "not_editable": "This file type cannot be edited in the browser",
-            "empty": "This folder is empty",
-            "new_folder": "New Folder",
-            "folder_name": "Folder name",
-            "delete_title": "Delete Item",
-            "delete_confirm": "Are you sure you want to delete \"{{name}}\"?"
+            "error_list": "Lista de Erros",
+            "error_read": "Erro ao Ler",
+            "error_save": "Erro ao Salvar",
+            "error_delete": "Erro ao Excluir",
+            "error_create_folder": "Erro ao Criar Pasta",
+            "save_success": "Salvo com Sucesso",
+            "delete_success": "Excluído com Sucesso",
+            "folder_created": "Pasta Criada",
+            "not_editable": "Não Editável",
+            "empty": "Vazio",
+            "new_folder": "Nova Pasta",
+            "folder_name": "Nome da Pasta",
+            "delete_title": "Excluir?",
+            "delete_confirm": "Tem certeza de que deseja excluir este arquivo?"
         }
     }
 }
