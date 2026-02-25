@@ -2215,7 +2215,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">Max Players</label>
                                             <input
                                                 type="number"
-                                                value={serverProperties['max-players'] || '20'}
+                                                value={serverProperties['max-players'] ?? '20'}
                                                 onChange={(e) => updateProperty('max-players', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />
@@ -2224,7 +2224,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">MOTD</label>
                                             <input
                                                 type="text"
-                                                value={serverProperties['motd'] || 'A Minecraft Server'}
+                                                value={serverProperties['motd'] ?? 'A Minecraft Server'}
                                                 onChange={(e) => updateProperty('motd', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />
@@ -2233,7 +2233,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">Server Port</label>
                                             <input
                                                 type="number"
-                                                value={serverProperties['server-port'] || '25565'}
+                                                value={serverProperties['server-port'] ?? '25565'}
                                                 onChange={(e) => updateProperty('server-port', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />
@@ -2242,7 +2242,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">View Distance</label>
                                             <input
                                                 type="number"
-                                                value={serverProperties['view-distance'] || '10'}
+                                                value={serverProperties['view-distance'] ?? '10'}
                                                 onChange={(e) => updateProperty('view-distance', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />
@@ -2251,7 +2251,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">Simulation Distance</label>
                                             <input
                                                 type="number"
-                                                value={serverProperties['simulation-distance'] || '10'}
+                                                value={serverProperties['simulation-distance'] ?? '10'}
                                                 onChange={(e) => updateProperty('simulation-distance', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />
@@ -2260,7 +2260,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">Spawn Protection</label>
                                             <input
                                                 type="number"
-                                                value={serverProperties['spawn-protection'] || '16'}
+                                                value={serverProperties['spawn-protection'] ?? '16'}
                                                 onChange={(e) => updateProperty('spawn-protection', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />
@@ -2302,7 +2302,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">Level Name</label>
                                             <input
                                                 type="text"
-                                                value={serverProperties['level-name'] || 'world'}
+                                                value={serverProperties['level-name'] ?? 'world'}
                                                 onChange={(e) => updateProperty('level-name', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />
@@ -2411,7 +2411,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">Network Compression Threshold</label>
                                             <input
                                                 type="number"
-                                                value={serverProperties['network-compression-threshold'] || '256'}
+                                                value={serverProperties['network-compression-threshold'] ?? '256'}
                                                 onChange={(e) => updateProperty('network-compression-threshold', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />
@@ -2445,7 +2445,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">Player Idle Timeout (minutes, 0=disabled)</label>
                                             <input
                                                 type="number"
-                                                value={serverProperties['player-idle-timeout'] || '0'}
+                                                value={serverProperties['player-idle-timeout'] ?? '0'}
                                                 onChange={(e) => updateProperty('player-idle-timeout', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />
@@ -2542,7 +2542,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">Max Tick Time (ms)</label>
                                             <input
                                                 type="number"
-                                                value={serverProperties['max-tick-time'] || '60000'}
+                                                value={serverProperties['max-tick-time'] ?? '60000'}
                                                 onChange={(e) => updateProperty('max-tick-time', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />
@@ -2551,7 +2551,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">RCON Port</label>
                                             <input
                                                 type="number"
-                                                value={serverProperties['rcon.port'] || '25575'}
+                                                value={serverProperties['rcon.port'] ?? '25575'}
                                                 onChange={(e) => updateProperty('rcon.port', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />
@@ -2560,7 +2560,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                             <label className="text-sm text-gray-400 block mb-2">Query Port</label>
                                             <input
                                                 type="number"
-                                                value={serverProperties['query.port'] || '25565'}
+                                                value={serverProperties['query.port'] ?? '25565'}
                                                 onChange={(e) => updateProperty('query.port', e.target.value)}
                                                 className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                             />

@@ -24,10 +24,10 @@ function Settings() {
         enableDiscordRPC: true,
         autoUploadLogs: true,
         showDisabledFeatures: false,
-        optimization: true,
+        optimization: false,
         focusMode: false,
-        minimalMode: true,
-        enableAutoInstallMods: true,
+        minimalMode: false,
+        enableAutoInstallMods: false,
         autoInstallMods: [],
         showQuickSwitchButton: true,
         language: 'en_us',
@@ -46,6 +46,7 @@ function Settings() {
 
     const [showSoftResetModal, setShowSoftResetModal] = useState(false);
     const [showFactoryResetModal, setShowFactoryResetModal] = useState(false);
+    const [showRestartModal, setShowRestartModal] = useState(false);
     const [instances, setInstances] = useState([]);
     const [isInstallingJava, setIsInstallingJava] = useState(false);
     const [javaInstallProgress, setJavaInstallProgress] = useState(null);
@@ -209,6 +210,10 @@ function Settings() {
     };
 
     const handleChange = (key, value) => {
+        if (key === 'legacyGpuSupport' && value === true) {
+            setShowRestartModal(true);
+            return;
+        }
         setSettings(prev => {
             const newSettings = { ...prev, [key]: value };
             if (initialSettingsRef.current) {
@@ -218,6 +223,16 @@ function Settings() {
                 hasUnsavedChanges.current = hasChanges;
             }
             saveSettings(newSettings, true);
+            return newSettings;
+        });
+    };
+
+    const handleConfirmRestart = () => {
+        setSettings(prev => {
+            const newSettings = { ...prev, legacyGpuSupport: true };
+            saveSettings(newSettings, true).then(() => {
+                window.electronAPI.restartApp();
+            });
             return newSettings;
         });
     };
@@ -769,6 +784,25 @@ function Settings() {
                     />
                 </div>
 
+                {/* Compatibility Section */}
+                <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                    <h2 className="text-lg font-bold mb-6 text-white">{t('settings.compatibility.title', 'Compatibility')}</h2>
+
+                    <ToggleBox
+                        checked={settings.lowGraphicsMode || false}
+                        onChange={(val) => handleChange('lowGraphicsMode', val)}
+                        label={t('settings.compatibility.low_graphics', 'Low Graphics Mode')}
+                        description={t('settings.compatibility.low_graphics_desc', 'Disables resource-intensive 3D previews (e.g. skin preview) to improve performance on older hardware.')}
+                    />
+                    <ToggleBox
+                        className="mt-4 pt-4 border-t border-white/5"
+                        checked={settings.legacyGpuSupport || false}
+                        onChange={(val) => handleChange('legacyGpuSupport', val)}
+                        label={t('settings.compatibility.legacy_gpu', 'Legacy GPU Support')}
+                        description={t('settings.compatibility.legacy_gpu_desc', 'Disables hardware acceleration and uses basic OpenGL. Enable this if you experience crashes or black screens. (Requires App Restart)')}
+                    />
+                </div>
+
                 { }
                 {settings.enableAutoInstallMods && (
                     <div className="bg-surface/50 p-8 rounded-2xl border border-white/5 hover:border-white/10 transition-colors mt-6">
@@ -1156,6 +1190,20 @@ function Settings() {
                         isDangerous={true}
                         onConfirm={handleFactoryReset}
                         onCancel={() => setShowFactoryResetModal(false)}
+                    />
+                )
+            }
+
+            {
+                showRestartModal && (
+                    <ConfirmationModal
+                        title={t('settings.compatibility.restart_title', 'Restart Required')}
+                        message={t('settings.compatibility.restart_msg', 'Enabling Legacy GPU Support requires an application restart to apply changes to the graphics engine. Would you like to restart now?')}
+                        confirmText={t('settings.compatibility.restart_confirm', 'Restart Now')}
+                        cancelText={t('settings.compatibility.restart_cancel', 'Not Now')}
+                        isDangerous={false}
+                        onConfirm={handleConfirmRestart}
+                        onCancel={() => setShowRestartModal(false)}
                     />
                 )
             }

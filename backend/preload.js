@@ -67,6 +67,7 @@ const electronAPI = {
     importMrPack: () => ipcRenderer.invoke('instance:import-mrpack'),
     importFile: () => ipcRenderer.invoke('instance:unified-import-v3'),
     ping: () => ipcRenderer.invoke('ping'),
+    restartApp: () => ipcRenderer.invoke('app:restart'),
     getInstances: () => ipcRenderer.invoke('instance:get-all'),
     installModpack: (url, name, iconUrl) => ipcRenderer.invoke('instance:install-modpack', url, name, iconUrl),
     searchModrinth: (query, facets, options) => ipcRenderer.invoke('modrinth:search', query, facets, options),
