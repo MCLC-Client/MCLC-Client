@@ -26,10 +26,10 @@
       }
     ],
     "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "backend/**/*",
-      "resources/**/*",
+      "dist",
+      "electron",
+      "backend",
+      "resources",
       ".env",
       "package.json"
     ],
