@@ -1,5 +1,8 @@
 const { app, BrowserWindow, ipcMain, protocol, net, Menu } = require('electron');
 
+const fs = require('fs-extra');
+const path = require('path');
+
 // Force WebGL/GPU acceleration on Linux/unsupported systems
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('disable-gpu-driver-bug-workarounds');
@@ -16,7 +19,22 @@ if (process.platform === 'linux') {
 app.commandLine.appendSwitch('enable-webgl-draft-extensions');
 app.commandLine.appendSwitch('disable-features', 'NetworkServiceSandbox');
 
-const path = require('path');
+// Legacy Hardware Support (#8)
+const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+try {
+    if (fs.existsSync(settingsPath)) {
+        const settings = fs.readJsonSync(settingsPath);
+        if (settings.legacyGpuSupport) {
+            console.log('[Main] Legacy GPU Support enabled: Disabling hardware acceleration and forcing desktop GL');
+            app.disableHardwareAcceleration();
+            app.commandLine.appendSwitch('use-gl', 'desktop');
+        }
+    }
+} catch (e) {
+    console.error('[Main] Failed to read settings for legacy GPU check:', e);
+}
+
+// Redundant requires removed
 console.log('NUCLEAR STARTUP CHECK: main.js is running!');
 console.log('[DEBUG] CWD:', process.cwd());
 console.log('[DEBUG] __dirname:', __dirname);
@@ -27,7 +45,12 @@ ipcMain.handle('ping', () => {
     return 'pong';
 });
 
-const fs = require('fs');
+ipcMain.handle('app:restart', () => {
+    app.relaunch();
+    app.exit(0);
+});
+
+// fs handled at top
 const { pathToFileURL } = require('url');
 const dns = require('dns');
 if (dns.setDefaultResultOrder) {

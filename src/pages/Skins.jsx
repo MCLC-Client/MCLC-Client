@@ -248,10 +248,11 @@ function Skins({ onLogout, onProfileUpdate }) {
         loadProfileAndSkin();
         loadLocalSkins();
 
-        // Load Focus Mode setting
+        // Load Focus Mode & Low Graphics settings
         window.electronAPI.getSettings().then(res => {
-            if (res.success && res.settings.focusMode) {
-                setIsAnimating(false);
+            if (res.success) {
+                if (res.settings.focusMode) setIsAnimating(false);
+                if (res.settings.lowGraphicsMode) setWebglError(true);
             }
         });
     }, []);
