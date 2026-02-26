@@ -107,13 +107,13 @@ function App() {
 
             let startPage = 'dashboard';
             try {
-                const settingsRes = await window.electronAPI.getSettings();
+                const settingsRes = await window.electronAPI?.getSettings();
                 if (settingsRes.success && settingsRes.settings.startPage) {
                     startPage = settingsRes.settings.startPage;
                 }
             } catch (e) { }
 
-            if (window.electronAPI.validateSession) {
+            if (window.electronAPI?.validateSession) {
                 const res = await window.electronAPI.validateSession();
                 if (res.success) {
                     const profile = await window.electronAPI.getProfile();
@@ -131,7 +131,7 @@ function App() {
                     }
                 }
             } else {
-                const profile = await window.electronAPI.getProfile();
+                const profile = await window.electronAPI?.getProfile();
                 if (profile) {
                     setUserProfile(profile);
                     Analytics.setProfile(profile);
@@ -141,7 +141,7 @@ function App() {
         };
 
         const loadTheme = async () => {
-            const res = await window.electronAPI.getSettings();
+            const res = await window.electronAPI?.getSettings();
             if (res.success) {
                 setAppSettings(res.settings);
                 if (res.settings.theme) {
@@ -155,7 +155,7 @@ function App() {
         checkSession();
         loadTheme();
 
-        const removeThemeListener = window.electronAPI.onThemeUpdated((newTheme) => {
+        const removeThemeListener = window.electronAPI?.onThemeUpdated((newTheme) => {
             setTheme(newTheme);
             applyTheme(newTheme);
         });
@@ -164,7 +164,7 @@ function App() {
             setAppSettings(newSettings);
         });
 
-        const removeStatusListener = window.electronAPI.onInstanceStatus(({ instanceName, status, loader, version }) => {
+        const removeStatusListener = window.electronAPI?.onInstanceStatus(({ instanceName, status, loader, version }) => {
             setRunningInstances(prev => {
                 const next = { ...prev };
                 if (status === 'stopped' || status === 'deleted') {
@@ -205,7 +205,7 @@ function App() {
             });
         });
 
-        const removeInstallListener = window.electronAPI.onInstallProgress(({ instanceName, progress, status }) => {
+        const removeInstallListener = window.electronAPI?.onInstallProgress(({ instanceName, progress, status }) => {
             setActiveDownloads(prev => {
                 const next = { ...prev };
                 if (progress >= 100) {
@@ -230,10 +230,10 @@ function App() {
             }
         };
 
-        const removeLaunchProgressListener = window.electronAPI.onLaunchProgress((e) => {
+        const removeLaunchProgressListener = window.electronAPI?.onLaunchProgress((e) => {
         });
 
-        const removeWindowStateListener = window.electronAPI.onWindowStateChange((maximized) => {
+        const removeWindowStateListener = window.electronAPI?.onWindowStateChange((maximized) => {
             setIsMaximized(maximized);
         });
 
