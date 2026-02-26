@@ -350,7 +350,7 @@
             "auto_logs": "Automaticky nahrávať záznamy pri páde",
             "auto_logs_desc": "Automaticky nahrá záznamy na mclo.gs, ak hra spadne",
             "disabled_features": "Zobraziť zakázané funkcie",
-            "disabled_features_desc": "Skrýva alebo zosivuje funkcie, ktoré sú momentálne zakázané (napr. tlačidlo Rozšírenia).",
+            "disabled_features_desc": "Skrýva alebo zosivuje funkcie, ktoré sú momentálne zakázané.",
             "optimization": "Povoliť optimalizáciu",
             "optimization_desc": "Automaticky inštaluje módy na optimalizáciu výkonu pri vytváraní novej inštancie.",
             "auto_mod_install": "Povoliť automatickú inštaláciu módov",

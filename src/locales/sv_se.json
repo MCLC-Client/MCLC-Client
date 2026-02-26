@@ -350,7 +350,7 @@
             "auto_logs": "Ladda upp loggar automatiskt vid krasch",
             "auto_logs_desc": "Laddar automatiskt upp loggar till mclo.gs om spelet kraschar",
             "disabled_features": "Visa inaktiverade funktioner",
-            "disabled_features_desc": "Döljer eller gråar ut funktioner som för närvarande är inaktiverade (som tilläggsknappen).",
+            "disabled_features_desc": "Döljer eller gråar ut funktioner som för närvarande är inaktiverade.",
             "optimization": "Aktivera optimering",
             "optimization_desc": "Installera automatiskt prestandaoptimerande moddar när du skapar en ny instans.",
             "auto_mod_install": "Aktivera automatisk modinstallation",

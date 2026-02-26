@@ -350,7 +350,7 @@
             "auto_logs": "Carica log automaticamente in caso di crash",
             "auto_logs_desc": "Carica automaticamente i log su mclo.gs se il gioco si chiude in modo anomalo",
             "disabled_features": "Mostra Funzionalità Disabilitate",
-            "disabled_features_desc": "Nasconde o disattiva visivamente le funzioni attualmente disabilitate (come il pulsante Estensioni).",
+            "disabled_features_desc": "Nasconde o disattiva visivamente le funzioni attualmente disabilitate.",
             "optimization": "Abilita Ottimizzazione",
             "optimization_desc": "Installa automaticamente mod per l'ottimizzazione delle prestazioni durante la creazione di una nuova istanza.",
             "auto_mod_install": "Abilita Installazione Automatica Mod",

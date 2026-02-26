@@ -350,7 +350,7 @@
             "auto_logs": "Samodejno naloži dnevnike ob sesutju",
             "auto_logs_desc": "Samodejno naloži dnevnike na mclo.gs, če se igra sesuje",
             "disabled_features": "Pokaži onemogočene funkcije",
-            "disabled_features_desc": "Skrije ali obarva sivo funkcije, ki so trenutno onemogočene (kot je gumb Razširitve).",
+            "disabled_features_desc": "Skrije ali obarva sivo funkcije, ki so trenutno onemogočene.",
             "optimization": "Omogoči optimizacijo",
             "optimization_desc": "Pri ustvarjanju nove instance samodejno namesti mode za optimizacijo delovanja.",
             "auto_mod_install": "Omogoči samodejno namestitev modov",

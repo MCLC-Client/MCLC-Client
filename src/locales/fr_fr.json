@@ -350,7 +350,7 @@
             "auto_logs": "Téléversement automatique des logs en cas de crash",
             "auto_logs_desc": "Téléverse automatiquement les journaux sur mclo.gs si le jeu plante",
             "disabled_features": "Afficher les fonctionnalités désactivées",
-            "disabled_features_desc": "Masque ou grise les fonctionnalités actuellement désactivées (comme le bouton Extensions).",
+            "disabled_features_desc": "Masque ou grise les fonctionnalités actuellement désactivées.",
             "optimization": "Activer l'optimisation",
             "optimization_desc": "Installe automatiquement des mods d'optimisation des performances lors de la création d'une nouvelle instance.",
             "auto_mod_install": "Activer l'installation automatique des mods",

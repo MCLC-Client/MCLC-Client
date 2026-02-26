@@ -350,7 +350,7 @@
             "auto_logs": "Enviar logs automaticamente ao travar",
             "auto_logs_desc": "Envie logs automaticamente para o mclo.gs se o jogo travar",
             "disabled_features": "Mostrar Recursos Desativados",
-            "disabled_features_desc": "Oculta ou escurece os recursos que estão atualmente desativados (como o botão Extensões).",
+            "disabled_features_desc": "Oculta ou escurece os recursos que estão atualmente desativados.",
             "optimization": "Ativar Otimização",
             "optimization_desc": "Instale automaticamente mods de otimização de desempenho ao criar uma nova instância.",
             "auto_mod_install": "Ativar Instalação Automática de Mods",

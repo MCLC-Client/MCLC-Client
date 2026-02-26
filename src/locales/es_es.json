@@ -350,7 +350,7 @@
             "auto_logs": "Subir logs ante fallos",
             "auto_logs_desc": "Sube logs a mclo.gs si el juego se bloquea",
             "disabled_features": "Mostrar funciones desactivadas",
-            "disabled_features_desc": "Oculta o atenúa funciones actualmente deshabilitadas (como Extensiones).",
+            "disabled_features_desc": "Oculta o atenúa funciones actualmente deshabilitadas.",
             "optimization": "Activar optimización",
             "optimization_desc": "Instala mods de optimización de rendimiento al crear una nueva instancia.",
             "auto_mod_install": "Activar instalación automática de mods",

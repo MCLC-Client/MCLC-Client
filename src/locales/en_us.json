@@ -350,7 +350,7 @@
             "auto_logs": "Auto-upload logs on crash",
             "auto_logs_desc": "Upload logs to mclo.gs if the game crashes",
             "disabled_features": "Show Disabled Features",
-            "disabled_features_desc": "Hide or gray out features that are not available (like the Extensions button).",
+            "disabled_features_desc": "Hide or gray out features that are not available.",
             "optimization": "Enable Optimizations",
             "optimization_desc": "Automatically install performance mods when making a new instance.",
             "auto_mod_install": "Enable Auto Install Mods",

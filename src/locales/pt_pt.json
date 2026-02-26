@@ -350,7 +350,7 @@
             "auto_logs": "Enviar registos automaticamente em caso de falha",
             "auto_logs_desc": "Enviar automaticamente os registos para mclo.gs se o jogo falhar",
             "disabled_features": "Mostrar Funcionalidades Desativadas",
-            "disabled_features_desc": "Oculta ou escurece as funcionalidades que estão atualmente desativadas (como o botão Extensões).",
+            "disabled_features_desc": "Oculta ou escurece as funcionalidades que estão atualmente desativadas.",
             "optimization": "Ativar Otimização",
             "optimization_desc": "Instale automaticamente mods de otimização de desempenho ao criar uma nova instância.",
             "auto_mod_install": "Ativar Instalação Automática de Mods",

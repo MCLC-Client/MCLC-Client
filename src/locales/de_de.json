@@ -350,7 +350,7 @@
             "auto_logs": "Logs bei Absturz automatisch hochladen",
             "auto_logs_desc": "Lädt Logs bei Abstürzen automatisch zu mclo.gs hoch",
             "disabled_features": "Deaktivierte Funktionen anzeigen",
-            "disabled_features_desc": "Blendet momentan deaktivierte Funktionen aus oder macht sie unbenutzbar (z. B. die Erweiterungen-Schaltfläche).",
+            "disabled_features_desc": "Blendet momentan deaktivierte Funktionen aus oder macht sie unbenutzbar.",
             "optimization": "Optimierung aktivieren",
             "optimization_desc": "Installiert automatisch Performance-Mods bei jeder neuen Instanz.",
             "auto_mod_install": "Auto-Install-Mods aktivieren",

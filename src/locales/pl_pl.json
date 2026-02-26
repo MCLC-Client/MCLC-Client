@@ -350,7 +350,7 @@
             "auto_logs": "Automatycznie przesyłaj logi po awarii",
             "auto_logs_desc": "Automatycznie wysyła logi na mclo.gs, jeśli gra ulegnie awarii",
             "disabled_features": "Pokaż wyłączone funkcje",
-            "disabled_features_desc": "Ukrywa lub wyszarza funkcje, które są aktualnie niedostępne (jak przycisk Rozszerzenia).",
+            "disabled_features_desc": "Ukrywa lub wyszarza funkcje, które są aktualnie niedostępne.",
             "optimization": "Włącz optymalizację",
             "optimization_desc": "Automatycznie instaluje modyfikacje optymalizacyjne podczas tworzenia nowej instancji.",
             "auto_mod_install": "Włącz automatyczną instalację modów",

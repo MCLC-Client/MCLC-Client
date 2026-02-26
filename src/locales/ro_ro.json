@@ -350,7 +350,7 @@
             "auto_logs": "Încărcare automată a jurnalelor la blocare",
             "auto_logs_desc": "Încarcă automat jurnalele pe mclo.gs dacă jocul se blochează (crash)",
             "disabled_features": "Arată Funcțiile Dezactivate",
-            "disabled_features_desc": "Ascunde sau face gri funcțiile care sunt în prezent dezactivate (cum ar fi butonul Extensii).",
+            "disabled_features_desc": "Ascunde sau face gri funcțiile care sunt în prezent dezactivate.",
             "optimization": "Activează Optimizarea",
             "optimization_desc": "Instalează automat mod-uri de optimizare a performanței la crearea unei instanțe noi.",
             "auto_mod_install": "Activează Instalarea Automată a Mod-urilor",
