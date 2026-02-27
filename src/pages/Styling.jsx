@@ -230,7 +230,7 @@ function Styling() {
       bgOverlay: p.bgOverlay || theme.bgOverlay,
     };
     setTheme(nt);
-    applyTheme(nt);
+    applyTheme(nt, true);
   };
 
   const loadTheme = async () => {
@@ -243,7 +243,7 @@ function Styling() {
     }
   };
 
-  const applyTheme = (t) => {
+  const applyTheme = (t, isPreview = false) => {
     const root = document.documentElement;
     root.style.setProperty("--primary-color", t.primaryColor);
     root.style.setProperty("--background-color", t.backgroundColor);
@@ -298,19 +298,24 @@ function Styling() {
       hexToRgb(adjustColor(t.backgroundColor, -20)),
     );
 
-    if (t.bgMedia && t.bgMedia.url) {
-      root.style.setProperty("--bg-url", t.bgMedia.url);
-      root.style.setProperty("--bg-type", t.bgMedia.type);
-    } else {
-      root.style.setProperty("--bg-url", "");
-      root.style.setProperty("--bg-type", "none");
+    // Only apply global background if NOT in preview mode
+    if (!isPreview) {
+      if (t.bgMedia && t.bgMedia.url) {
+        root.style.setProperty("--bg-url", t.bgMedia.url);
+        root.style.setProperty("--bg-type", t.bgMedia.type);
+      } else {
+        root.style.setProperty("--bg-url", "");
+        root.style.setProperty("--bg-type", "none");
+      }
     }
   };
 
   const handleUpdate = (key, value) => {
     const newTheme = { ...theme, [key]: value };
     setTheme(newTheme);
-    applyTheme(newTheme);
+    // Background changes are preview-only until saved
+    const isBackgroundChange = key === "bgMedia" || key === "bgOverlay";
+    applyTheme(newTheme, isBackgroundChange);
   };
 
   const handleSelectBackground = async () => {
@@ -326,6 +331,8 @@ function Styling() {
       const newSettings = { ...res.settings, theme };
       const saveRes = await window.electronAPI.saveSettings(newSettings);
       if (saveRes.success) {
+        // Apply fully, including background, once saved
+        applyTheme(theme, false);
         addNotification(t('styling.saved_success'), "success");
       }
     }

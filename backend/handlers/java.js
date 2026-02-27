@@ -29,10 +29,11 @@ module.exports = (ipcMain) => {
             const dirs = await fs.readdir(runtimesDir);
             const runtimes = [];
 
+            // 1. Scan internal runtimes
             for (const dir of dirs) {
                 const fullPath = path.join(runtimesDir, dir);
-                const stats = await fs.stat(fullPath);
-                if (stats.isDirectory()) {
+                const stats = await fs.stat(fullPath).catch(() => null);
+                if (stats && stats.isDirectory()) {
                     let javaBin = process.platform === 'win32'
                         ? path.join(fullPath, 'bin', 'java.exe')
                         : path.join(fullPath, 'bin', 'java');
@@ -40,22 +41,105 @@ module.exports = (ipcMain) => {
                         runtimes.push({
                             name: dir,
                             path: javaBin,
-                            dirPath: fullPath
+                            dirPath: fullPath,
+                            type: 'internal'
                         });
                     }
                 }
             }
+
+            // 2. Scan system Java (Windows focusing)
+            if (process.platform === 'win32') {
+                const systemJavas = await scanSystemJava();
+                for (const sj of systemJavas) {
+                    // Avoid duplicates if they happen to point to the same binary
+                    if (!runtimes.some(r => r.path.toLowerCase() === sj.path.toLowerCase())) {
+                        runtimes.push({
+                            name: sj.name,
+                            path: sj.path,
+                            dirPath: sj.dirPath,
+                            type: 'system'
+                        });
+                    }
+                }
+            } else {
+                // Linux/Mac: check 'java' in PATH
+                try {
+                    const { execSync } = require('child_process');
+                    const javaPath = execSync('which java').toString().trim();
+                    if (javaPath && await fs.pathExists(javaPath)) {
+                        runtimes.push({
+                            name: 'System Java',
+                            path: javaPath,
+                            dirPath: path.dirname(path.dirname(javaPath)),
+                            type: 'system'
+                        });
+                    }
+                } catch (e) { /* ignore */ }
+            }
+
             return { success: true, runtimes };
         } catch (e) {
+            console.error('[JavaHandler] java:list error:', e);
             return { success: false, error: e.message };
         }
     });
+
+    async function scanSystemJava() {
+        const found = [];
+        const { execSync } = require('child_process');
+
+        // Check PATH
+        try {
+            const whereJava = execSync('where java', { encoding: 'utf8' }).split(/\r?\n/);
+            for (let p of whereJava) {
+                p = p.trim();
+                if (p && await fs.pathExists(p)) {
+                    found.push({
+                        name: `System (PATH: ${path.basename(path.dirname(path.dirname(p)))})`,
+                        path: p,
+                        dirPath: path.dirname(path.dirname(p))
+                    });
+                }
+            }
+        } catch (e) { /* ignore */ }
+
+        // Common install dirs
+        const commonDirs = [
+            'C:\\Program Files\\Java',
+            'C:\\Program Files (x86)\\Java',
+            'C:\\Program Files\\Eclipse Adoptium',
+            'C:\\Program Files\\Microsoft\\Jdk',
+            path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Eclipse Adoptium')
+        ];
+
+        for (const baseDir of commonDirs) {
+            if (await fs.pathExists(baseDir)) {
+                try {
+                    const subdirs = await fs.readdir(baseDir);
+                    for (const sub of subdirs) {
+                        const full = path.join(baseDir, sub);
+                        const bin = path.join(full, 'bin', 'java.exe');
+                        if (await fs.pathExists(bin)) {
+                            found.push({
+                                name: sub,
+                                path: bin,
+                                dirPath: full
+                            });
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+            }
+        }
+
+        return found;
+    }
 
     ipcMain.handle('java:delete', async (event, dirPath) => {
         try {
 
             if (!dirPath.startsWith(runtimesDir)) {
-                throw new Error("Invalid path");
+                return { success: false, error: "Only internal runtimes can be deleted." };
             }
             await fs.remove(dirPath);
             return { success: true };

@@ -143,8 +143,28 @@ Add-Type -TypeDefinition $code -Language CSharp
 
     const launchInstance = async (instanceName, quickPlay) => {
         if (runningInstances.has(instanceName) || activeLaunches.has(instanceName)) {
-            console.warn(`[Launcher] Blocked launch attempt for ${instanceName} - Already ${activeLaunches.has(instanceName) ? 'launching' : 'running'}`);
-            return { success: false, error: 'Instance is already running or launching' };
+            // Check if the process is actually still alive
+            const proc = childProcesses.get(instanceName);
+            let isAlive = false;
+
+            if (proc && proc.pid) {
+                try {
+                    // process.kill(0) is a standard way to check for process existence
+                    process.kill(proc.pid, 0);
+                    isAlive = true;
+                } catch (e) {
+                    isAlive = false;
+                }
+            }
+
+            if (isAlive || activeLaunches.has(instanceName)) {
+                console.warn(`[Launcher] Blocked launch attempt for ${instanceName} - Already ${activeLaunches.has(instanceName) ? 'launching' : 'running'}`);
+                return { success: false, error: `Instance is already ${activeLaunches.has(instanceName) ? 'launching' : 'running'}.` };
+            } else {
+                console.log(`[Launcher] Process for ${instanceName} is no longer alive. Cleaning up stale state.`);
+                runningInstances.delete(instanceName);
+                childProcesses.delete(instanceName);
+            }
         }
 
         activeLaunches.set(instanceName, { cancelled: false });
@@ -278,8 +298,8 @@ Add-Type -TypeDefinition $code -Language CSharp
                 return 8;
             }
 
-            let javaToCheck = opts.javaPath || 'java';
             let javaValid = false;
+            let javaVersion = 0;
             let javaOutput = '';
 
             const { exec } = require('child_process');
@@ -288,16 +308,35 @@ Add-Type -TypeDefinition $code -Language CSharp
 
             const performJavaCheck = async (p) => {
                 try {
-                    const { stderr } = await execAsync(`"${p}" -version`, { encoding: 'utf8' });
+                    const { stderr, stdout } = await execAsync(`"${p}" -version`, { encoding: 'utf8' });
                     // java -version often outputs to stderr
-                    javaOutput = stderr;
+                    javaOutput = stderr || stdout;
+
+                    // Parse version (e.g., "1.8.0_292" or "17.0.1" or "21.0.2")
+                    const versionMatch = javaOutput.match(/(?:version|jd[kj])\s*["']?(\d+)(?:\.(\d+))?(?:\.(\d+))?/i);
+                    if (versionMatch) {
+                        let major = parseInt(versionMatch[1]);
+                        if (major === 1) major = parseInt(versionMatch[2] || 8);
+                        javaVersion = major;
+                        console.log(`[Launcher] Detected Java version ${javaVersion} for ${p}`);
+                    }
+
                     return true;
                 } catch (e) {
+                    console.error(`[Launcher] Java check failed for ${p}:`, e.message);
                     return false;
                 }
             };
 
             javaValid = await performJavaCheck(javaToCheck);
+
+            const reqVersion = getRequiredJavaVersion(config.version);
+
+            // If found but wrong version, try auto-install or find alternative
+            if (javaValid && javaVersion < reqVersion) {
+                console.warn(`[Launcher] Detected Java ${javaVersion} is too old for MC ${config.version} (requires ${reqVersion}).`);
+                javaValid = false;
+            }
 
             // If invalid or missing, try auto-install
             if (!javaValid) {
@@ -657,6 +696,8 @@ Add-Type -TypeDefinition $code -Language CSharp
             console.error('Initial launch error:', e);
             activeLaunches.delete(instanceName);
             runningInstances.delete(instanceName);
+            childProcesses.delete(instanceName);
+            mainWindow.webContents.send('instance:status', { instanceName, status: 'stopped' });
             return { success: false, error: e.message };
         }
     };
