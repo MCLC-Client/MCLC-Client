@@ -134,6 +134,11 @@ const BackupManagerModal = ({ instance, onClose, worlds, onBackupStatusChange })
     };
 
     const toggleItem = (id) => {
+        if (type === 'cloud') {
+            const isLogged = cloudStatus[selectedProvider]?.loggedIn;
+            if (!isLogged) return;
+        }
+
         setSelectedItems(prev =>
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
@@ -145,24 +150,28 @@ const BackupManagerModal = ({ instance, onClose, worlds, onBackupStatusChange })
         const sub = mode === 'backup' ? item.folderName : (item.date ? new Date(item.date).toLocaleString() : '');
         const isSelected = selectedItems.includes(id);
 
+        const isCloudRestricted = type === 'cloud' && !cloudStatus[selectedProvider]?.loggedIn;
+
         return (
             <div
                 key={id}
-                onClick={() => toggleItem(id)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${isSelected ? 'bg-primary/10 border-primary shadow-lg shadow-primary/5' : 'bg-white/5 border-white/10 hover:border-white/20'}`}
+                onClick={() => !isCloudRestricted && toggleItem(id)}
+                className={`p-4 rounded-xl border transition-all flex items-center justify-between group ${isCloudRestricted ? 'opacity-40 grayscale cursor-not-allowed border-white/5' : 'cursor-pointer'} ${isSelected ? 'bg-primary/10 border-primary shadow-lg shadow-primary/5' : 'bg-white/5 border-white/10 hover:border-white/20'}`}
             >
                 <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? 'bg-primary text-black' : 'bg-white/5 text-gray-400'}`}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? 'bg-primary text-black' : (isCloudRestricted ? 'bg-white/5 text-gray-600' : 'bg-white/5 text-gray-400')}`}>
                         {mode === 'backup' ? <FolderIcon className="h-6 w-6" /> : <ArchiveBoxIcon className="h-6 w-6" />}
                     </div>
                     <div>
-                        <h4 className="font-bold text-white group-hover:text-primary transition-colors">{name}</h4>
+                        <h4 className={`font-bold transition-colors ${isSelected ? 'text-white' : (isCloudRestricted ? 'text-gray-500' : 'text-white group-hover:text-primary')}`}>{name}</h4>
                         <p className="text-[10px] uppercase font-black tracking-widest text-gray-400">{sub}</p>
                     </div>
                 </div>
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary' : 'border-white/20 group-hover:border-white/40'}`}>
-                    {isSelected && <CheckIcon className="h-4 w-4 text-black stroke-[3]" />}
-                </div>
+                {!isCloudRestricted && (
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary' : 'border-white/20 group-hover:border-white/40'}`}>
+                        {isSelected && <CheckIcon className="h-4 w-4 text-black stroke-[3]" />}
+                    </div>
+                )}
             </div>
         );
     };
