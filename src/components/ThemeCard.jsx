@@ -34,7 +34,7 @@ function ThemeCard({ theme, onApply, onDelete, isCustom = false }) {
             { }
             <div className="bg-surface/80 backdrop-blur-sm p-3 border-t border-white/5">
                 <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">
+                    <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors truncate pr-2">
                         {theme.name}
                     </span>
                     {isCustom && onDelete && (

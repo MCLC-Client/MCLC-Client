@@ -444,8 +444,8 @@ function Settings() {
                     <h2 className="text-lg font-bold mb-6 text-white">{t('settings.general.title')}</h2>
 
                     <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div>
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                            <div className="flex-1 min-w-[200px]">
                                 <div className="font-medium text-white">{t('settings.general.startup_page')}</div>
                                 <div className="text-sm text-gray-500 mt-1">{t('settings.general.startup_page_desc')}</div>
                             </div>
@@ -459,8 +459,8 @@ function Settings() {
                             </select>
                         </div>
 
-                        <div className="flex items-center justify-between pt-6 border-t border-white/5">
-                            <div>
+                        <div className="flex items-center justify-between pt-6 border-t border-white/5 gap-4 flex-wrap">
+                            <div className="flex-1 min-w-[200px]">
                                 <div className="font-medium text-white">{t('settings.general.language')}</div>
                                 <div className="text-sm text-gray-500 mt-1">{t('settings.general.language_desc')}</div>
                             </div>

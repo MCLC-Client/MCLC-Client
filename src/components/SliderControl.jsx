@@ -3,8 +3,8 @@ import React from 'react';
 function SliderControl({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
     return (
         <div className="space-y-3">
-            <div className="flex justify-between items-center">
-                <label className="text-sm font-bold text-gray-300">
+            <div className="flex justify-between items-center gap-2 flex-wrap">
+                <label className="text-sm font-bold text-gray-300 min-w-0 break-words">
                     {label}
                 </label>
                 <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded-md border border-primary/20">

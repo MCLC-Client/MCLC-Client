@@ -2,11 +2,11 @@ import React from 'react';
 
 const ToggleBox = ({ checked, onChange, label, description, className = '' }) => {
     return (
-        <label className={`flex items-center justify-between group cursor-pointer ${className}`}>
+        <label className={`flex items-start justify-between group cursor-pointer gap-4 flex-wrap ${className}`}>
             {(label || description) && (
-                <div className="flex-1 pr-4">
-                    {label && <div className="font-medium text-white group-hover:text-primary transition-colors">{label}</div>}
-                    {description && <div className="text-sm text-gray-500 mt-1 leading-relaxed">{description}</div>}
+                <div className="flex-1 min-w-[150px]">
+                    {label && <div className="font-medium text-white group-hover:text-primary transition-colors break-words">{label}</div>}
+                    {description && <div className="text-sm text-gray-500 mt-1 leading-relaxed break-words">{description}</div>}
                 </div>
             )}
             <div className="relative inline-flex items-center">
