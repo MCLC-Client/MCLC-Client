@@ -1,9 +1,0 @@
-{
-    "id": "stats-monitor",
-    "name": "Process Monitor",
-    "version": "1.0.0",
-    "description": "Monitors CPU and RAM for active instances.",
-    "main": "main.js",
-    "author": "MCLC Team",
-    "icon": "assets/icon.png"
-}
