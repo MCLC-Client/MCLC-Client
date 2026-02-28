@@ -354,7 +354,9 @@
             "optimization": "Optimierig einschalte",
             "optimization_desc": "Installiert automatisch Performance-Mods, wenn neui Instanz erstellt wird.",
             "auto_mod_install": "Auto-Install Mods aktiviere",
-            "auto_mod_install_desc": "Installiert automatisch usgwehlti Mods bim Erstelle vo neune Instanze. Nöd verfüegbari Mods wärdet übersprunge."
+            "auto_mod_install_desc": "Installiert automatisch usgwehlti Mods bim Erstelle vo neune Instanze. Nöd verfüegbari Mods wärdet übersprunge.",
+            "minimize_to_tray": "In den System-Tray minimieren",
+            "minimize_to_tray_desc": "Versteckt den Launcher im System-Tray beim Schließen oder Minimieren."
         },
         "cloud": {
             "title": "Cloud-Backup-Iistellige",

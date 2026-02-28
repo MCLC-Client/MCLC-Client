@@ -1,7 +1,11 @@
-const { app, BrowserWindow, ipcMain, protocol, net, Menu } = require('electron');
-
+const { app, BrowserWindow, ipcMain, protocol, net, Menu, Tray } = require('electron');
 const fs = require('fs-extra');
 const path = require('path');
+
+// Allow Tray icon support on COSMIC desktop by spoofing Unity for AppIndicator support
+if (process.platform === 'linux' && process.env.XDG_CURRENT_DESKTOP === 'COSMIC') {
+    process.env.XDG_CURRENT_DESKTOP = 'Unity';
+}
 
 // Force WebGL/GPU acceleration on Linux/unsupported systems
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
@@ -71,6 +75,8 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 let mainWindow;
+let tray = null;
+let isQuiting = false;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -185,18 +191,60 @@ function createWindow() {
             console.error('[Main] Failed to load production file:', err);
         });
     }
-    ipcMain.on('window-minimize', () => mainWindow.minimize());
+    ipcMain.on('window-minimize', () => {
+        try {
+            const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+            if (fs.existsSync(settingsPath)) {
+                const settings = fs.readJsonSync(settingsPath, { throws: false }) || {};
+                if (settings.minimizeToTray) {
+                    mainWindow.hide();
+                    return;
+                }
+            }
+        } catch (e) { }
+        mainWindow.minimize();
+    });
+
     ipcMain.on('window-maximize', () => {
         if (mainWindow.isMaximized()) mainWindow.unmaximize();
         else mainWindow.maximize();
     });
-    ipcMain.on('window-close', () => mainWindow.close());
+
+    ipcMain.on('window-close', () => {
+        try {
+            const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+            if (fs.existsSync(settingsPath)) {
+                const settings = fs.readJsonSync(settingsPath, { throws: false }) || {};
+                if (settings.minimizeToTray && !isQuiting) {
+                    mainWindow.hide();
+                    return;
+                }
+            }
+        } catch (e) { }
+        mainWindow.close();
+    });
+
     ipcMain.on('update:quit-and-install', () => {
         const { autoUpdater } = require('electron-updater');
         autoUpdater.quitAndInstall();
     });
     mainWindow.on('maximize', () => mainWindow.webContents.send('window-state', true));
     mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-state', false));
+
+    mainWindow.on('close', (event) => {
+        if (!isQuiting) {
+            try {
+                const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+                if (fs.existsSync(settingsPath)) {
+                    const settings = fs.readJsonSync(settingsPath, { throws: false }) || {};
+                    if (settings.minimizeToTray) {
+                        event.preventDefault();
+                        mainWindow.hide();
+                    }
+                }
+            } catch (e) { }
+        }
+    });
 }
 
 function setupAppMediaProtocol() {
@@ -350,6 +398,58 @@ app.whenReady().then(() => {
     setupAppMediaProtocol();
     createWindow();
     handleDeepLink(process.argv);
+
+    try {
+        let iconPath = path.join(__dirname, '../resources/icon.png');
+        if (process.platform === 'win32') {
+            const icoIcon = path.join(__dirname, '../resources/icon.ico');
+            if (fs.existsSync(icoIcon)) iconPath = icoIcon;
+        } else if (process.platform === 'linux') {
+            const pngIcon = path.join(__dirname, '../resources/icon.png');
+            if (fs.existsSync(pngIcon)) iconPath = pngIcon;
+        }
+        tray = new Tray(iconPath);
+        const contextMenu = Menu.buildFromTemplate([
+            {
+                label: 'Show App', click: () => {
+                    if (mainWindow) {
+                        mainWindow.show();
+                        mainWindow.focus();
+                    }
+                }
+            },
+            {
+                label: 'Quit', click: () => {
+                    isQuiting = true;
+                    app.quit();
+                }
+            }
+        ]);
+        tray.setToolTip('MCLC');
+        tray.setContextMenu(contextMenu);
+        tray.on('click', () => {
+            if (mainWindow) {
+                if (mainWindow.isVisible()) {
+                    if (mainWindow.isFocused()) {
+                        mainWindow.hide();
+                    } else {
+                        mainWindow.focus();
+                    }
+                } else {
+                    mainWindow.show();
+                    mainWindow.focus();
+                }
+            }
+        });
+        tray.on('double-click', () => {
+            if (mainWindow) {
+                mainWindow.show();
+                mainWindow.focus();
+            }
+        });
+    } catch (err) {
+        console.error('Failed to create tray icon', err);
+    }
 
     const { autoUpdater } = require('electron-updater');
     autoUpdater.autoDownload = true;

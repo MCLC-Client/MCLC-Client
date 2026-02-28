@@ -18,6 +18,7 @@ module.exports = (ipcMain) => {
         optimization: true,
         focusMode: false,
         minimalMode: true,
+        minimizeToTray: false,
         theme: {
             primaryColor: '#22e07a',
             backgroundColor: '#0d1117',

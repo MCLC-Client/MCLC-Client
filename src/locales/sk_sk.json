@@ -354,7 +354,9 @@
             "optimization": "Povoliť optimalizáciu",
             "optimization_desc": "Automaticky inštaluje módy na optimalizáciu výkonu pri vytváraní novej inštancie.",
             "auto_mod_install": "Povoliť automatickú inštaláciu módov",
-            "auto_mod_install_desc": "Automaticky inštaluje vybrané módy pri vytváraní novej inštancie. Nedostupné módy pre konkrétne verzie budú preskočené."
+            "auto_mod_install_desc": "Automaticky inštaluje vybrané módy pri vytváraní novej inštancie. Nedostupné módy pre konkrétne verzie budú preskočené.",
+            "minimize_to_tray": "Minimalizovať do lišty",
+            "minimize_to_tray_desc": "Skryť spúšťač do systémovej lišty pri zatvorení alebo minimalizácii."
         },
         "cloud": {
             "title": "Nastavenia cloudových záloh",

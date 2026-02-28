@@ -355,7 +355,9 @@
             "optimization": "Enable optimisation",
             "optimization_desc": "Add performance mods automatically when you create a new instance.",
             "auto_mod_install": "Enable auto-install mods",
-            "auto_mod_install_desc": "Automatically install selected mods when creating a new instance. Mods unavailable for that version will be skipped."
+            "auto_mod_install_desc": "Automatically install selected mods when creating a new instance. Mods unavailable for that version will be skipped.",
+            "minimize_to_tray": "Minimise to Tray",
+            "minimize_to_tray_desc": "Hide the launcher to the system tray when closing or minimising."
         },
         "cloud": {
             "title": "Cloud Backup",

@@ -766,6 +766,13 @@ function Settings() {
                         label={t('settings.integration.focus_mode', 'Focus Mode')}
                         description={t('settings.integration.focus_mode_desc', 'Disables resource-intensive UI elements like skin animations.')}
                     />
+                    <ToggleBox
+                        className="mt-4 pt-4 border-t border-white/5"
+                        checked={settings.minimizeToTray || false}
+                        onChange={(val) => handleChange('minimizeToTray', val)}
+                        label={t('settings.integration.minimize_to_tray', 'Minimize to Tray')}
+                        description={t('settings.integration.minimize_to_tray_desc', 'Hide the launcher to the system tray when closing or minimizing.')}
+                    />
                     {window.electronAPI && window.electronAPI.platform === 'win32' && (
                         <ToggleBox
                             className="mt-4 pt-4 border-t border-white/5"

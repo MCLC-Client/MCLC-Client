@@ -355,7 +355,9 @@
             "optimization": "Activar optimización",
             "optimization_desc": "Instala mods de optimización de rendimiento al crear una nueva instancia.",
             "auto_mod_install": "Activar instalación automática de mods",
-            "auto_mod_install_desc": "Instala automáticamente mods seleccionados en instancias nuevas (los que no sean compatibles se omitirán)."
+            "auto_mod_install_desc": "Instala automáticamente mods seleccionados en instancias nuevas (los que no sean compatibles se omitirán).",
+            "minimize_to_tray": "Minimizar a la bandeja del sistema",
+            "minimize_to_tray_desc": "Ocultar el lanzador en la bandeja del sistema al cerrar o minimizar."
         },
         "cloud": {
             "title": "Configuración de la nube",

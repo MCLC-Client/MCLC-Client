@@ -355,7 +355,9 @@
             "optimization": "Optimierung aktivieren",
             "optimization_desc": "Installiert automatisch Performance-Mods bei jeder neuen Instanz.",
             "auto_mod_install": "Auto-Install-Mods aktivieren",
-            "auto_mod_install_desc": "Installiert automatisch ausgewählte Mods bei neuen Instanzen. Mods, die für bestimmte Versionen nicht verfügbar sind, werden übersprungen."
+            "auto_mod_install_desc": "Installiert automatisch ausgewählte Mods bei neuen Instanzen. Mods, die für bestimmte Versionen nicht verfügbar sind, werden übersprungen.",
+            "minimize_to_tray": "In den System-Tray minimieren",
+            "minimize_to_tray_desc": "Versteckt den Launcher im System-Tray beim Schließen oder Minimieren."
         },
         "cloud": {
             "title": "Cloud-Backup-Einstellungen",

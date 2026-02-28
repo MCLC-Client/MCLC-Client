@@ -354,7 +354,9 @@
             "optimization": "Włącz optymalizację",
             "optimization_desc": "Automatycznie instaluje modyfikacje optymalizacyjne podczas tworzenia nowej instancji.",
             "auto_mod_install": "Włącz automatyczną instalację modów",
-            "auto_mod_install_desc": "Automatycznie instaluje wybrane mody przy tworzeniu nowej instancji. Mody niedostępne dla danej wersji zostaną pominięte."
+            "auto_mod_install_desc": "Automatycznie instaluje wybrane mody przy tworzeniu nowej instancji. Mody niedostępne dla danej wersji zostaną pominięte.",
+            "minimize_to_tray": "Minimalizuj do zasobnika",
+            "minimize_to_tray_desc": "Ukryj program w zasobniku systemowym po zamknięciu lub minimalizacji."
         },
         "cloud": {
             "title": "Ustawienia Kopii w Chmurze",

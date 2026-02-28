@@ -354,7 +354,9 @@
             "optimization": "Abilita Ottimizzazione",
             "optimization_desc": "Installa automaticamente mod per l'ottimizzazione delle prestazioni durante la creazione di una nuova istanza.",
             "auto_mod_install": "Abilita Installazione Automatica Mod",
-            "auto_mod_install_desc": "Installa automaticamente le mod selezionate durante la creazione di una nuova istanza. Le mod non disponibili per versioni specifiche verranno ignorate."
+            "auto_mod_install_desc": "Installa automaticamente le mod selezionate durante la creazione di una nuova istanza. Le mod non disponibili per versioni specifiche verranno ignorate.",
+            "minimize_to_tray": "Riduci a icona",
+            "minimize_to_tray_desc": "Nasconde il launcher nel vassoio di sistema alla chiusura o riduzione."
         },
         "cloud": {
             "title": "Impostazioni Backup Cloud",

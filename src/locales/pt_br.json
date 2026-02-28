@@ -354,7 +354,9 @@
             "optimization": "Ativar Otimização",
             "optimization_desc": "Instale automaticamente mods de otimização de desempenho ao criar uma nova instância.",
             "auto_mod_install": "Ativar Instalação Automática de Mods",
-            "auto_mod_install_desc": "Instale automaticamente os mods selecionados ao criar uma nova instância. Mods indisponíveis para versões específicas serão ignorados."
+            "auto_mod_install_desc": "Instale automaticamente os mods selecionados ao criar uma nova instância. Mods indisponíveis para versões específicas serão ignorados.",
+            "minimize_to_tray": "Minimizar para a bandeja",
+            "minimize_to_tray_desc": "Ocultar o inicializador na bandeja do sistema ao fechar ou minimizar."
         },
         "cloud": {
             "title": "Configurações de Backup em Nuvem",

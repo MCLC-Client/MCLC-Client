@@ -354,7 +354,9 @@
             "optimization": "Omogoči optimizacijo",
             "optimization_desc": "Pri ustvarjanju nove instance samodejno namesti mode za optimizacijo delovanja.",
             "auto_mod_install": "Omogoči samodejno namestitev modov",
-            "auto_mod_install_desc": "Pri ustvarjanju nove instance samodejno namesti izbrane mode. Modi, ki niso na voljo za določene različice, bodo preskočeni."
+            "auto_mod_install_desc": "Pri ustvarjanju nove instance samodejno namesti izbrane mode. Modi, ki niso na voljo za določene različice, bodo preskočeni.",
+            "minimize_to_tray": "Pomanjšaj v orodno vrstico",
+            "minimize_to_tray_desc": "Skrij zaganjalnik v sistemsko vrstico pri zapiranju ali pomanjšanju."
         },
         "cloud": {
             "title": "Nastavitve varnostnega kopiranja v oblak",

@@ -354,7 +354,9 @@
             "optimization": "Activează Optimizarea",
             "optimization_desc": "Instalează automat mod-uri de optimizare a performanței la crearea unei instanțe noi.",
             "auto_mod_install": "Activează Instalarea Automată a Mod-urilor",
-            "auto_mod_install_desc": "Instalează automat mod-urile selectate la crearea unei noi instanțe. Mod-urile indisponibile pentru versiuni specifice vor fi sărite."
+            "auto_mod_install_desc": "Instalează automat mod-urile selectate la crearea unei noi instanțe. Mod-urile indisponibile pentru versiuni specifice vor fi sărite.",
+            "minimize_to_tray": "Minimizare în bara de sistem",
+            "minimize_to_tray_desc": "Ascunde lansatorul în bara de sistem la închidere sau minimizare."
         },
         "cloud": {
             "title": "Setări Copie de Rezervă în Cloud",
