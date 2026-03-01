@@ -81,21 +81,26 @@ const PRESETS = [
   },
 ];
 
+const DEFAULT_THEME = {
+  primaryColor: "#22e07a",
+  backgroundColor: "#0d1117",
+  surfaceColor: "#161b22",
+  glassBlur: 10,
+  glassOpacity: 0.8,
+  consoleOpacity: 0.8,
+  borderRadius: 12,
+  bgMedia: { url: "", type: "none" },
+  sidebarGlow: 0.3,
+  panelOpacity: 0.85,
+  bgOverlay: 0.4,
+  autoAdaptColor: false,
+};
+
 function Styling() {
   const { t } = useTranslation();
   const { addNotification } = useNotification();
   const [theme, setTheme] = useState({
-    primaryColor: "#1bd96a",
-    backgroundColor: "#111111",
-    surfaceColor: "#1c1c1c",
-    glassBlur: 10,
-    glassOpacity: 0.8,
-    consoleOpacity: 0.8,
-    borderRadius: 12,
-    bgMedia: { url: "", type: "none" },
-    sidebarGlow: 0.3,
-    panelOpacity: 0.85,
-    bgOverlay: 0.4,
+    ...DEFAULT_THEME
   });
 
   const [customPresets, setCustomPresets] = useState([]);
@@ -318,11 +323,71 @@ function Styling() {
     applyTheme(newTheme, isBackgroundChange);
   };
 
+  const extractColor = (url, type) => {
+    return new Promise((resolve) => {
+      if (type === 'video') {
+        const video = document.createElement('video');
+        video.crossOrigin = "Anonymous";
+        video.onloadeddata = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 100;
+          canvas.height = 100;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, 100, 100);
+          const data = ctx.getImageData(0, 0, 100, 100).data;
+          let r = 0, g = 0, b = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            r += data[i]; g += data[i + 1]; b += data[i + 2];
+          }
+          const count = data.length / 4;
+          const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+          resolve(rgbToHex(Math.round(r / count), Math.round(g / count), Math.round(b / count)));
+        };
+        video.src = `app-media:///${url.replace(/\\/g, "/")}`;
+        video.load();
+      } else {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 100;
+          canvas.height = 100;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, 100, 100);
+          const data = ctx.getImageData(0, 0, 100, 100).data;
+          let r = 0, g = 0, b = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            r += data[i]; g += data[i + 1]; b += data[i + 2];
+          }
+          const count = data.length / 4;
+          const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+          resolve(rgbToHex(Math.round(r / count), Math.round(g / count), Math.round(b / count)));
+        };
+        img.src = `app-media:///${url.replace(/\\/g, "/")}`;
+      }
+    });
+  };
+
   const handleSelectBackground = async () => {
     const res = await window.electronAPI.selectBackgroundMedia();
     if (res.success && res.url) {
-      handleUpdate("bgMedia", { url: res.url, type: res.type });
+      if (theme.autoAdaptColor) {
+        const color = await extractColor(res.url, res.type);
+        setTheme(prev => {
+          const nt = { ...prev, bgMedia: { url: res.url, type: res.type }, primaryColor: color };
+          applyTheme(nt, true);
+          return nt;
+        });
+      } else {
+        handleUpdate("bgMedia", { url: res.url, type: res.type });
+      }
     }
+  };
+
+  const handleFactoryReset = () => {
+    setTheme(DEFAULT_THEME);
+    applyTheme(DEFAULT_THEME, false);
+    addNotification(t('styling.reset_factory_success'), "success");
   };
 
   const handleSave = async () => {
@@ -504,6 +569,16 @@ function Styling() {
                 {t('styling.atmosphere')}
               </h2>
               <div className="space-y-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('styling.auto_color')}</span>
+                  <button
+                    onClick={() => handleUpdate("autoAdaptColor", !theme.autoAdaptColor)}
+                    className={`w-10 h-5 rounded-full transition-all relative ${theme.autoAdaptColor ? 'bg-primary' : 'bg-white/10'}`}
+                  >
+                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${theme.autoAdaptColor ? 'left-6' : 'left-1'}`} />
+                  </button>
+                </div>
+
                 <div
                   onClick={handleSelectBackground}
                   className="aspect-video rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-white/5 hover:border-primary/50 transition-all group overflow-hidden relative"
@@ -593,6 +668,12 @@ function Styling() {
               className="bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-6 py-3 rounded-xl font-bold transition-all text-sm border border-white/5 hover:border-white/10"
             >
               {t('styling.reset')}
+            </button>
+            <button
+              onClick={handleFactoryReset}
+              className="bg-white/5 hover:bg-white/10 text-red-400/70 hover:text-red-400 px-6 py-3 rounded-xl font-bold transition-all text-sm border border-white/5 hover:border-white/10"
+            >
+              {t('styling.reset_factory')}
             </button>
             <button
               onClick={handleExportTheme}
