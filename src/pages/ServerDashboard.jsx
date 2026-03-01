@@ -500,7 +500,6 @@ function ServerDashboard({ onServerClick, runningInstances = {}, isGuest }) {
 
     const handleServerClick = (server) => {
         setSelectedServer(server);
-        setShowConsole(true);
 
         if (onServerClick) {
             onServerClick(server);
