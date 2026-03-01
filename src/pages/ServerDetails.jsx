@@ -50,6 +50,13 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
     const [xpType, setXpType] = useState('add');
     const [serverProperties, setServerProperties] = useState({});
     const [isSavingProperties, setIsSavingProperties] = useState(false);
+    const [configuredPluginConfigs, setConfiguredPluginConfigs] = useState([]);
+    const [unconfiguredPlugins, setUnconfiguredPlugins] = useState([]);
+    const [selectedPluginConfigFile, setSelectedPluginConfigFile] = useState('');
+    const [pluginConfigSearch, setPluginConfigSearch] = useState('');
+    const [isLoadingPluginConfigs, setIsLoadingPluginConfigs] = useState(false);
+    const [isSavingPluginConfig, setIsSavingPluginConfig] = useState(false);
+    const [creatingPluginFor, setCreatingPluginFor] = useState('');
 
     // Mods/Plugins state
     const [modSearch, setModSearch] = useState('');
@@ -60,11 +67,19 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
     const [isInstallingMod, setIsInstallingMod] = useState(false);
     const [modVersions, setModVersions] = useState({});
     const [loadingVersions, setLoadingVersions] = useState(new Set());
+    const [isUninstallingContent, setIsUninstallingContent] = useState('');
+    const [modsViewMode, setModsViewMode] = useState('installed');
 
     const consoleRef = useRef(null);
     const commandInputRef = useRef(null);
     const statsInterval = useRef(null);
     const chartsCanvasRef = useRef(null);
+
+    const lowerSoftwareForConfig = String(server.software || 'vanilla').toLowerCase();
+    const isModConfigServer = ['forge', 'neoforge', 'quilt', 'fabric', 'magma', 'mohist', 'arclight', 'ketting', 'spongeforge', 'catserver']
+        .includes(lowerSoftwareForConfig);
+    const configEntityLabel = isModConfigServer ? 'mod' : 'plugin';
+    const configEntityLabelPlural = isModConfigServer ? 'mods' : 'plugins';
 
     const stripAnsi = (text) => {
         if (!text) return '';
@@ -207,6 +222,131 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
             ...prev,
             [key]: value
         }));
+    };
+
+    const loadPluginConfigs = async () => {
+        setIsLoadingPluginConfigs(true);
+        try {
+            if (!window.electronAPI.listServerPluginConfigs) return;
+
+            const result = await window.electronAPI.listServerPluginConfigs(server.name);
+            if (!result?.success) {
+                throw new Error(result?.error || `Failed to load ${configEntityLabel} configs`);
+            }
+
+            const configured = Array.isArray(result.configuredPlugins) ? result.configuredPlugins : [];
+            const pending = Array.isArray(result.unconfiguredPlugins) ? result.unconfiguredPlugins : [];
+
+            setConfiguredPluginConfigs(configured);
+            setUnconfiguredPlugins(pending);
+
+            setSelectedPluginConfigFile((prev) => {
+                if (configured.some(plugin => plugin.configFile === prev)) {
+                    return prev;
+                }
+                return configured[0]?.configFile || '';
+            });
+        } catch (error) {
+            console.error('Failed to load plugin configs:', error);
+            addNotification(`Failed to load ${configEntityLabel} configs: ${error.message}`, 'error');
+        } finally {
+            setIsLoadingPluginConfigs(false);
+        }
+    };
+
+    const createPluginConfig = async (pluginName) => {
+        if (!pluginName) return;
+        setCreatingPluginFor(pluginName);
+        try {
+            if (!window.electronAPI.createServerPluginConfig) return;
+
+            const result = await window.electronAPI.createServerPluginConfig(server.name, pluginName);
+            if (!result?.success) {
+                throw new Error(result?.error || `Failed to create ${configEntityLabel} config`);
+            }
+
+            await loadPluginConfigs();
+            if (result.configFile) {
+                setSelectedPluginConfigFile(result.configFile);
+            }
+            addNotification(`${configEntityLabel} config ${pluginName}.json created`, 'success');
+        } catch (error) {
+            console.error('Failed to create plugin config:', error);
+            addNotification(`Failed to create config: ${error.message}`, 'error');
+        } finally {
+            setCreatingPluginFor('');
+        }
+    };
+
+    const selectedPluginConfig = configuredPluginConfigs.find(
+        plugin => plugin.configFile === selectedPluginConfigFile
+    ) || null;
+
+    const filteredConfiguredPluginConfigs = configuredPluginConfigs.filter((plugin) => {
+        if (!pluginConfigSearch.trim()) return true;
+        const query = pluginConfigSearch.toLowerCase();
+        return (
+            plugin.pluginName?.toLowerCase().includes(query) ||
+            plugin.configFile?.toLowerCase().includes(query)
+        );
+    });
+
+    const filteredUnconfiguredPlugins = unconfiguredPlugins.filter((plugin) => {
+        if (!pluginConfigSearch.trim()) return true;
+        const query = pluginConfigSearch.toLowerCase();
+        return plugin.pluginName?.toLowerCase().includes(query) || plugin.jarName?.toLowerCase().includes(query);
+    });
+
+    const updatePluginFieldValue = (fieldKey, value) => {
+        if (!selectedPluginConfigFile) return;
+
+        setConfiguredPluginConfigs(prev => prev.map(plugin => {
+            if (plugin.configFile !== selectedPluginConfigFile) {
+                return plugin;
+            }
+
+            const fields = Array.isArray(plugin.config?.fields) ? plugin.config.fields : [];
+            return {
+                ...plugin,
+                config: {
+                    ...plugin.config,
+                    fields: fields.map(field =>
+                        field.key === fieldKey
+                            ? { ...field, value }
+                            : field
+                    )
+                }
+            };
+        }));
+    };
+
+    const saveSelectedPluginConfig = async () => {
+        if (!selectedPluginConfig) {
+            addNotification(`No ${configEntityLabel} config selected`, 'warning');
+            return;
+        }
+
+        setIsSavingPluginConfig(true);
+        try {
+            if (!window.electronAPI.saveServerPluginConfig) return;
+
+            const result = await window.electronAPI.saveServerPluginConfig(
+                server.name,
+                selectedPluginConfig.configFile,
+                selectedPluginConfig.config
+            );
+
+            if (!result?.success) {
+                throw new Error(result?.error || `Failed to save ${configEntityLabel} config`);
+            }
+
+            addNotification(`${configEntityLabel.charAt(0).toUpperCase() + configEntityLabel.slice(1)} config saved`, 'success');
+        } catch (error) {
+            console.error('Failed to save plugin config:', error);
+            addNotification(`Failed to save ${configEntityLabel} config: ${error.message}`, 'error');
+        } finally {
+            setIsSavingPluginConfig(false);
+        }
     };
 
     const togglePlayerSelection = (player) => {
@@ -520,6 +660,28 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
         }
     }, [server.software, server.version]);
 
+    useEffect(() => {
+        if (activeTab === 'config') {
+            loadPluginConfigs();
+        }
+    }, [activeTab, server.name]);
+
+    useEffect(() => {
+        if (activeTab === 'mods') {
+            loadInstalledContent();
+        }
+    }, [activeTab, server.name, server.software]);
+
+    useEffect(() => {
+        if (activeTab !== 'mods' || modsViewMode !== 'add') return;
+
+        const timeout = setTimeout(() => {
+            searchMods(modSearch);
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, [activeTab, modsViewMode, modSearch]);
+
 
     const checkServerStatus = async () => {
         try {
@@ -820,9 +982,25 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
         return 'vanilla';
     };
 
+    const getServerContentType = () => {
+        return getLoaderType() === 'paper-like' ? 'plugin' : 'mod';
+    };
+
+    const getContentLabel = () => {
+        return getServerContentType() === 'plugin' ? 'plugin' : 'mod';
+    };
+
+    const getContentLabelPlural = () => {
+        return getServerContentType() === 'plugin' ? 'plugins' : 'mods';
+    };
+
+    const getServerIdentifier = () => {
+        return server.safeName || server.name;
+    };
+
     const shouldShowModTab = () => {
         const type = getLoaderType();
-        return type === 'fabric-like' || type === 'hybrid';
+        return type === 'fabric-like' || type === 'hybrid' || type === 'paper-like';
     };
 
 
@@ -850,12 +1028,12 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
 
         setIsSearchingMods(true);
         try {
-            const isPlugin = getLoaderType() === 'paper-like';
+            const isPlugin = getServerContentType() === 'plugin';
             const loader = getLoaderForModrinth(activeTab);
             const facets = [];
 
             if (loader !== 'vanilla') {
-                if (isPlugin && getLoaderType() === 'hybrid') {
+                if (isPlugin) {
                     facets.push(['categories:paper', 'categories:spigot', 'categories:bukkit']);
                 } else {
                     facets.push([`categories:${loader}`]);
@@ -865,7 +1043,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
             facets.push(['server_side:required', 'server_side:optional']);
 
             const result = await window.electronAPI.modrinthSearch(query, facets, {
-                projectType: isPlugin ? 'plugin' : 'mod',
+                projectType: getServerContentType(),
                 limit: 10
             });
 
@@ -890,7 +1068,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
 
         setLoadingVersions(prev => new Set(prev).add(projectId));
         try {
-            const isPlugin = getLoaderType() === 'paper-like';
+            const isPlugin = getServerContentType() === 'plugin';
             const loaders = isPlugin
                 ? ['bukkit', 'spigot', 'paper', 'purpur', 'folia']
                 : [getLoaderForModrinth(activeTab)];
@@ -898,15 +1076,22 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
             const result = await window.electronAPI.getModVersions(projectId, loaders, [server.version]);
 
             if (result.success) {
+                const versions = Array.isArray(result.versions) ? [...result.versions] : [];
+                versions.sort((a, b) => {
+                    const aTime = new Date(a.date_published || 0).getTime();
+                    const bTime = new Date(b.date_published || 0).getTime();
+                    return bTime - aTime;
+                });
+
                 setModVersions(prev => ({
                     ...prev,
-                    [projectId]: result.versions || []
+                    [projectId]: versions
                 }));
 
-                if (result.versions && result.versions.length > 0) {
+                if (versions.length > 0) {
                     setSelectedModVersion(prev => ({
                         ...prev,
-                        [projectId]: result.versions[0].id
+                        [projectId]: versions[0].id
                     }));
                 }
             } else {
@@ -942,19 +1127,20 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
             const file = version.files.find(f => f.primary) || version.files[0];
 
             const result = await window.electronAPI.modrinthInstall({
-                instanceName: server.name,
+                instanceName: getServerIdentifier(),
+                serverSafeName: server.safeName,
                 projectId: projectId,
                 versionId: versionId,
                 filename: file.filename,
                 url: file.url,
-                projectType: getLoaderType() === 'paper-like' ? 'plugin' : 'mod',
+                projectType: getServerContentType(),
                 isServer: true
             });
 
             if (result.success) {
-                const isPlugin = getLoaderType() === 'paper-like';
+                const isPlugin = getServerContentType() === 'plugin';
                 if (isPlugin && isRunning) {
-                    addNotification(`${projectTitle} installed. Please restart the server to apply changes.`, 'warning');
+                    addNotification(`${projectTitle} installed. Please restart the server to apply plugin changes.`, 'warning');
                 } else {
                     addNotification(`${projectTitle} installed successfully`, 'success');
                 }
@@ -962,6 +1148,7 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                 setModSearchResults([]);
                 setSelectedModVersion({});
                 setModVersions({});
+                await loadInstalledContent();
             } else {
                 addNotification(result.error || 'Failed to install mod', 'error');
             }
@@ -972,6 +1159,55 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
             setIsInstallingMod(false);
         }
     };
+
+    const loadInstalledContent = async () => {
+        try {
+            const result = await window.electronAPI.getServerMods(getServerIdentifier());
+            if (!result?.success) {
+                throw new Error(result?.error || `Failed to load installed ${getContentLabelPlural()}`);
+            }
+
+            const expectedType = getServerContentType();
+            const items = Array.isArray(result.mods)
+                ? result.mods.filter(item => item.type === expectedType)
+                : [];
+
+            setInstalledMods(items);
+        } catch (error) {
+            console.error('Failed to load installed server content:', error);
+            addNotification(`Failed to load installed ${getContentLabelPlural()}: ${error.message}`, 'error');
+        }
+    };
+
+    const uninstallInstalledContent = async (fileName) => {
+        if (!fileName || isUninstallingContent) return;
+
+        setIsUninstallingContent(fileName);
+        try {
+            const result = await window.electronAPI.deleteServerMod(getServerIdentifier(), fileName, getServerContentType());
+            if (!result?.success) {
+                throw new Error(result?.error || `Failed to uninstall ${getContentLabel()}`);
+            }
+
+            addNotification(`${fileName} uninstalled successfully`, 'success');
+            await loadInstalledContent();
+        } catch (error) {
+            console.error('Failed to uninstall server content:', error);
+            addNotification(`Failed to uninstall ${getContentLabel()}: ${error.message}`, 'error');
+        } finally {
+            setIsUninstallingContent('');
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab !== 'mods' || modsViewMode !== 'add' || modSearchResults.length === 0) return;
+
+        modSearchResults.forEach((result) => {
+            if (!modVersions[result.project_id] && !loadingVersions.has(result.project_id)) {
+                loadModVersions(result.project_id);
+            }
+        });
+    }, [activeTab, modsViewMode, modSearchResults]);
 
     const isRunning = currentStatus === 'running';
     const isStarting = currentStatus === 'starting';
@@ -1407,7 +1643,9 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                     >
-                        {t('server_details.tabs.mods')}
+                        {getServerContentType() === 'plugin'
+                            ? t('server_details.tabs.plugins', { defaultValue: 'Plugins' })
+                            : t('server_details.tabs.mods')}
                     </button>
                 )}
 
@@ -1428,6 +1666,15 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                         }`}
                 >
                     {t('server_details.tabs.files')}
+                </button>
+                <button
+                    onClick={() => setActiveTab('config')}
+                    className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeTab === 'config'
+                        ? 'bg-primary/20 text-primary border-b-2 border-primary'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        }`}
+                >
+                    {t('server_details.tabs.config', { defaultValue: 'Config' })}
                 </button>
             </div>
 
@@ -2080,106 +2327,170 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                 {activeTab === 'mods' && (
                     <div className="flex flex-col h-full">
                         <div className="mb-4">
-                            <h2 className="text-lg font-bold text-white mb-3">Mod Management</h2>
-
-                            <div className="flex gap-2 mb-4">
-                                <input
-                                    type="text"
-                                    value={modSearch}
-                                    onChange={(e) => setModSearch(e.target.value)}
-                                    placeholder={`Search ${getLoaderType() === 'paper-like' ? 'plugins' : 'mods'}...`}
-                                    className="flex-1 bg-background border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                                    onKeyUp={(e) => {
-                                        if (e.key === 'Enter') {
-                                            searchMods(modSearch);
-                                        }
-                                    }}
-                                />
-                                <button
-                                    onClick={() => searchMods(modSearch)}
-                                    disabled={isSearchingMods || !modSearch.trim()}
-                                    className="px-6 py-2 bg-primary/20 text-primary rounded-lg font-bold hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isSearchingMods ? 'Searching...' : 'Search'}
-                                </button>
+                            <div className="flex items-center justify-between mb-3">
+                                <h2 className="text-lg font-bold text-white">
+                                    {getServerContentType() === 'plugin' ? 'Plugin Management' : 'Mod Management'}
+                                </h2>
+                                {modsViewMode === 'installed' ? (
+                                    <button
+                                        onClick={() => {
+                                            setModsViewMode('add');
+                                            setModSearch('');
+                                            setModSearchResults([]);
+                                            setSelectedModVersion({});
+                                            setModVersions({});
+                                        }}
+                                        className="px-4 py-2 bg-primary/20 text-primary rounded-lg font-bold hover:bg-primary/30 transition-colors"
+                                    >
+                                        Add {getContentLabel()}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => {
+                                            setModsViewMode('installed');
+                                            setModSearch('');
+                                            setModSearchResults([]);
+                                            setSelectedModVersion({});
+                                            setModVersions({});
+                                        }}
+                                        className="px-4 py-2 bg-white/10 text-gray-300 rounded-lg font-bold hover:bg-white/20 transition-colors"
+                                    >
+                                        Back to installed
+                                    </button>
+                                )}
                             </div>
 
-                            {modSearchResults.length > 0 && (
-                                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                                    <div className="grid grid-cols-1 gap-3">
-                                        {modSearchResults.map(result => (
-                                            <div key={result.project_id} className="bg-surface/40 rounded-lg p-4 hover:bg-surface/60 transition-colors">
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div className="flex-1">
-                                                        <h3 className="font-bold text-white text-lg">{result.title}</h3>
-                                                        <p className="text-gray-400 text-sm line-clamp-2">{result.description}</p>
-                                                        <div className="flex gap-2 mt-2 flex-wrap">
-                                                            <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
-                                                                Downloads: {Math.floor(result.downloads / 1000)}K
-                                                            </span>
-                                                            <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
-                                                                ⭐ {result.follows > 0 ? Math.floor(result.follows / 100) : '0'}
-                                                            </span>
-                                                        </div>
+                            {modsViewMode === 'installed' && (
+                                <div className="mb-5">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wide">
+                                            Installed {getContentLabelPlural()}
+                                        </h3>
+                                        <span className="text-xs text-gray-500">{installedMods.length}</span>
+                                    </div>
+                                    <div className="bg-surface/30 rounded-lg border border-white/5 max-h-80 overflow-y-auto custom-scrollbar">
+                                        {installedMods.length > 0 ? (
+                                            installedMods.map((item) => (
+                                                <div key={item.name} className="flex items-center justify-between px-3 py-2 border-b border-white/5 last:border-b-0">
+                                                    <div className="min-w-0">
+                                                        <div className="text-sm text-white truncate">{item.title || item.name}</div>
+                                                        <div className="text-[11px] text-gray-500 truncate">{item.name}</div>
                                                     </div>
-                                                    {result.icon_url && (
-                                                        <img
-                                                            src={result.icon_url}
-                                                            alt={result.title}
-                                                            className="w-16 h-16 rounded-lg object-cover ml-4"
-                                                        />
-                                                    )}
-                                                </div>
-
-                                                <div className="mt-3 flex gap-2">
-                                                    <select
-                                                        value={selectedModVersion[result.project_id] || ''}
-                                                        onChange={(e) => {
-                                                            setSelectedModVersion(prev => ({
-                                                                ...prev,
-                                                                [result.project_id]: e.target.value
-                                                            }));
-                                                        }}
-                                                        onClick={() => {
-                                                            if (!modVersions[result.project_id]) {
-                                                                loadModVersions(result.project_id);
-                                                            }
-                                                        }}
-                                                        className="flex-1 bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                                                    >
-                                                        <option value="">
-                                                            {loadingVersions.has(result.project_id) ? 'Loading versions...' : 'Select version...'}
-                                                        </option>
-                                                        {modVersions[result.project_id] && modVersions[result.project_id].map(version => (
-                                                            <option key={version.id} value={version.id}>
-                                                                {version.version_number}
-                                                            </option>
-                                                        ))}
-                                                    </select>
                                                     <button
-                                                        onClick={() => installMod(result.project_id, selectedModVersion[result.project_id], result.title)}
-                                                        disabled={isInstallingMod || !selectedModVersion[result.project_id]}
-                                                        className="px-6 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bold text-sm"
+                                                        onClick={() => uninstallInstalledContent(item.name)}
+                                                        disabled={!!isUninstallingContent}
+                                                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                     >
-                                                        {isInstallingMod ? 'Installing...' : 'Install'}
+                                                        {isUninstallingContent === item.name ? 'Uninstalling...' : 'Uninstall'}
                                                     </button>
                                                 </div>
+                                            ))
+                                        ) : (
+                                            <div className="px-3 py-4 text-sm text-gray-500">
+                                                No installed {getContentLabelPlural()} found
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
                                 </div>
                             )}
 
-                            {modSearch && !isSearchingMods && modSearchResults.length === 0 && (
-                                <div className="flex items-center justify-center h-48 text-gray-400">
-                                    No {getLoaderType() === 'paper-like' ? 'plugins' : 'mods'} found matching your search
-                                </div>
-                            )}
+                            {modsViewMode === 'add' && (
+                                <>
+                                    <div className="flex gap-2 mb-4">
+                                        <input
+                                            type="text"
+                                            value={modSearch}
+                                            onChange={(e) => setModSearch(e.target.value)}
+                                            placeholder={`Search ${getContentLabelPlural()} on Modrinth...`}
+                                            className="flex-1 bg-background border border-white/10 rounded-lg px-4 py-2 text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                        />
+                                        <button
+                                            onClick={() => searchMods(modSearch)}
+                                            disabled={isSearchingMods || !modSearch.trim()}
+                                            className="px-6 py-2 bg-primary/20 text-primary rounded-lg font-bold hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isSearchingMods ? 'Searching...' : 'Search'}
+                                        </button>
+                                    </div>
 
-                            {!modSearch && modSearchResults.length === 0 && (
-                                <div className="flex flex-col items-center justify-center h-48 text-gray-400">
-                                    <p>Search for {getLoaderType() === 'paper-like' ? 'plugins' : 'mods'} to install</p>
-                                </div>
+                                    {modSearchResults.length > 0 && (
+                                        <div className="flex-1 overflow-y-auto custom-scrollbar">
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {modSearchResults.map(result => (
+                                                    <div key={result.project_id} className="bg-surface/40 rounded-lg p-4 hover:bg-surface/60 transition-colors">
+                                                        <div className="flex items-start justify-between mb-2">
+                                                            <div className="flex-1">
+                                                                <h3 className="font-bold text-white text-lg">{result.title}</h3>
+                                                                <p className="text-gray-400 text-sm line-clamp-2">{result.description}</p>
+                                                                <div className="flex gap-2 mt-2 flex-wrap">
+                                                                    <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
+                                                                        Downloads: {Math.floor(result.downloads / 1000)}K
+                                                                    </span>
+                                                                    <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-300">
+                                                                        ⭐ {result.follows > 0 ? Math.floor(result.follows / 100) : '0'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            {result.icon_url && (
+                                                                <img
+                                                                    src={result.icon_url}
+                                                                    alt={result.title}
+                                                                    className="w-16 h-16 rounded-lg object-cover ml-4"
+                                                                />
+                                                            )}
+                                                        </div>
+
+                                                        <div className="mt-3 flex gap-2">
+                                                            <select
+                                                                value={selectedModVersion[result.project_id] || ''}
+                                                                onChange={(e) => {
+                                                                    setSelectedModVersion(prev => ({
+                                                                        ...prev,
+                                                                        [result.project_id]: e.target.value
+                                                                    }));
+                                                                }}
+                                                                onClick={() => {
+                                                                    if (!modVersions[result.project_id]) {
+                                                                        loadModVersions(result.project_id);
+                                                                    }
+                                                                }}
+                                                                className="flex-1 bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                                            >
+                                                                <option value="">
+                                                                    {loadingVersions.has(result.project_id) ? 'Loading versions...' : 'Select version...'}
+                                                                </option>
+                                                                {modVersions[result.project_id] && modVersions[result.project_id].map(version => (
+                                                                    <option key={version.id} value={version.id}>
+                                                                        {version.version_number}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <button
+                                                                onClick={() => installMod(result.project_id, selectedModVersion[result.project_id], result.title)}
+                                                                disabled={isInstallingMod || !selectedModVersion[result.project_id]}
+                                                                className="px-6 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bold text-sm"
+                                                            >
+                                                                {isInstallingMod ? 'Installing...' : 'Install'}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {modSearch && !isSearchingMods && modSearchResults.length === 0 && (
+                                        <div className="flex items-center justify-center h-48 text-gray-400">
+                                            No {getContentLabelPlural()} found matching your search
+                                        </div>
+                                    )}
+
+                                    {!modSearch && modSearchResults.length === 0 && (
+                                        <div className="flex flex-col items-center justify-center h-48 text-gray-400">
+                                            <p>Search for {getContentLabelPlural()} to install</p>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
@@ -2569,6 +2880,137 @@ function ServerDetails({ server, onBack, runningInstances, onServerUpdate, isGue
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
+                {activeTab === 'config' && (
+                    <div className="flex flex-col h-full min-h-0">
+                        <div className="bg-surface/40 rounded-xl p-4 mb-4">
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <h2 className="text-lg font-bold text-white">{configEntityLabel.charAt(0).toUpperCase() + configEntityLabel.slice(1)} Config</h2>
+                                    <button
+                                        onClick={saveSelectedPluginConfig}
+                                        disabled={!selectedPluginConfig || isSavingPluginConfig}
+                                        className="px-4 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                        {isSavingPluginConfig ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            `Save ${configEntityLabel.charAt(0).toUpperCase() + configEntityLabel.slice(1)} Config`
+                                        )}
+                                    </button>
+                                </div>
+
+                                <input
+                                    type="text"
+                                    value={pluginConfigSearch}
+                                    onChange={(e) => setPluginConfigSearch(e.target.value)}
+                                    placeholder={`Search ${configEntityLabel}...`}
+                                    className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                />
+
+                                <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto custom-scrollbar">
+                                    {filteredConfiguredPluginConfigs.map((plugin) => (
+                                        <button
+                                            key={plugin.configFile}
+                                            onClick={() => setSelectedPluginConfigFile(plugin.configFile)}
+                                            className={`px-3 py-1.5 rounded-lg border text-sm font-semibold transition-colors ${selectedPluginConfigFile === plugin.configFile
+                                                ? 'bg-primary/20 text-primary border-primary/40'
+                                                : 'bg-background/60 text-gray-300 border-white/10 hover:border-white/20'
+                                                }`}
+                                        >
+                                            {plugin.pluginName}
+                                        </button>
+                                    ))}
+
+                                    {filteredConfiguredPluginConfigs.length === 0 && (
+                                        <div className="text-sm text-gray-400">No configured {configEntityLabel} matches your search.</div>
+                                    )}
+                                </div>
+
+                            </div>
+                        </div>
+
+                        {isLoadingPluginConfigs ? (
+                            <div className="flex items-center justify-center flex-1 text-gray-400">Loading {configEntityLabel} configs...</div>
+                        ) : (
+                            <div className="bg-surface/40 rounded-xl p-4 overflow-y-auto custom-scrollbar flex-1">
+                                {!selectedPluginConfig && (
+                                    <div className="h-full flex items-center justify-center text-gray-400">
+                                        Search and click a {configEntityLabel}, then configure it here.
+                                    </div>
+                                )}
+
+                                {selectedPluginConfig && (
+                                    <>
+                                        <div className="mb-4">
+                                            <h3 className="text-xl font-bold text-white">{selectedPluginConfig.pluginName}</h3>
+                                            <p className="text-sm text-gray-400">JSON: {selectedPluginConfig.configFile}</p>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            {(selectedPluginConfig.config?.fields || []).map((field) => (
+                                                <div key={field.key}>
+                                                    <label className="text-sm text-gray-300 block mb-2">{field.label}</label>
+
+                                                    {field.type === 'number' && (
+                                                        <input
+                                                            type="number"
+                                                            value={field.value ?? ''}
+                                                            onChange={(e) => {
+                                                                const nextValue = e.target.value;
+                                                                updatePluginFieldValue(field.key, nextValue === '' ? '' : Number(nextValue));
+                                                            }}
+                                                            className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                                        />
+                                                    )}
+
+                                                    {field.type === 'text' && (
+                                                        <input
+                                                            type="text"
+                                                            value={field.value ?? ''}
+                                                            onChange={(e) => updatePluginFieldValue(field.key, e.target.value)}
+                                                            className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                                        />
+                                                    )}
+
+                                                    {field.type === 'select' && (
+                                                        <select
+                                                            value={field.value ?? field.options?.[0] ?? ''}
+                                                            onChange={(e) => updatePluginFieldValue(field.key, e.target.value)}
+                                                            className="w-full bg-background border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                                                        >
+                                                            {(field.options || []).map((option) => (
+                                                                <option key={option} value={option}>{option}</option>
+                                                            ))}
+                                                        </select>
+                                                    )}
+
+                                                    {field.type === 'boolean' && (
+                                                        <label className="inline-flex items-center gap-2 text-sm text-gray-200">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={Boolean(field.value)}
+                                                                onChange={(e) => updatePluginFieldValue(field.key, e.target.checked)}
+                                                                className="w-4 h-4 rounded"
+                                                            />
+                                                            Enabled
+                                                        </label>
+                                                    )}
+                                                </div>
+                                            ))}
+
+                                            {(selectedPluginConfig.config?.fields || []).length === 0 && (
+                                                <div className="text-sm text-gray-400">This plugin JSON has no fields configured yet.</div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
                 {activeTab === 'files' && (

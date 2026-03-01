@@ -300,6 +300,179 @@ function startServerStatsCollection(serverName, process, mainWindow) {
 
 module.exports = (ipcMain, mainWindow) => {
     console.log('[Servers] Setting up server handlers...');
+
+    const PLUGIN_CONFIG_DIR = 'plugin-configs';
+    const MOD_CONFIG_DIR = 'mod-configs';
+    const MOD_CONFIG_SOFTWARE = new Set([
+        'forge',
+        'neoforge',
+        'fabric',
+        'quilt',
+        'magma',
+        'mohist',
+        'arclight',
+        'ketting',
+        'spongeforge',
+        'catserver'
+    ]);
+
+    function normalizePluginName(name) {
+        return String(name || '')
+            .replace(/\.jar$/i, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '');
+    }
+
+    function sanitizePluginConfigFileName(name) {
+        return String(name || '')
+            .replace(/\.jar$/i, '')
+            .replace(/[^a-zA-Z0-9._-]+/g, '_')
+            .replace(/^_+|_+$/g, '')
+            .toLowerCase() || 'plugin';
+    }
+
+    function escapeRegex(value) {
+        return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function toInlineYamlValue(value) {
+        if (typeof value === 'boolean') {
+            return value ? 'true' : 'false';
+        }
+        if (typeof value === 'number') {
+            return Number.isFinite(value) ? String(value) : '0';
+        }
+        if (value === null || value === undefined) {
+            return '""';
+        }
+
+        const textValue = String(value);
+        if (textValue.length === 0) {
+            return '""';
+        }
+
+        if (/^[a-zA-Z0-9_.-]+$/.test(textValue)) {
+            return textValue;
+        }
+
+        return JSON.stringify(textValue);
+    }
+
+    function applyFieldsToYaml(yamlText, fields) {
+        const normalizedText = String(yamlText || '').replace(/\r\n/g, '\n');
+        let updatedText = normalizedText;
+
+        for (const field of fields) {
+            if (!field || typeof field.key !== 'string' || field.key.trim().length === 0) {
+                continue;
+            }
+
+            const key = field.key.trim();
+            const nextValue = toInlineYamlValue(field.value);
+            const keyPattern = new RegExp(`^(\\s*${escapeRegex(key)}\\s*:\\s*)([^#\\n]*)(\\s*(?:#.*)?)$`, 'm');
+
+            if (keyPattern.test(updatedText)) {
+                updatedText = updatedText.replace(keyPattern, (_, prefix, __oldValue, suffix = '') => `${prefix}${nextValue}${suffix}`);
+            } else {
+                updatedText += `${updatedText.endsWith('\n') ? '' : '\n'}${key}: ${nextValue}\n`;
+            }
+        }
+
+        return updatedText;
+    }
+
+    async function resolveConfigTarget(serverDir) {
+        const configPath = path.join(serverDir, 'server.json');
+        let software = 'vanilla';
+
+        try {
+            if (await fs.pathExists(configPath)) {
+                const serverConfig = await fs.readJson(configPath);
+                software = String(serverConfig?.software || 'vanilla').toLowerCase();
+            }
+        } catch (_) {
+            software = 'vanilla';
+        }
+
+        const isModServer = MOD_CONFIG_SOFTWARE.has(software);
+        return {
+            type: isModServer ? 'mod' : 'plugin',
+            sourceDir: path.join(serverDir, isModServer ? 'mods' : 'plugins'),
+            configDir: path.join(serverDir, isModServer ? MOD_CONFIG_DIR : PLUGIN_CONFIG_DIR)
+        };
+    }
+
+    async function resolveBundledConfigSchemaDir() {
+        const candidates = [
+            path.join(process.cwd(), 'src', 'data'),
+            path.join(__dirname, '..', '..', 'src', 'data'),
+            path.join(app.getAppPath(), 'src', 'data'),
+            path.join(app.getAppPath(), 'dist', 'data')
+        ];
+
+        for (const candidate of candidates) {
+            if (await fs.pathExists(candidate)) {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    function buildDefaultPluginConfig(pluginName) {
+        return {
+            pluginName,
+            displayName: pluginName,
+            fields: [
+                {
+                    key: 'example_number',
+                    label: 'Example Number',
+                    type: 'number',
+                    value: 1
+                },
+                {
+                    key: 'example_text',
+                    label: 'Example Text',
+                    type: 'text',
+                    value: ''
+                },
+                {
+                    key: 'example_mode',
+                    label: 'Example Mode',
+                    type: 'select',
+                    options: ['option_a', 'option_b'],
+                    value: 'option_a'
+                }
+            ]
+        };
+    }
+
+    function validatePluginConfig(config) {
+        if (!config || typeof config !== 'object') {
+            return { valid: false, error: 'Invalid config payload' };
+        }
+        if (!Array.isArray(config.fields)) {
+            return { valid: false, error: 'Config must contain a fields array' };
+        }
+
+        for (const field of config.fields) {
+            if (!field || typeof field !== 'object') {
+                return { valid: false, error: 'Each field must be an object' };
+            }
+            if (!field.key || !field.label || !field.type) {
+                return { valid: false, error: 'Each field requires key, label and type' };
+            }
+            if (!['text', 'number', 'select', 'boolean'].includes(field.type)) {
+                return { valid: false, error: `Unsupported field type: ${field.type}` };
+            }
+            if (field.type === 'select' && (!Array.isArray(field.options) || field.options.length === 0)) {
+                return { valid: false, error: `Select field ${field.key} requires options` };
+            }
+        }
+
+        return { valid: true };
+    }
+
     ipcMain.handle('server:check-eula', async (event, serverName) => {
         try {
             console.log(`[Servers] Checking EULA for ${serverName}`);
@@ -1894,6 +2067,238 @@ eula=false
         } catch (e) {
             console.error('Failed to get server mods:', e);
             return { success: false, error: e.message };
+        }
+    });
+
+    ipcMain.handle('server:delete-mod', async (_, serverName, fileName, type = 'mod') => {
+        try {
+            if (!fileName || typeof fileName !== 'string') {
+                return { success: false, error: 'File name is required' };
+            }
+
+            const targetType = type === 'plugin' ? 'plugin' : 'mod';
+            const folder = targetType === 'plugin' ? 'plugins' : 'mods';
+
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const safeFileName = path.basename(fileName);
+            const targetPath = path.join(serverDir, folder, safeFileName);
+
+            if (!targetPath.startsWith(path.join(serverDir, folder))) {
+                return { success: false, error: 'Access denied' };
+            }
+
+            if (!await fs.pathExists(targetPath)) {
+                return { success: false, error: `${targetType} file not found` };
+            }
+
+            await fs.remove(targetPath);
+            return { success: true };
+        } catch (error) {
+            console.error(`[Servers] Failed to delete server ${type}:`, error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('server:list-plugin-configs', async (_, serverName) => {
+        try {
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const target = await resolveConfigTarget(serverDir);
+            const sourceDir = target.sourceDir;
+            const pluginConfigDir = target.configDir;
+
+            const pluginDirectoryEntries = await fs.pathExists(sourceDir)
+                ? await fs.readdir(sourceDir, { withFileTypes: true })
+                : [];
+
+            const pluginFolderNames = [];
+            for (const entry of pluginDirectoryEntries) {
+                if (!entry.isDirectory()) {
+                    continue;
+                }
+
+                const pluginFolderName = entry.name;
+                const pluginConfigPath = path.join(sourceDir, pluginFolderName, 'config.yml');
+                if (await fs.pathExists(pluginConfigPath)) {
+                    pluginFolderNames.push(pluginFolderName);
+                }
+            }
+
+            const configuredFiles = await fs.pathExists(pluginConfigDir)
+                ? (await fs.readdir(pluginConfigDir)).filter(file => file.toLowerCase().endsWith('.json'))
+                : [];
+
+            const configuredEntriesMap = new Map();
+
+            const addConfiguredEntry = (entry) => {
+                if (!entry?.configBaseName) {
+                    return;
+                }
+                configuredEntriesMap.set(entry.configBaseName.toLowerCase(), entry);
+            };
+
+            for (const configFile of configuredFiles) {
+                const configBaseName = configFile.replace(/\.json$/i, '');
+                const pluginConfigPath = path.join(sourceDir, configBaseName, 'config.yml');
+                if (!await fs.pathExists(pluginConfigPath)) {
+                    continue;
+                }
+
+                const fullPath = path.join(pluginConfigDir, configFile);
+                try {
+                    const config = await fs.readJson(fullPath);
+                    const rawName = config.pluginName || config.modName || config.displayName || configBaseName;
+                    addConfiguredEntry({
+                        configFile,
+                        configBaseName,
+                        pluginName: rawName,
+                        config
+                    });
+                } catch (error) {
+                    console.warn(`[Servers] Skipping invalid plugin config ${configFile}: ${error.message}`);
+                }
+            }
+
+            const bundledConfigSchemaDir = await resolveBundledConfigSchemaDir();
+            if (bundledConfigSchemaDir) {
+                const bundledConfigFiles = (await fs.readdir(bundledConfigSchemaDir))
+                    .filter(file => file.toLowerCase().endsWith('.json'));
+
+                for (const configFile of bundledConfigFiles) {
+                    const configBaseName = configFile.replace(/\.json$/i, '');
+                    const mapKey = configBaseName.toLowerCase();
+                    if (configuredEntriesMap.has(mapKey)) {
+                        continue;
+                    }
+
+                    const pluginConfigPath = path.join(sourceDir, configBaseName, 'config.yml');
+                    if (!await fs.pathExists(pluginConfigPath)) {
+                        continue;
+                    }
+
+                    const fullPath = path.join(bundledConfigSchemaDir, configFile);
+                    try {
+                        const config = await fs.readJson(fullPath);
+                        const rawName = config.pluginName || config.modName || config.displayName || configBaseName;
+                        addConfiguredEntry({
+                            configFile,
+                            configBaseName,
+                            pluginName: rawName,
+                            config
+                        });
+                    } catch (error) {
+                        console.warn(`[Servers] Skipping invalid bundled plugin config ${configFile}: ${error.message}`);
+                    }
+                }
+            }
+
+            const configuredEntries = Array.from(configuredEntriesMap.values());
+
+            const configuredPlugins = configuredEntries.map((entry) => ({
+                jarName: entry.configBaseName,
+                pluginName: entry.pluginName,
+                configFile: entry.configFile,
+                config: entry.config
+            }));
+
+            const configuredFolderNames = new Set(configuredEntries.map(entry => String(entry.configBaseName || '').toLowerCase()));
+            const unconfiguredPlugins = pluginFolderNames
+                .filter(folderName => !configuredFolderNames.has(String(folderName || '').toLowerCase()))
+                .map(folderName => ({
+                    jarName: folderName,
+                    pluginName: folderName
+                }));
+
+            return {
+                success: true,
+                itemType: target.type,
+                configuredPlugins,
+                unconfiguredPlugins
+            };
+        } catch (error) {
+            console.error(`[Servers] Error listing plugin configs for ${serverName}:`, error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('server:create-plugin-config', async (_, serverName, pluginName) => {
+        try {
+            if (!pluginName || typeof pluginName !== 'string') {
+                return { success: false, error: 'Plugin name is required' };
+            }
+
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const target = await resolveConfigTarget(serverDir);
+            const pluginConfigDir = target.configDir;
+            await fs.ensureDir(pluginConfigDir);
+
+            const configFile = `${sanitizePluginConfigFileName(pluginName)}.json`;
+            const configPath = path.join(pluginConfigDir, configFile);
+
+            if (!await fs.pathExists(configPath)) {
+                const defaultConfig = buildDefaultPluginConfig(pluginName);
+                if (target.type === 'mod') {
+                    defaultConfig.modName = pluginName;
+                    delete defaultConfig.pluginName;
+                }
+                await fs.writeJson(configPath, defaultConfig, { spaces: 2 });
+            }
+
+            const config = await fs.readJson(configPath);
+            return { success: true, configFile, config };
+        } catch (error) {
+            console.error(`[Servers] Error creating plugin config for ${serverName}:`, error);
+            return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('server:save-plugin-config', async (_, serverName, configFile, config) => {
+        try {
+            if (!configFile || typeof configFile !== 'string' || !configFile.toLowerCase().endsWith('.json')) {
+                return { success: false, error: 'Invalid config file name' };
+            }
+
+            const validation = validatePluginConfig(config);
+            if (!validation.valid) {
+                return { success: false, error: validation.error };
+            }
+
+            const serversDir = path.join(app.getPath('userData'), 'servers');
+            const safeName = sanitizeFileName(serverName);
+            const serverDir = path.join(serversDir, safeName);
+            const target = await resolveConfigTarget(serverDir);
+            const pluginConfigDir = target.configDir;
+            const sourceDir = target.sourceDir;
+            const safeConfigFile = path.basename(configFile);
+            const configPath = path.join(pluginConfigDir, safeConfigFile);
+
+            await fs.ensureDir(pluginConfigDir);
+            await fs.writeJson(configPath, config, { spaces: 2 });
+
+            const configBaseName = safeConfigFile.replace(/\.json$/i, '');
+            const pluginConfigYmlPath = path.join(sourceDir, configBaseName, 'config.yml');
+
+            if (!await fs.pathExists(pluginConfigYmlPath)) {
+                return {
+                    success: false,
+                    error: `Missing plugin config.yml at ${path.join(path.basename(sourceDir), configBaseName, 'config.yml')}`
+                };
+            }
+
+            const fields = Array.isArray(config?.fields) ? config.fields : [];
+            const yamlContent = await fs.readFile(pluginConfigYmlPath, 'utf8');
+            const nextYamlContent = applyFieldsToYaml(yamlContent, fields);
+            await fs.writeFile(pluginConfigYmlPath, nextYamlContent, 'utf8');
+
+            return { success: true };
+        } catch (error) {
+            console.error(`[Servers] Error saving plugin config for ${serverName}:`, error);
+            return { success: false, error: error.message };
         }
     });
 

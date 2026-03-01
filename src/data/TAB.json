@@ -1,0 +1,175 @@
+{
+    "pluginName": "TAB",
+    "displayName": "TAB",
+    "fields": [
+        {
+            "key": "header_footer_enabled",
+            "label": "Header/Footer Enabled",
+            "type": "boolean",
+            "value": true
+        },
+        {
+            "key": "tablist_name_formatting_enabled",
+            "label": "Tablist Name Formatting Enabled",
+            "type": "boolean",
+            "value": true
+        },
+        {
+            "key": "scoreboard_teams_enabled",
+            "label": "Scoreboard Teams Enabled",
+            "type": "boolean",
+            "value": true
+        },
+        {
+            "key": "enable_collision",
+            "label": "Enable Collision",
+            "type": "boolean",
+            "value": true
+        },
+        {
+            "key": "sorting_primary",
+            "label": "Primary Sorting",
+            "type": "select",
+            "options": [
+                "GROUPS",
+                "PLACEHOLDER_A_TO_Z"
+            ],
+            "value": "GROUPS"
+        },
+        {
+            "key": "playerlist_objective_enabled",
+            "label": "Playerlist Objective Enabled",
+            "type": "boolean",
+            "value": true
+        },
+        {
+            "key": "playerlist_objective_value",
+            "label": "Playerlist Objective Value",
+            "type": "text",
+            "value": "%ping%"
+        },
+        {
+            "key": "playerlist_render_type",
+            "label": "Playerlist Render Type",
+            "type": "select",
+            "options": [
+                "INTEGER",
+                "HEARTS"
+            ],
+            "value": "INTEGER"
+        },
+        {
+            "key": "belowname_objective_enabled",
+            "label": "Belowname Objective Enabled",
+            "type": "boolean",
+            "value": false
+        },
+        {
+            "key": "bossbar_enabled",
+            "label": "Bossbar Enabled",
+            "type": "boolean",
+            "value": false
+        },
+        {
+            "key": "scoreboard_enabled",
+            "label": "Scoreboard Enabled",
+            "type": "boolean",
+            "value": false
+        },
+        {
+            "key": "layout_enabled",
+            "label": "Layout Enabled",
+            "type": "boolean",
+            "value": false
+        },
+        {
+            "key": "ping_spoof_enabled",
+            "label": "Ping Spoof Enabled",
+            "type": "boolean",
+            "value": false
+        },
+        {
+            "key": "global_playerlist_enabled",
+            "label": "Global Playerlist Enabled",
+            "type": "boolean",
+            "value": false
+        },
+        {
+            "key": "date_format",
+            "label": "Date Format",
+            "type": "text",
+            "value": "dd.MM.yyyy"
+        },
+        {
+            "key": "time_format",
+            "label": "Time Format",
+            "type": "text",
+            "value": "[HH:mm:ss / h:mm a]"
+        },
+        {
+            "key": "default_refresh_interval",
+            "label": "Default Placeholder Refresh Interval (ms)",
+            "type": "number",
+            "value": 500
+        },
+        {
+            "key": "assign_groups_by_permissions",
+            "label": "Assign Groups By Permissions",
+            "type": "boolean",
+            "value": false
+        },
+        {
+            "key": "permission_refresh_interval",
+            "label": "Permission Refresh Interval (ms)",
+            "type": "number",
+            "value": 1000
+        },
+        {
+            "key": "mysql_enabled",
+            "label": "MySQL Enabled",
+            "type": "boolean",
+            "value": false
+        },
+        {
+            "key": "proxy_support_enabled",
+            "label": "Proxy Support Enabled",
+            "type": "boolean",
+            "value": true
+        },
+        {
+            "key": "proxy_type",
+            "label": "Proxy Support Type",
+            "type": "select",
+            "options": [
+                "PLUGIN",
+                "REDIS",
+                "RABBITMQ"
+            ],
+            "value": "PLUGIN"
+        },
+        {
+            "key": "minimessage_support",
+            "label": "MiniMessage Support",
+            "type": "boolean",
+            "value": true
+        },
+        {
+            "key": "debug",
+            "label": "Debug Logging",
+            "type": "boolean",
+            "value": false
+        },
+        {
+            "key": "use_bukkit_permissions_manager",
+            "label": "Use Bukkit Permissions Manager",
+            "type": "boolean",
+            "value": false
+        },
+        {
+            "key": "use_online_uuid_in_tablist",
+            "label": "Use Online UUID In Tablist",
+            "type": "boolean",
+            "value": true
+        }
+    ]
+}

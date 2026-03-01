@@ -17,22 +17,139 @@ const getFolderForProjectType = (projectType) => {
     }
 };
 
+const SERVER_PLUGIN_SOFTWARE = new Set([
+    'bukkit',
+    'spigot',
+    'paper',
+    'purpur',
+    'folia',
+    'bungeecord',
+    'waterfall',
+    'velocity'
+]);
+
+const SERVER_MOD_SOFTWARE = new Set([
+    'forge',
+    'neoforge',
+    'fabric',
+    'quilt',
+    'magma',
+    'mohist',
+    'arclight',
+    'ketting',
+    'spongeforge',
+    'catserver'
+]);
+
+const getFolderForServerSoftware = (software, fallbackProjectType) => {
+    const normalizedSoftware = String(software || '').toLowerCase();
+
+    if (SERVER_PLUGIN_SOFTWARE.has(normalizedSoftware)) {
+        return 'plugins';
+    }
+
+    if (SERVER_MOD_SOFTWARE.has(normalizedSoftware)) {
+        return 'mods';
+    }
+
+    return getFolderForProjectType(fallbackProjectType);
+};
+
 // Must match sanitizeFileName in servers.js
 function sanitizeFileName(name) {
     return name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 }
 
-const installModInternal = async (win, { instanceName, projectId, versionId, filename, url, projectType, isServer }) => {
+const resolveServerSafeName = async (instanceName, explicitSafeName) => {
+    if (explicitSafeName && typeof explicitSafeName === 'string') {
+        return sanitizeFileName(explicitSafeName);
+    }
+
+    const directSafeName = sanitizeFileName(instanceName || '');
+    const directConfigPath = path.join(appData, 'servers', directSafeName, 'server.json');
+    if (await fs.pathExists(directConfigPath)) {
+        return directSafeName;
+    }
+
+    const serversDir = path.join(appData, 'servers');
+    if (!await fs.pathExists(serversDir)) {
+        return directSafeName;
+    }
+
+    const dirs = await fs.readdir(serversDir);
+    for (const dir of dirs) {
+        const configPath = path.join(serversDir, dir, 'server.json');
+        if (!await fs.pathExists(configPath)) continue;
+
+        try {
+            const config = await fs.readJson(configPath);
+            if (config?.name === instanceName || config?.safeName === directSafeName) {
+                return dir;
+            }
+        } catch (_) {
+        }
+    }
+
+    return directSafeName;
+};
+
+const emitServerInstallLog = (win, serverName, message) => {
+    try {
+        if (!win || !serverName) return;
+        win.webContents.send('server:console', {
+            serverName,
+            log: `[Modrinth Install] ${message}`
+        });
+    } catch (_) {
+    }
+};
+
+const installModInternal = async (win, { instanceName, serverSafeName, projectId, versionId, filename, url, projectType, isServer }) => {
     let dest;
     try {
-        const folder = getFolderForProjectType(projectType);
+        let folder = getFolderForProjectType(projectType);
+        let resolvedServerSoftware = '';
 
         const baseDir = isServer ? path.join(appData, 'servers') : instancesDir;
-        const resolvedName = isServer ? sanitizeFileName(instanceName) : instanceName;
+        const resolvedName = isServer
+            ? await resolveServerSafeName(instanceName, serverSafeName)
+            : instanceName;
+
+        if (isServer) {
+            const serverJsonPath = path.join(baseDir, resolvedName, 'server.json');
+            if (await fs.pathExists(serverJsonPath)) {
+                try {
+                    const serverConfig = await fs.readJson(serverJsonPath);
+                    resolvedServerSoftware = String(serverConfig?.software || '').toLowerCase();
+                    folder = getFolderForServerSoftware(resolvedServerSoftware, projectType);
+                } catch (readError) {
+                    console.warn('[Modrinth:Install] Could not read server config for folder resolution:', readError.message);
+                }
+            }
+        }
         const contentDir = path.join(baseDir, resolvedName, folder);
+
+        console.log(`[Modrinth:Install] Starting install for ${instanceName} (${projectType})`);
+        console.log(`[Modrinth:Install] isServer=${!!isServer}, resolvedName=${resolvedName}, software=${resolvedServerSoftware || 'n/a'}, folder=${folder}`);
+        console.log(`[Modrinth:Install] contentDir=${contentDir}`);
+        if (isServer) {
+            emitServerInstallLog(win, instanceName, `Resolving target folder: ${contentDir}`);
+        }
+
         await fs.ensureDir(contentDir);
 
+        const contentDirExists = await fs.pathExists(contentDir);
+        console.log(`[Modrinth:Install] contentDir exists after ensureDir: ${contentDirExists}`);
+        if (isServer) {
+            emitServerInstallLog(win, instanceName, `Target folder exists: ${contentDirExists}`);
+        }
+
         dest = path.join(contentDir, filename);
+        console.log(`[Modrinth:Install] destination file: ${dest}`);
+        if (isServer) {
+            emitServerInstallLog(win, instanceName, `Downloading jar to: ${dest}`);
+        }
+
         if (await fs.pathExists(dest)) {
             if (win) {
                 win.webContents.send('install:progress', {
@@ -40,6 +157,10 @@ const installModInternal = async (win, { instanceName, projectId, versionId, fil
                     progress: 100,
                     status: `Skipping ${filename} (already installed)`
                 });
+            }
+            console.log(`[Modrinth:Install] Skipped existing file: ${dest}`);
+            if (isServer) {
+                emitServerInstallLog(win, instanceName, `File already exists, skipping: ${filename}`);
             }
             return { success: true, skipped: true };
         }
@@ -75,6 +196,16 @@ const installModInternal = async (win, { instanceName, projectId, versionId, fil
             writer.on('finish', resolve);
             writer.on('error', reject);
         });
+
+        const fileExistsAfterDownload = await fs.pathExists(dest);
+        console.log(`[Modrinth:Install] File exists after download: ${fileExistsAfterDownload} (${dest})`);
+        if (!fileExistsAfterDownload) {
+            throw new Error(`Downloaded file not found at expected destination: ${dest}`);
+        }
+
+        if (isServer) {
+            emitServerInstallLog(win, instanceName, `Download complete: ${filename}`);
+        }
 
         if (win) {
             win.webContents.send('install:progress', {
@@ -153,6 +284,13 @@ const installModInternal = async (win, { instanceName, projectId, versionId, fil
 
     } catch (e) {
         console.error("Modrinth Install Error:", e);
+        console.error(`[Modrinth:Install] instance=${instanceName}, projectId=${projectId}, versionId=${versionId}, dest=${dest || 'n/a'}`);
+        if (isServer) {
+            emitServerInstallLog(win, instanceName, `Install failed: ${e.message}`);
+            if (dest) {
+                emitServerInstallLog(win, instanceName, `Last destination path: ${dest}`);
+            }
+        }
 
         if (dest && await fs.pathExists(dest)) {
             try { await fs.unlink(dest); } catch (delErr) { console.warn('[Modrinth] Failed to clean up partial download:', delErr.message); }
@@ -259,7 +397,8 @@ module.exports = (ipcMain, win) => {
 
                 if (data.isServer) {
                     const serversDir = path.join(appData, 'servers');
-                    const serverJsonPath = path.join(serversDir, sanitizeFileName(data.instanceName), 'server.json');
+                    const resolvedSafeName = await resolveServerSafeName(data.instanceName, data.serverSafeName);
+                    const serverJsonPath = path.join(serversDir, resolvedSafeName, 'server.json');
                     if (await fs.pathExists(serverJsonPath)) {
                         const serverConfig = await fs.readJson(serverJsonPath);
                         loader = serverConfig.software ? serverConfig.software.toLowerCase() : 'vanilla';
@@ -286,6 +425,7 @@ module.exports = (ipcMain, win) => {
                         for (const dep of resolveRes.dependencies) {
                             const installRes = await installModInternal(win, {
                                 instanceName: data.instanceName,
+                                serverSafeName: data.serverSafeName,
                                 projectId: dep.projectId,
                                 versionId: dep.versionId,
                                 filename: dep.filename,

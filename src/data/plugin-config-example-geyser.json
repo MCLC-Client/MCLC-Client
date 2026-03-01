@@ -1,0 +1,52 @@
+{
+    "pluginName": "Geyser",
+    "displayName": "Geyser",
+    "fields": [
+        {
+            "key": "bedrock_port",
+            "label": "Bedrock Port",
+            "type": "number",
+            "value": 19132
+        },
+        {
+            "key": "bedrock_address",
+            "label": "Bedrock Address",
+            "type": "text",
+            "value": "0.0.0.0"
+        },
+        {
+            "key": "auth_type",
+            "label": "Authentication Type",
+            "type": "select",
+            "options": [
+                "online",
+                "offline",
+                "floodgate"
+            ],
+            "value": "floodgate"
+        },
+        {
+            "key": "max_players",
+            "label": "Max Players",
+            "type": "number",
+            "value": 100
+        },
+        {
+            "key": "motd",
+            "label": "MOTD",
+            "type": "text",
+            "value": "My Geyser Server"
+        },
+        {
+            "key": "ping_passthrough",
+            "label": "Ping Passthrough",
+            "type": "select",
+            "options": [
+                "off",
+                "legacy",
+                "modern"
+            ],
+            "value": "modern"
+        }
+    ]
+}
