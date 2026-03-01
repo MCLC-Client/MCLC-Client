@@ -402,30 +402,7 @@ eula=true
             return [];
         }
     });
-    ipcMain.handle('server:get-status', async (event, name) => {
-        try {
-            const process = serverProcesses.get(name);
-            if (process && !process.killed) {
-                return 'running';
-            }
-            const serversDir = path.join(app.getPath('userData'), 'servers');
-            const safeName = sanitizeFileName(name);
-            const configPath = path.join(serversDir, safeName, 'server.json');
 
-            if (await fs.pathExists(configPath)) {
-                const config = await fs.readJson(configPath);
-
-                const proc = serverProcesses.get(name);
-                if (proc && !proc.killed) return 'running';
-
-                return config.status === 'starting' || config.status === 'stopping' ? 'stopped' : (config.status || 'stopped');
-            }
-            return 'stopped';
-        } catch (error) {
-            console.error('Error getting server status:', error);
-            return 'stopped';
-        }
-    });
 
     app.on('before-quit', (e) => {
         console.log('[Servers] App quitting, cleaning up processes...');
@@ -603,7 +580,7 @@ eula=true
             await fs.ensureDir(serverDir);
             await fs.ensureDir(path.join(serverDir, 'logs'));
             await fs.ensureDir(path.join(serverDir, 'plugins'));
-            
+
             if (!isProxy) {
                 await fs.ensureDir(path.join(serverDir, 'mods'));
             }
@@ -917,8 +894,8 @@ eula=false
                         log: line
                     });
                 }
-                if ((line.includes('Done') && line.includes('For help, type "help"')) || 
-                    line.includes('Listening on /0.0.0.0:') || 
+                if ((line.includes('Done') && line.includes('For help, type "help"')) ||
+                    line.includes('Listening on /0.0.0.0:') ||
                     line.includes('Enabled BungeeCord version')) {
                     updateServerConfig(name, { status: 'running' }).then(updatedConfig => {
                         if (mainWindow && !mainWindow.isDestroyed()) {
