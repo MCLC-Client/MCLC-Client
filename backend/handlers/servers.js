@@ -1549,7 +1549,7 @@ eula=false
             const eqIndex = line.indexOf('=');
             if (eqIndex > 0) {
                 const key = line.substring(0, eqIndex).trim();
-                const value = line.substring(eqIndex + 1);
+                const value = line.substring(eqIndex + 1).trim();
                 properties[key] = value;
             }
         }
@@ -1566,7 +1566,7 @@ eula=false
         const keys = Object.keys(properties).sort();
 
         for (const key of keys) {
-            const value = properties[key];
+            const value = (properties[key] || '').toString().trim();
             content += `${key}=${value}\n`;
         }
 
