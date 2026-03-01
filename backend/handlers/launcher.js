@@ -328,6 +328,7 @@ Add-Type -TypeDefinition $code -Language CSharp
                 }
             };
 
+            let javaToCheck = opts.javaPath || 'java';
             javaValid = await performJavaCheck(javaToCheck);
 
             const reqVersion = getRequiredJavaVersion(config.version);
