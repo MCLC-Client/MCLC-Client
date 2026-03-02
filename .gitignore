@@ -77,3 +77,4 @@ coverage/
 neoforge_profile.json
 run/
 *.minecraft/
+web/

@@ -35,7 +35,9 @@ module.exports = (ipcMain) => {
             interval: 60,
             maxBackups: 10
         },
-        language: 'en'
+        language: 'en',
+        hasAcceptedToS: false,
+        hasSelectedLanguage: false
     };
 
     ipcMain.handle('settings:get', async () => {

@@ -431,10 +431,16 @@
         "title": "Erweiterungen",
         "desc": "Erweitere dein Spielerlebnis mit zusätzlichen Modulen.",
         "installed": "Installierte Erweiterungen",
+        "installed_count": "Installiert ({{count}})",
+        "marketplace": "Marktplatz",
+        "search": "Erweiterungen suchen...",
         "browse": "Erweiterungen entdecken",
         "no_extensions": "Keine Erweiterungen gefunden",
+        "no_search_results": "Keine Erweiterungen entsprechen deiner Suche.",
         "install": "Erweiterung installieren",
-        "uninstall": "Deinstallieren"
+        "install_file": "Aus Datei installieren",
+        "uninstall": "Deinstallieren",
+        "view_online": "Online ansehen"
     },
     "search": {
         "title": "Inhalte durchsuchen",
@@ -720,5 +726,19 @@
             "delete_title": "Löschen?",
             "delete_confirm": "Möchten Sie diese Datei wirklich löschen?"
         }
+    },
+    "agreement": {
+        "title": "Herzlich Willkommen bei MCLC",
+        "desc": "Bitte lesen und akzeptieren Sie unsere Nutzungsbedingungen und Datenschutzbestimmungen, um fortzufahren. Ihr Datenschutz und Ihre Datensicherheit sind uns wichtig.",
+        "checkbox": "Ich habe die Nutzungsbedingungen und die Datenschutzerklärung gelesen und stimme ihnen zu.",
+        "tos": "Nutzungsbedingungen",
+        "privacy": "Datenschutzerklärung",
+        "start": "MCLC Starten",
+        "decline": "Ablehnen",
+        "and": "und",
+        "opt_out": "Analytics Opt-Out",
+        "tos_url": "https://mclc.pluginhub.de/imprint.html",
+        "privacy_url": "https://mclc.pluginhub.de/privacy-policy.html",
+        "opt_out_url": "https://mclc.pluginhub.de/analytics-opt-out.html"
     }
 }

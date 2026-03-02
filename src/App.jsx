@@ -22,6 +22,9 @@ import ServerSidebar from './components/ServerSidebar';
 import UpdateNotification from './components/UpdateNotification';
 import RightPanel from './components/RightPanel';
 import AnnouncementBar from './components/AnnouncementBar';
+import AgreementModal from './components/AgreementModal';
+import LanguageSelectionModal from './components/LanguageSelectionModal';
+import LoadingOverlay from './components/LoadingOverlay';
 import { useTranslation } from 'react-i18next';
 
 class ErrorBoundary extends React.Component {
@@ -88,6 +91,7 @@ function App() {
     const [triggerCreateInstance, setTriggerCreateInstance] = useState(false);
     const [appSettings, setAppSettings] = useState({});
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     const downloadsRef = useRef(null);
     const sessionsRef = useRef(null);
@@ -153,8 +157,12 @@ function App() {
             }
         };
 
-        checkSession();
-        loadTheme();
+        const init = async () => {
+            await Promise.all([checkSession(), loadTheme()]);
+            setIsInitialLoading(false);
+        };
+
+        init();
 
         const removeThemeListener = window.electronAPI?.onThemeUpdated((newTheme) => {
             setTheme(newTheme);
@@ -251,6 +259,28 @@ function App() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    const handleAcceptAgreement = async () => {
+        const newSettings = { ...appSettings, hasAcceptedToS: true };
+        const res = await window.electronAPI.saveSettings(newSettings);
+        if (res.success) {
+            setAppSettings(newSettings);
+        }
+    };
+
+    const handleDeclineAgreement = async () => {
+        const newSettings = { ...appSettings, hasSelectedLanguage: false };
+        await window.electronAPI.saveSettings(newSettings);
+        window.close();
+    };
+
+    const handleLanguageSelect = async (code) => {
+        const newSettings = { ...appSettings, language: code, hasSelectedLanguage: true };
+        const res = await window.electronAPI.saveSettings(newSettings);
+        if (res.success) {
+            setAppSettings(newSettings);
+        }
+    };
 
     const applyTheme = (t) => {
         const root = document.documentElement;
@@ -705,6 +735,18 @@ function App() {
 
             { }
             <ExtensionSlot name="app.overlay" className="absolute inset-0 pointer-events-none z-[9999] *:pointer-events-auto" />
+            {isInitialLoading && <LoadingOverlay message="Starting..." />}
+
+            {!isInitialLoading && appSettings.hasSelectedLanguage === false && (
+                <LanguageSelectionModal onSelect={handleLanguageSelect} />
+            )}
+
+            {!isInitialLoading && appSettings.hasSelectedLanguage === true && appSettings.hasAcceptedToS === false && (
+                <AgreementModal
+                    onAccept={handleAcceptAgreement}
+                    onDecline={handleDeclineAgreement}
+                />
+            )}
         </ExtensionProvider>
     );
 }

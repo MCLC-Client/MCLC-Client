@@ -428,12 +428,18 @@
     },
     "extensions": {
         "title": "Erwiiterige",
-        "desc": "Erweiter dis Erlebnis mit zusätzliche Module.",
+        "desc": "Füeg neui Funktione mit Erwiiterige hizue.",
         "installed": "Installierti Erwiiterige",
+        "installed_count": "Installiert ({{count}})",
+        "marketplace": "Marktplatz",
+        "search": "Erwiiterige sueche...",
         "browse": "Erwiiterige durchluege",
         "no_extensions": "Kei Erwiiterige gfunde",
+        "no_search_results": "Kei Erwiiterige passt zu diner Suechi.",
         "install": "Erwiiterig installiere",
-        "uninstall": "Deinstalliere"
+        "install_file": "Us Datei installiere",
+        "uninstall": "Deinstalliere",
+        "view_online": "Online aluege"
     },
     "search": {
         "title": "Inhalt durchluege",
@@ -719,5 +725,19 @@
             "delete_title": "Löschen?",
             "delete_confirm": "Möchten Sie diese Datei wirklich löschen?"
         }
+    },
+    "agreement": {
+        "title": "Willkomme bi MCLC",
+        "desc": "Bitte lies und akzeptier üsi Nutzigsbedingige und d'Dateschutzbestimmige zum wytermache. Dini Privatsphär und Datesicherheit sind üs wichtig.",
+        "checkbox": "Ich ha d'Nutzigsbedingige und d Dateschutzbestimmige gläse und stimme ihne zue",
+        "tos": "Nutzigsbedingige",
+        "privacy": "Dateschutz",
+        "start": "MCLC starte",
+        "decline": "Ablehne",
+        "and": "und",
+        "opt_out": "Analytics-Opt-Out",
+        "tos_url": "https://mclc.pluginhub.de/imprint.html",
+        "privacy_url": "https://mclc.pluginhub.de/privacy-policy.html",
+        "opt_out_url": "https://mclc.pluginhub.de/analytics-opt-out.html"
     }
 }

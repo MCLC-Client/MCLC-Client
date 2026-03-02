@@ -126,7 +126,7 @@ const Extensions = () => {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
-                    {t('Install from File') || 'Install from File'}
+                    {t('extensions.install_file')}
                 </button>
             </div>
 
@@ -135,7 +135,7 @@ const Extensions = () => {
                     onClick={() => setActiveTab('installed')}
                     className={`px-4 py-2 font-medium rounded-lg transition-colors ${activeTab === 'installed' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                 >
-                    {t('extensions.installed') || 'Installed'} ({installedExtensions.length})
+                    {t('extensions.installed_count', { count: installedExtensions.length })}
                 </button>
                 <button
                     onClick={() => setActiveTab('online')}
@@ -144,7 +144,7 @@ const Extensions = () => {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    {t('Marketplace') || 'Online extensions'}
+                    {t('extensions.marketplace')}
                 </button>
             </div>
 
@@ -157,7 +157,7 @@ const Extensions = () => {
                     </div>
                     <input
                         type="text"
-                        placeholder={t('extensions.search') || 'Search extensions...'}
+                        placeholder={t('extensions.search')}
                         className="w-full bg-surface/20 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-medium"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -253,7 +253,7 @@ const Extensions = () => {
                             if (filtered.length === 0) {
                                 return (
                                     <div className="flex flex-col items-center justify-center py-10 bg-surface/5 rounded-2xl border border-white/5 border-dashed">
-                                        <p className="text-gray-500 font-medium">{t('extensions.no_search_results') || 'No extensions match your search.'}</p>
+                                        <p className="text-gray-500 font-medium">{t('extensions.no_search_results')}</p>
                                     </div>
                                 );
                             }
@@ -322,14 +322,14 @@ const Extensions = () => {
                                                 </button>
                                             )}
                                             <button
-                                                onClick={() => window.open(`https://mclc.pluginhub.de/extension/${ext.identifier}`, '_blank')}
+                                                onClick={() => window.open(`https://mclc.pluginhub.de/extensions/${ext.identifier}`, '_blank')}
                                                 className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white font-medium rounded-lg transition-all flex items-center gap-2 border border-white/5"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                 </svg>
-                                                {t('View') || 'View'}
+                                                {t('extensions.view_online')}
                                             </button>
                                         </div>
                                     </div>

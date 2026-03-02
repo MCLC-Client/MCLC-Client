@@ -428,12 +428,18 @@
     },
     "extensions": {
         "title": "Tillägg",
-        "desc": "Förbättra din upplevelse med ytterligare moduler.",
+        "desc": "Lägg till nya funktioner med tillägg.",
         "installed": "Installerade tillägg",
+        "installed_count": "Installerade ({{count}})",
+        "marketplace": "Marknad",
+        "search": "Sök efter tillägg...",
         "browse": "Bläddra bland tillägg",
         "no_extensions": "Inga tillägg hittades",
+        "no_search_results": "Inga tillägg matchade din sökning.",
         "install": "Installera tillägg",
-        "uninstall": "Avinstallera"
+        "install_file": "Installera från fil",
+        "uninstall": "Avinstallera",
+        "view_online": "Visa online"
     },
     "search": {
         "title": "Bläddra innehåll",
@@ -719,5 +725,19 @@
             "delete_title": "Radera?",
             "delete_confirm": "Är du säker på att du vill radera denna fil?"
         }
+    },
+    "agreement": {
+        "title": "Välkommen till MCLC",
+        "desc": "Läs och godkänn våra användarvillkor och integritetspolicy för att fortsätta. Din integritet och datasäkerhet är viktiga för oss.",
+        "checkbox": "Jag har läst och godkänner användarvillkoren och integritetspolicyn",
+        "tos": "Användarvillkor",
+        "privacy": "Integritetspolicy",
+        "start": "Starta MCLC",
+        "decline": "Neka",
+        "and": "och",
+        "opt_out": "Avanmäl analys",
+        "tos_url": "https://mclc.pluginhub.de/imprint.html",
+        "privacy_url": "https://mclc.pluginhub.de/privacy-policy-en.html",
+        "opt_out_url": "https://mclc.pluginhub.de/analytics-opt-out-en.html"
     }
 }

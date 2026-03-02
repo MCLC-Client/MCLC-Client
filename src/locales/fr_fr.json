@@ -429,12 +429,18 @@
     },
     "extensions": {
         "title": "Extensions",
-        "desc": "Améliorez votre expérience avec des modules supplémentaires.",
+        "desc": "Ajoutez de nouvelles fonctionnalités avec des extensions.",
         "installed": "Extensions installées",
+        "installed_count": "Installées ({{count}})",
+        "marketplace": "Boutique",
+        "search": "Rechercher des extensions...",
         "browse": "Parcourir les extensions",
         "no_extensions": "Aucune extension trouvée",
+        "no_search_results": "Aucune extension ne correspond à votre recherche.",
         "install": "Installer l'extension",
-        "uninstall": "Désinstaller"
+        "install_file": "Installer depuis un fichier",
+        "uninstall": "Désinstaller",
+        "view_online": "Voir en ligne"
     },
     "search": {
         "title": "Parcourir le contenu",
@@ -720,5 +726,19 @@
             "delete_title": "Supprimer l'élément",
             "delete_confirm": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ?"
         }
+    },
+    "agreement": {
+        "title": "Bienvenue sur MCLC",
+        "desc": "Veuillez lire et accepter nos conditions d'utilisation et notre politique de confidentialité pour continuer. Votre vie privée et la sécurité de vos données sont importantes pour nous.",
+        "checkbox": "J'ai lu et j'accepte les conditions d'utilisation et la politique de confidentialité",
+        "tos": "Conditions d'utilisation",
+        "privacy": "Politique de confidentialité",
+        "start": "Démarrer MCLC",
+        "decline": "Refuser",
+        "and": "et",
+        "opt_out": "Opt-Out Analytics",
+        "tos_url": "https://mclc.pluginhub.de/imprint.html",
+        "privacy_url": "https://mclc.pluginhub.de/privacy-policy-en.html",
+        "opt_out_url": "https://mclc.pluginhub.de/analytics-opt-out-en.html"
     }
 }

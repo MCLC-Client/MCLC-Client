@@ -33,6 +33,13 @@ function RightPanel({ userProfile, onProfileUpdate }) {
             const res = await window.electronAPI.getCurrentSkin(userProfile.access_token);
             if (res.success && res.url) {
                 setLiveSkin(res.url);
+                // Propagate to global state
+                if (onProfileUpdate) {
+                    onProfileUpdate({
+                        ...userProfile,
+                        skinUrl: res.url
+                    });
+                }
             }
         } catch (e) {
             console.error("Failed to load live skin", e);
@@ -152,7 +159,7 @@ function RightPanel({ userProfile, onProfileUpdate }) {
                                                 className="flex items-center gap-3 p-3 hover:bg-white/5 cursor-pointer group group"
                                             >
                                                 <img
-                                                    src={`https://mc-heads.net/avatar/${acc.uuid || acc.name}/32`}
+                                                    src={`https://crafatar.com/avatars/${acc.uuid || acc.name}?size=32&overlay`}
                                                     alt={acc.name}
                                                     className="w-8 h-8 rounded-md"
                                                 />

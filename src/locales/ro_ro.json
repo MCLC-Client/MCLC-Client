@@ -428,12 +428,18 @@
     },
     "extensions": {
         "title": "Extensii",
-        "desc": "Îmbunătățește-ți experiența cu module adiționale.",
-        "installed": "Extensii Instalate",
-        "browse": "Răsfoiește Extensii",
-        "no_extensions": "Nicio extensie găsită",
-        "install": "Instalează Extensia",
-        "uninstall": "Dezinstalează"
+        "desc": "Adăugați funcții noi cu extensii.",
+        "installed": "Extensii instalate",
+        "installed_count": "Instalate ({{count}})",
+        "marketplace": "Magazin",
+        "search": "Căutați extensii...",
+        "browse": "Răsfoiți extensii",
+        "no_extensions": "Nu s-au găsit extensii",
+        "no_search_results": "Nicio extensie nu corespunde căutării dvs.",
+        "install": "Instalați extensia",
+        "install_file": "Instalare din fișier",
+        "uninstall": "Dezinstalare",
+        "view_online": "Vezi online"
     },
     "search": {
         "title": "Răsfoiește Conținut",
@@ -719,5 +725,19 @@
             "delete_title": "Ștergeți?",
             "delete_confirm": "Sunteți sigur că doriți să ștergeți acest fișier?"
         }
+    },
+    "agreement": {
+        "title": "Bun venit la MCLC",
+        "desc": "Vă rugăm să citiți și să acceptați Termenii și condițiile și Politica de confidențialitate pentru a continua. Confidențialitatea și securitatea datelor dvs. sunt importante pentru noi.",
+        "checkbox": "Am citit și sunt de acord cu Termenii și condițiile și Politica de confidențialitate",
+        "tos": "Termeni și condiții",
+        "privacy": "Politică de confidențialitate",
+        "start": "Porniți MCLC",
+        "decline": "Refuză",
+        "and": "și",
+        "opt_out": "Renunțare la analiză",
+        "tos_url": "https://mclc.pluginhub.de/imprint.html",
+        "privacy_url": "https://mclc.pluginhub.de/privacy-policy-en.html",
+        "opt_out_url": "https://mclc.pluginhub.de/analytics-opt-out-en.html"
     }
 }

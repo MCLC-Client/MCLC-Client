@@ -428,12 +428,18 @@
     },
     "extensions": {
         "title": "Rozšírenia",
-        "desc": "Vylepšite si svoj zážitok pomocou ďalších modulov.",
+        "desc": "Pridajte nové funkcie pomocou rozšírení.",
         "installed": "Nainštalované rozšírenia",
+        "installed_count": "Nainštalované ({{count}})",
+        "marketplace": "Obchod",
+        "search": "Hľadať rozšírenia...",
         "browse": "Prehľadávať rozšírenia",
         "no_extensions": "Nenašli sa žiadne rozšírenia",
-        "install": "Nainštalovať rozšírenie",
-        "uninstall": "Odinštalovať"
+        "no_search_results": "Vášmu vyhľadávaniu nezodpovedajú žiadne rozšírenia.",
+        "install": "Inštalovať rozšírenie",
+        "install_file": "Inštalovať zo súboru",
+        "uninstall": "Odinštalovať",
+        "view_online": "Zobraziť online"
     },
     "search": {
         "title": "Prehľadávať obsah",
@@ -719,5 +725,19 @@
             "delete_title": "Vymazať?",
             "delete_confirm": "Ste si istí, že chcete vymazať tento súbor?"
         }
+    },
+    "agreement": {
+        "title": "Vitajte v MCLC",
+        "desc": "Ak chcete pokračovať, prečítajte si a prijmite naše Zmluvné podmienky a Zásady ochrany osobných údajov. Vaše súkromie a bezpečnosť údajov sú pre nás dôležité.",
+        "checkbox": "Prečítal som si a súhlasím so Zmluvnými podmienkami a Zásadami ochrany osobných údajov",
+        "tos": "Zmluvné podmienky",
+        "privacy": "Zásady ochrany osobných údajov",
+        "start": "Spustiť MCLC",
+        "decline": "Odmietnuť",
+        "and": "a",
+        "opt_out": "Odhlásenie z analytiky",
+        "tos_url": "https://mclc.pluginhub.de/imprint.html",
+        "privacy_url": "https://mclc.pluginhub.de/privacy-policy-en.html",
+        "opt_out_url": "https://mclc.pluginhub.de/analytics-opt-out-en.html"
     }
 }

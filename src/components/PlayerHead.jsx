@@ -38,16 +38,23 @@ const PlayerHead = ({ src, uuid, name, size = 40, className = "" }) => {
     const headPos = "14.285% 14.285%";
     const hatPos = "71.428% 14.285%";
     if (!src || !src.startsWith('http')) {
+        // Use crafatar.com as it's more reliable and provides better head renders
+        // Default size for Minecraft heads is 8, but 64 is good for avatars
         const fallbackUrl = uuid
-            ? `https://mc-heads.net/avatar/${uuid}/${size}`
-            : `https://mc-heads.net/avatar/${name || 'Steve'}/${size}`;
+            ? `https://crafatar.com/avatars/${uuid}?size=${size}&overlay`
+            : `https://crafatar.com/avatars/${name || 'Steve'}?size=${size}&overlay`;
 
         return (
             <div style={baseStyle} className={className}>
                 <img
                     src={fallbackUrl}
                     alt="Head"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        imageRendering: 'pixelated'
+                    }}
                 />
             </div>
         );

@@ -431,10 +431,16 @@
         "title": "Extensions",
         "desc": "Add new features with extensions.",
         "installed": "Installed Extensions",
+        "installed_count": "Installed ({{count}})",
+        "marketplace": "Marketplace",
+        "search": "Search extensions...",
         "browse": "Browse Extensions",
         "no_extensions": "No extensions found",
+        "no_search_results": "No extensions match your search.",
         "install": "Install Extension",
-        "uninstall": "Uninstall"
+        "install_file": "Install from File",
+        "uninstall": "Uninstall",
+        "view_online": "View Online"
     },
     "search": {
         "title": "Browse Content",
@@ -720,5 +726,19 @@
             "delete_title": "Delete Item",
             "delete_confirm": "Are you sure you want to delete \"{{name}}\"?"
         }
+    },
+    "agreement": {
+        "title": "Welcome to MCLC",
+        "desc": "Please read and accept our Terms of Service and Privacy Policy to continue. Your privacy and data security are important to us.",
+        "checkbox": "I have read and agree to the Terms of Service and Privacy Policy",
+        "tos": "Terms of Service",
+        "privacy": "Privacy Policy",
+        "start": "Start MCLC",
+        "decline": "Decline",
+        "and": "and",
+        "opt_out": "Analytics Opt-Out",
+        "tos_url": "https://mclc.pluginhub.de/imprint.html",
+        "privacy_url": "https://mclc.pluginhub.de/privacy-policy-en.html",
+        "opt_out_url": "https://mclc.pluginhub.de/analytics-opt-out-en.html"
     }
 }

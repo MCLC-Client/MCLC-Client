@@ -428,12 +428,18 @@
     },
     "extensions": {
         "title": "Razširitve",
-        "desc": "Izboljšajte svojo izkušnjo z dodatnimi moduli.",
+        "desc": "Dodajte nove funkcije z razširitvami.",
         "installed": "Nameščene razširitve",
-        "browse": "Brskaj med razširitvami",
-        "no_extensions": "Razširitev ni mogoče najti",
+        "installed_count": "Nameščeno ({{count}})",
+        "marketplace": "Trgovina",
+        "search": "Išči razširitve...",
+        "browse": "Brskaj po razširitvah",
+        "no_extensions": "Ni najdenih razširitev",
+        "no_search_results": "Nobena razširitev se ne ujema z vašim iskanjem.",
         "install": "Namesti razširitev",
-        "uninstall": "Odstrani"
+        "install_file": "Namesti iz datoteke",
+        "uninstall": "Odstrani",
+        "view_online": "Ogled v spletu"
     },
     "search": {
         "title": "Brskanje po vsebini",
@@ -719,5 +725,19 @@
             "delete_title": "Izbrisati?",
             "delete_confirm": "Ali ste prepričani, da želite izbrisati to datoteko?"
         }
+    },
+    "agreement": {
+        "title": "Dobrodošli v MCLC",
+        "desc": "Prosimo, preberite in sprejmite naše Pogoje storitve in Pravilnik o zasebnosti, da nadaljujete. Vaša zasebnost in varnost podatkov sta nam pomembni.",
+        "checkbox": "Prebral sem in se strinjam s Pogoji storitve in Pravilnikom o zasebnosti",
+        "tos": "Pogoji storitve",
+        "privacy": "Pravilnik o zasebnosti",
+        "start": "Začni MCLC",
+        "decline": "Zavrni",
+        "and": "in",
+        "opt_out": "Odjava iz analitike",
+        "tos_url": "https://mclc.pluginhub.de/imprint.html",
+        "privacy_url": "https://mclc.pluginhub.de/privacy-policy-en.html",
+        "opt_out_url": "https://mclc.pluginhub.de/analytics-opt-out-en.html"
     }
 }
