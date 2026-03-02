@@ -728,6 +728,11 @@
             "delete_confirm": "Ste si istí, že chcete vymazať tento súbor?"
         }
     },
+    "setup": {
+        "chooseLanguage": "Vyberte váš jazyk",
+        "chooseLanguageDesc": "Vyberte si preferovaný jazyk a pokračujte v nastavení.",
+        "skipSelection": "Preskočiť výber (Predvolené: Angličtina)"
+    },
     "agreement": {
         "title": "Vitajte v MCLC",
         "desc": "Prosím, prečítajte si a prijmite naše Zásady ochrany osobných údajov (do ktorých sme integrovali naše Zmluvné podmienky), aby ste mohli pokračovať. Vaše súkromie a bezpečnosť údajov sú pre nás dôležité.",

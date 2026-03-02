@@ -729,6 +729,11 @@
             "delete_confirm": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ?"
         }
     },
+    "setup": {
+        "chooseLanguage": "Choisissez votre langue",
+        "chooseLanguageDesc": "Sélectionnez votre langue préférée pour continuer la configuration.",
+        "skipSelection": "Passer la sélection (Par défaut : Anglais)"
+    },
     "agreement": {
         "title": "Bienvenue sur MCLC",
         "desc": "Veuillez lire et accepter notre politique de confidentialité (dans laquelle nous avons intégré nos conditions d'utilisation) pour continuer. Votre vie privée et la sécurité de vos données sont importantes pour nous.",

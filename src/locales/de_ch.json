@@ -728,6 +728,11 @@
             "delete_confirm": "Möchten Sie diese Datei wirklich löschen?"
         }
     },
+    "setup": {
+        "chooseLanguage": "Sprache uswähle",
+        "chooseLanguageDesc": "Wähl dini Lieblingssprach us, um ds Setup wiiterzumache.",
+        "skipSelection": "Uswahl überspringen (Standard: Englisch)"
+    },
     "agreement": {
         "title": "Willkomme bi MCLC",
         "desc": "Bitte lies und akzeptier üsi Dateschutzbestimmige (i dene mer üsi Nutzigsbedingige zämegfüert händ) zum wytermache. Dini Privatsphär und Datesicherheit sind üs wichtig.",

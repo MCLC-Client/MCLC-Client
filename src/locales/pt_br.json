@@ -728,6 +728,11 @@
             "delete_confirm": "Tem certeza de que deseja excluir este arquivo?"
         }
     },
+    "setup": {
+        "chooseLanguage": "Escolha seu idioma",
+        "chooseLanguageDesc": "Selecione seu idioma preferido para continuar a configuração.",
+        "skipSelection": "Pular seleção (Padrão: Inglês)"
+    },
     "agreement": {
         "title": "Bem-vindo ao MCLC",
         "desc": "Leia e aceite nossa Política de Privacidade (na qual integramos nossos Termos de Serviço) para continuar. Sua privacidade e segurança de dados são importantes para nós.",

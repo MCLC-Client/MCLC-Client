@@ -728,6 +728,11 @@
             "delete_confirm": "Är du säker på att du vill radera denna fil?"
         }
     },
+    "setup": {
+        "chooseLanguage": "Välj ditt språk",
+        "chooseLanguageDesc": "Välj ditt föredragna språk för att fortsätta installationen.",
+        "skipSelection": "Hoppa över val (Standard: Engelska)"
+    },
     "agreement": {
         "title": "Välkommen till MCLC",
         "desc": "Vänligen läs och godkänn vår Integritetspolicy (i vilken vi har integrerat våra Användarvillkor) för att fortsätta. Din integritet och datasäkerhet är viktiga för oss.",

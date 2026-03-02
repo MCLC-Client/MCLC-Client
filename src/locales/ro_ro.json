@@ -728,6 +728,11 @@
             "delete_confirm": "Sunteți sigur că doriți să ștergeți acest fișier?"
         }
     },
+    "setup": {
+        "chooseLanguage": "Alegeți limba",
+        "chooseLanguageDesc": "Selectați limba preferată pentru a continua configurarea.",
+        "skipSelection": "Omite selecția (Implicit: Engleză)"
+    },
     "agreement": {
         "title": "Bun venit la MCLC",
         "desc": "Vă rugăm să citiți și să acceptați Politica de confidențialitate (în care am integrat Termenii și condițiile noastre) pentru a continua. Confidențialitatea și securitatea datelor dvs. sunt importante pentru noi.",

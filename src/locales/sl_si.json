@@ -728,6 +728,11 @@
             "delete_confirm": "Ali ste prepričani, da želite izbrisati to datoteko?"
         }
     },
+    "setup": {
+        "chooseLanguage": "Izberite svoj jezik",
+        "chooseLanguageDesc": "Izberite želen jezik za nadaljevanje namestitve.",
+        "skipSelection": "Preskoči izbiro (Privzeto: Angleščina)"
+    },
     "agreement": {
         "title": "Dobrodošli v MCLC",
         "desc": "Prosimo, preberite in sprejmite naš Pravilnik o zasebnosti (v katerega smo vključili naše Pogoje storitve), da nadaljujete. Vaša zasebnost in varnost podatkov sta nam pomembni.",

@@ -729,6 +729,11 @@
             "delete_confirm": "Möchten Sie diese Datei wirklich löschen?"
         }
     },
+    "setup": {
+        "chooseLanguage": "Sprache auswählen",
+        "chooseLanguageDesc": "Wählen Sie Ihre bevorzugte Sprache, um das Setup fortzusetzen.",
+        "skipSelection": "Auswahl überspringen (Standard: Englisch)"
+    },
     "agreement": {
         "title": "Herzlich Willkommen bei MCLC",
         "desc": "Bitte lesen und akzeptieren Sie unsere Datenschutzerklärung (in der wir unsere Nutzungsbedingungen zusammengeführt haben), um fortzufahren. Ihr Datenschutz und Ihre Datensicherheit sind uns wichtig.",
