@@ -55,7 +55,7 @@ const Extensions = () => {
 
             // Get the first (latest) version's file_path
             const latestVersionPath = detailData.versions[0].file_path;
-            const downloadUrl = `https://mclc.pluginhub.de/uploads/${latestVersionPath}`;
+            const downloadUrl = `https://mclc.pluginhub.de/uploads/${encodeURIComponent(latestVersionPath)}`;
 
             const result = await window.electronAPI.installExtension(downloadUrl);
 

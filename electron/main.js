@@ -93,8 +93,16 @@ function createSplashWindow() {
         }
     });
 
-    const splashPath = path.join(__dirname, '../public/splash.html');
-    splashWindow.loadFile(splashPath);
+    try {
+        const splashPath = path.join(__dirname, '../public/splash.html');
+        if (fs.existsSync(splashPath)) {
+            splashWindow.loadFile(splashPath);
+        } else {
+            console.error('[Main] Splash screen file not found:', splashPath);
+        }
+    } catch (err) {
+        console.error('[Main] Failed to load splash screen:', err);
+    }
     splashWindow.center();
 }
 
@@ -275,6 +283,7 @@ function createWindow() {
     if (isDev) {
         console.log('[Main] Loading development URL...');
         mainWindow.loadURL('http://localhost:3000');
+        mainWindow.webContents.openDevTools();
     } else {
         const indexPath = path.join(__dirname, '../dist/index.html');
         console.log(`[Main] Loading production file: ${indexPath}`);
