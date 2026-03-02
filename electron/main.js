@@ -16,8 +16,8 @@ app.commandLine.appendSwitch('enable-zero-copy');
 if (process.platform === 'linux') {
     // Sometimes necessary for WebGL on certain Linux drivers/sandboxes
     app.commandLine.appendSwitch('disable-gpu-sandbox');
-    // Forces the use of the desktop GL driver, which often bypasses blocklist issues on Linux
-    app.commandLine.appendSwitch('use-gl', 'desktop');
+    // Forces the use of EGL, which is modern and better supported on Linux/Mesa than 'desktop' override
+    app.commandLine.appendSwitch('use-gl', 'egl');
 }
 app.commandLine.appendSwitch('enable-webgl-draft-extensions');
 app.commandLine.appendSwitch('disable-features', 'NetworkServiceSandbox,CalculateNativeWinOcclusion');
