@@ -925,14 +925,16 @@ function Settings() {
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[
-                                { id: 'GOOGLE_DRIVE', name: 'Google Drive', icon: '/assets/cloud-backup/drive.svg' },
-                                { id: 'DROPBOX', name: 'Dropbox', icon: '/assets/cloud-backup/dropbox.svg' }
+                                { id: 'GOOGLE_DRIVE', name: 'Google Drive', icon: 'M12 2L2 20h20L12 2z' },
+                                { id: 'DROPBOX', name: 'Dropbox', icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5z' }
                             ].map((provider) => (
                                 <div key={provider.id} className={`p-4 rounded-xl border transition-all ${cloudStatus[provider.id]?.loggedIn ? 'bg-primary/5 border-primary/20' : 'bg-black/20 border-white/5 hover:border-white/10'}`}>
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-2">
                                             <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                                                <img src={provider.icon} alt="" className="w-5 h-5" />
+                                                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={provider.icon} />
+                                                </svg>
                                             </div>
                                             <span className="font-bold text-sm">{provider.name}</span>
                                         </div>
