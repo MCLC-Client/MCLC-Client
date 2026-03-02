@@ -74,8 +74,109 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 let mainWindow;
+let splashWindow;
 let tray = null;
 let isQuiting = false;
+
+function createSplashWindow() {
+    splashWindow = new BrowserWindow({
+        width: 300,
+        height: 350,
+        frame: false,
+        transparent: true,
+        alwaysOnTop: true,
+        icon: path.join(__dirname, '../resources/icon.png'),
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false,
+            sandbox: false
+        }
+    });
+
+    const splashPath = path.join(__dirname, '../public/splash.html');
+    splashWindow.loadFile(splashPath);
+    splashWindow.center();
+}
+
+async function checkAndLaunch() {
+    createSplashWindow();
+
+    const { autoUpdater } = require('electron-updater');
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    const performCheck = async () => {
+        if (!app.isPackaged && process.env.NODE_ENV !== 'production') {
+            console.log('[Main] Skipping update check in dev mode.');
+            splashWindow.webContents.send('updater:status', { status: 'Searching for updates' });
+            setTimeout(() => {
+                splashWindow.webContents.send('updater:status', { status: 'Starting' });
+                setTimeout(launchMain, 1500);
+            }, 1000);
+            return;
+        }
+
+        splashWindow.webContents.send('updater:status', { status: 'Searching for updates', retryCount });
+
+        try {
+            await autoUpdater.checkForUpdates();
+        } catch (err) {
+            console.error('[Main] Update check failed:', err);
+            retryCount++;
+            if (retryCount <= maxRetries) {
+                splashWindow.webContents.send('updater:status', { status: `Searching for updates`, retryCount });
+                setTimeout(performCheck, 3000);
+            } else {
+                splashWindow.webContents.send('updater:status', { status: 'Starting' });
+                setTimeout(launchMain, 1500);
+            }
+        }
+    };
+
+    autoUpdater.on('checking-for-update', () => {
+        splashWindow.webContents.send('updater:status', { status: 'Searching for updates' });
+    });
+
+    autoUpdater.on('update-available', (info) => {
+        // Keep "Searching for updates" until download starts or show finding
+        splashWindow.webContents.send('updater:status', { status: 'Downloading update...' });
+    });
+
+    autoUpdater.on('update-not-available', () => {
+        splashWindow.webContents.send('updater:status', { status: 'Starting' });
+        setTimeout(launchMain, 1500);
+    });
+
+    autoUpdater.on('download-progress', (progressObj) => {
+        splashWindow.webContents.send('updater:status', { status: `Installing Update (${Math.round(progressObj.percent)}%)`, progress: progressObj.percent });
+    });
+
+    autoUpdater.on('update-downloaded', () => {
+        splashWindow.webContents.send('updater:status', { status: 'Update downloaded, installing...' });
+        setTimeout(() => {
+            autoUpdater.quitAndInstall();
+        }, 1000);
+    });
+
+    autoUpdater.on('error', (err) => {
+        console.error('[Main] Updater error:', err);
+        splashWindow.webContents.send('updater:status', { status: 'Starting' });
+        setTimeout(launchMain, 1000);
+    });
+
+    performCheck();
+}
+
+function launchMain() {
+    createWindow();
+    if (splashWindow) {
+        splashWindow.close();
+        splashWindow = null;
+    }
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -162,9 +263,6 @@ function createWindow() {
     const updater = require('../backend/handlers/updater');
     updater(ipcMain, mainWindow);
 
-    // Trigger fully automatic update check on startup
-    updater.performAutoUpdate(ipcMain, mainWindow);
-
     ipcMain.on('app:is-packaged', (event) => {
         event.returnValue = app.isPackaged;
     });
@@ -177,7 +275,6 @@ function createWindow() {
     if (isDev) {
         console.log('[Main] Loading development URL...');
         mainWindow.loadURL('http://localhost:3000');
-        mainWindow.webContents.openDevTools();
     } else {
         const indexPath = path.join(__dirname, '../dist/index.html');
         console.log(`[Main] Loading production file: ${indexPath}`);
@@ -253,11 +350,9 @@ function setupAppMediaProtocol() {
             let decodedPath = decodeURIComponent(url.pathname);
 
             if (process.platform === 'win32') {
-                // Remove leading slash if it exists
                 if (decodedPath.startsWith('/')) {
                     decodedPath = decodedPath.substring(1);
                 }
-                // Remove leading colon if it exists (e.g. from /:C:/...)
                 if (decodedPath.startsWith(':')) {
                     decodedPath = decodedPath.substring(1);
                 }
@@ -270,7 +365,6 @@ function setupAppMediaProtocol() {
                         decodedPath = host + ':/' + (decodedPath.startsWith('/') ? '' : '/') + decodedPath;
                     }
                 } else {
-                    // If it's c/Path or c:/Path, ensure it has the colon
                     if (decodedPath.length > 1 && /^[a-zA-Z]$/.test(decodedPath[0]) && (decodedPath[1] === '/' || decodedPath[1] === '\\' || decodedPath[1] === ':')) {
                         if (decodedPath[1] !== ':') {
                             decodedPath = decodedPath[0] + ':' + decodedPath.substring(1);
@@ -278,7 +372,6 @@ function setupAppMediaProtocol() {
                     }
                 }
             } else {
-                // Posix: Combine host and pathname (pathname already starts with /)
                 decodedPath = decodeURIComponent(url.host + url.pathname);
             }
 
@@ -286,7 +379,6 @@ function setupAppMediaProtocol() {
 
             const resolvedPath = path.resolve(decodedPath);
 
-            // Security: Ensure the path is within the app's data directory (V6)
             const userDataPath = app.getPath('userData');
             const isInside = process.platform === 'win32'
                 ? resolvedPath.toLowerCase().startsWith(userDataPath.toLowerCase())
@@ -395,7 +487,7 @@ if (!gotTheLock) {
 
 app.whenReady().then(() => {
     setupAppMediaProtocol();
-    createWindow();
+    checkAndLaunch();
     handleDeepLink(process.argv);
 
     try {
@@ -450,61 +542,31 @@ app.whenReady().then(() => {
         console.error('Failed to create tray icon', err);
     }
 
-    const { autoUpdater } = require('electron-updater');
-    autoUpdater.autoDownload = true;
-    autoUpdater.autoInstallOnAppQuit = true;
-
-    autoUpdater.on('checking-for-update', () => {
-        console.log('[AutoUpdater] Checking for update...');
-    });
-    autoUpdater.on('update-available', (info) => {
-        console.log('[AutoUpdater] Update available:', info.version);
-        if (mainWindow) mainWindow.webContents.send('update:available', info);
-    });
-    autoUpdater.on('update-not-available', (info) => {
-        console.log('[AutoUpdater] Update not available.');
-        if (mainWindow) mainWindow.webContents.send('update:not-available', info);
-    });
-    autoUpdater.on('download-progress', (progressObj) => {
-        console.log(`[AutoUpdater] Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`);
-        if (mainWindow) mainWindow.webContents.send('update:progress', progressObj);
-    });
-    autoUpdater.on('update-downloaded', (info) => {
-        console.log('[AutoUpdater] Update downloaded:', info.version);
-        if (mainWindow) mainWindow.webContents.send('update:downloaded', info);
-    });
-    autoUpdater.on('error', (err) => {
-        const msg = (err && (err.message || err.toString())) || '';
-        console.error('[AutoUpdater] Error Object:', err);
-        console.error('[AutoUpdater] Error Message String:', msg);
-
-        const lowerMsg = msg.toLowerCase();
-        if (lowerMsg.includes('latest.yml') || lowerMsg.includes('latest-linux.yml') || lowerMsg.includes('dev-app-update.yml') || lowerMsg.includes('could not find latest.yml')) {
-            console.log('[AutoUpdater] 🛑 Suppressing known non-critical update error:', msg);
-            return;
-        }
-        if (mainWindow) {
-            console.log('[AutoUpdater] 📤 Sending error to renderer:', msg);
-            mainWindow.webContents.send('update:error', msg);
-        }
-    });
-
-    if (app.isPackaged) {
-        autoUpdater.checkForUpdates().catch(err => {
-            console.error('[AutoUpdater] Check failed:', err);
-        });
-    } else {
-        // For development testing: notify update not available after delay
-        setTimeout(() => {
-            if (mainWindow) {
-                // mainWindow.webContents.send('update:available', { version: '9.9.9' }); // For Testign
-            }
-        }, 5000);
-    }
-
     app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+        if (BrowserWindow.getAllWindows().length === 0) {
+            if (mainWindow) {
+                mainWindow.show();
+            } else {
+                checkAndLaunch();
+            }
+        }
     });
+
+    app.on('second-instance', () => {
+        if (splashWindow) {
+            splashWindow.focus();
+        }
+    });
+
+});
+
+app.on('open-file', (event, path) => {
+    event.preventDefault();
+    console.log('[Main] macOS open-file:', path);
+});
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('open-file', (event, path) => {

@@ -138,77 +138,7 @@ module.exports = (ipcMain, mainWindow) => {
     async function runAutoUpdate() {
         console.log('[Updater] Running automatic background update check...');
         try {
-            const res = await ipcMain.emit('updater:check');
+            await ipcMain.emit('updater:check');
         } catch (e) { }
     }
 };
-
-/**
- * Perform background update check and auto-install if available
- */
-async function performAutoUpdate(ipcMain, mainWindow) {
-    if (!require('electron').app.isPackaged) {
-        console.log('[Updater] Skipping auto-update in development mode.');
-        return;
-    }
-    console.log('[Updater] Starting background auto-update process...');
-    try {
-        // We reuse the logic from the check handler
-        const response = await axios.get(`https://api.github.com/repos/MCLC-Client/MCLC-Client/releases/latest`, {
-            headers: { 'User-Agent': 'MCLC-AutoUpdater' }
-        });
-
-        const release = response.data;
-        const latestVersion = release.tag_name;
-        const currentVersion = require('../../package.json').version;
-
-        if (require('../utils/version-utils').compareVersions(currentVersion, latestVersion) === 1) {
-            console.log(`[Updater] Auto-Update available: ${latestVersion}. Starting silent download...`);
-
-            const platform = process.platform;
-            const asset = release.assets.find(a => {
-                if (platform === 'win32') return a.name.endsWith('.exe');
-                if (platform === 'linux') return a.name.endsWith('.AppImage') || a.name.endsWith('.deb');
-                if (platform === 'darwin') return a.name.endsWith('.zip');
-                return false;
-            });
-
-            if (!asset) {
-                console.log('[Updater] No compatible asset found for auto-update.');
-                return;
-            }
-
-            const downloadDir = path.join(require('electron').app.getPath('userData'), 'updates');
-            await fs.ensureDir(downloadDir);
-            const targetPath = path.join(downloadDir, asset.name);
-
-            // Silent download
-            const writer = fs.createWriteStream(targetPath);
-            const downloadRes = await axios({ url: asset.browser_download_url, method: 'GET', responseType: 'stream' });
-            downloadRes.data.pipe(writer);
-
-            await new Promise((resolve, reject) => {
-                writer.on('finish', resolve);
-                writer.on('error', reject);
-            });
-
-            console.log('[Updater] Auto-Update downloaded. Restarting to install...');
-
-            // Trigger install logic
-            if (platform === 'win32') {
-                spawn(targetPath, ['/S'], { detached: true, stdio: 'ignore' }).unref();
-                require('electron').app.quit();
-            } else if (platform === 'linux' && targetPath.endsWith('.AppImage')) {
-                fs.chmodSync(targetPath, 0o755);
-                spawn(targetPath, [], { detached: true, stdio: 'ignore' }).unref();
-                require('electron').app.quit();
-            }
-        } else {
-            console.log('[Updater] No auto-update needed.');
-        }
-    } catch (error) {
-        console.error('[Updater] Auto-update failed:', error.message);
-    }
-}
-
-module.exports.performAutoUpdate = performAutoUpdate;

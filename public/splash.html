@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCLC - Searching for Updates</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --accent-color: #5865f2;
+            /* Discord-ish Blurple */
+            --progress-bg: #333;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: transparent;
+            color: var(--text-color);
+            font-family: var(--font-family);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-app-region: drag;
+        }
+
+        .container {
+            text-align: center;
+            width: 280px;
+            height: 330px;
+            background-color: var(--bg-color);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .logo {
+            width: 90px;
+            height: 90px;
+            margin-bottom: 5px;
+            animation: pulse 2.5s infinite ease-in-out;
+            -webkit-app-region: no-drag;
+            filter: drop-shadow(0 0 15px rgba(88, 101, 242, 0.3));
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+
+            50% {
+                transform: scale(1.03);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.9;
+            }
+        }
+
+        .status-container {
+            height: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #ccc;
+            margin-bottom: 8px;
+        }
+
+        .progress-container {
+            width: 200px;
+            height: 6px;
+            background-color: var(--progress-bg);
+            border-radius: 3px;
+            overflow: hidden;
+            display: none;
+            -webkit-app-region: no-drag;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-color), #7289da);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 12px rgba(88, 101, 242, 0.5);
+        }
+
+        .retry-text {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <img src="../resources/icon.png" alt="MCLC Logo" class="logo">
+        <div class="status-container">
+            <div class="status" id="status">Searching for updates</div>
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="retry-text" id="retry-text"></div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const statusEl = document.getElementById('status');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const retryEl = document.getElementById('retry-text');
+
+        let dotCount = 0;
+        let currentStatus = "Searching for updates";
+
+        const dotsInterval = setInterval(() => {
+            if (currentStatus === "Searching for updates" || currentStatus === "Starting") {
+                dotCount = (dotCount + 1) % 4;
+                statusEl.innerText = currentStatus + '.'.repeat(dotCount);
+            }
+        }, 500);
+
+        ipcRenderer.on('updater:status', (event, { status, progress, retryCount }) => {
+            currentStatus = status;
+
+            if (progress !== undefined) {
+                progressContainer.style.display = 'block';
+                progressBar.style.width = `${progress}%`;
+                statusEl.innerText = `Installing Update (${Math.round(progress)}%)`;
+            } else {
+                progressContainer.style.display = 'none';
+                statusEl.innerText = status;
+            }
+
+            if (retryCount !== undefined && retryCount > 0) {
+                retryEl.innerText = `Attempt ${retryCount} of 3`;
+                statusEl.style.color = "#ff4747";
+            } else {
+                retryEl.innerText = '';
+                statusEl.style.color = "#ccc";
+            }
+        });
+    </script>
+</body>
+
+</html>
