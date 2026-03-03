@@ -28,6 +28,7 @@ module.exports = (ipcMain, win) => {
 
     const appData = app.getPath('userData');
     const instancesDir = path.join(appData, 'instances');
+    const modCachePath = path.join(appData, 'mods_cache.json');
     ipcMain.handle('modpack:export-code', async (event, data) => {
         console.log('[ModpackCode-Handler] 📤 Export handler AUFGERUFEN', data);
         try {
@@ -214,24 +215,28 @@ module.exports = (ipcMain, win) => {
                 });
 
                 if (result.success) {
-                    try {
-                        const actualFileName = resolved.filename || mod.fileName;
-                        const filePath = path.join(instancesDir, instanceName, 'mods', actualFileName);
-                        if (await fs.pathExists(filePath)) {
-                            const fsStats = await fs.stat(filePath);
-                            const cacheKey = `${actualFileName}-${fsStats.size}`;
-                            localModCache[cacheKey] = {
-                                title: mod.title,
-                                icon: mod.icon,
-                                version: resolved.versionNumber,
-                                projectId: mod.projectId,
-                                versionId: mod.versionId,
-                                timestamp: Date.now()
-                            };
-                            console.log(`[ModpackCode-Handler] Cached metadata for mod: ${mod.title} (Key: ${cacheKey})`);
+                    if (result.skipped) {
+                        console.log(`[ModpackCode-Handler] Skipped mod: ${mod.title} (Reason: ${result.error || 'Download failed'})`);
+                    } else {
+                        try {
+                            const actualFileName = resolved.filename || mod.fileName;
+                            const filePath = path.join(instancesDir, instanceName, 'mods', actualFileName);
+                            if (await fs.pathExists(filePath)) {
+                                const fsStats = await fs.stat(filePath);
+                                const cacheKey = `${actualFileName}-${fsStats.size}`;
+                                localModCache[cacheKey] = {
+                                    title: mod.title,
+                                    icon: mod.icon,
+                                    version: resolved.versionNumber,
+                                    projectId: mod.projectId,
+                                    versionId: mod.versionId,
+                                    timestamp: Date.now()
+                                };
+                                console.log(`[ModpackCode-Handler] Cached metadata for mod: ${mod.title} (Key: ${cacheKey})`);
+                            }
+                        } catch (cacheErr) {
+                            console.error('Failed to update cache for mod', mod.title, cacheErr);
                         }
-                    } catch (cacheErr) {
-                        console.error('Failed to update cache for mod', mod.title, cacheErr);
                     }
                 }
                 installedCount++;
@@ -258,24 +263,28 @@ module.exports = (ipcMain, win) => {
                 });
 
                 if (result.success) {
-                    try {
-                        const actualFileName = resolved.filename || pack.fileName;
-                        const filePath = path.join(instancesDir, instanceName, 'resourcepacks', actualFileName);
-                        if (await fs.pathExists(filePath)) {
-                            const fsStats = await fs.stat(filePath);
-                            const cacheKey = `${actualFileName}-${fsStats.size}`;
-                            localModCache[cacheKey] = {
-                                title: pack.title,
-                                icon: pack.icon,
-                                version: resolved.versionNumber,
-                                projectId: pack.projectId,
-                                versionId: pack.versionId,
-                                timestamp: Date.now()
-                            };
-                            console.log(`[ModpackCode-Handler] Cached metadata for resourcepack: ${pack.title} (Key: ${cacheKey})`);
+                    if (result.skipped) {
+                        console.log(`[ModpackCode-Handler] Skipped resourcepack: ${pack.title} (Reason: ${result.error || 'Download failed'})`);
+                    } else {
+                        try {
+                            const actualFileName = resolved.filename || pack.fileName;
+                            const filePath = path.join(instancesDir, instanceName, 'resourcepacks', actualFileName);
+                            if (await fs.pathExists(filePath)) {
+                                const fsStats = await fs.stat(filePath);
+                                const cacheKey = `${actualFileName}-${fsStats.size}`;
+                                localModCache[cacheKey] = {
+                                    title: pack.title,
+                                    icon: pack.icon,
+                                    version: resolved.versionNumber,
+                                    projectId: pack.projectId,
+                                    versionId: pack.versionId,
+                                    timestamp: Date.now()
+                                };
+                                console.log(`[ModpackCode-Handler] Cached metadata for resourcepack: ${pack.title} (Key: ${cacheKey})`);
+                            }
+                        } catch (cacheErr) {
+                            console.error('Failed to update cache for resourcepack', pack.title, cacheErr);
                         }
-                    } catch (cacheErr) {
-                        console.error('Failed to update cache for resourcepack', pack.title, cacheErr);
                     }
                 }
                 installedCount++;
@@ -302,24 +311,28 @@ module.exports = (ipcMain, win) => {
                 });
 
                 if (result.success) {
-                    try {
-                        const actualFileName = resolved.filename || shader.fileName;
-                        const filePath = path.join(instancesDir, instanceName, 'shaderpacks', actualFileName);
-                        if (await fs.pathExists(filePath)) {
-                            const fsStats = await fs.stat(filePath);
-                            const cacheKey = `${actualFileName}-${fsStats.size}`;
-                            localModCache[cacheKey] = {
-                                title: shader.title,
-                                icon: shader.icon,
-                                version: resolved.versionNumber,
-                                projectId: shader.projectId,
-                                versionId: shader.versionId,
-                                timestamp: Date.now()
-                            };
-                            console.log(`[ModpackCode-Handler] Cached metadata for shader: ${shader.title} (Key: ${cacheKey})`);
+                    if (result.skipped) {
+                        console.log(`[ModpackCode-Handler] Skipped shader: ${shader.title} (Reason: ${result.error || 'Download failed'})`);
+                    } else {
+                        try {
+                            const actualFileName = resolved.filename || shader.fileName;
+                            const filePath = path.join(instancesDir, instanceName, 'shaderpacks', actualFileName);
+                            if (await fs.pathExists(filePath)) {
+                                const fsStats = await fs.stat(filePath);
+                                const cacheKey = `${actualFileName}-${fsStats.size}`;
+                                localModCache[cacheKey] = {
+                                    title: shader.title,
+                                    icon: shader.icon,
+                                    version: resolved.versionNumber,
+                                    projectId: shader.projectId,
+                                    versionId: shader.versionId,
+                                    timestamp: Date.now()
+                                };
+                                console.log(`[ModpackCode-Handler] Cached metadata for shader: ${shader.title} (Key: ${cacheKey})`);
+                            }
+                        } catch (cacheErr) {
+                            console.error('Failed to update cache for shader', shader.title, cacheErr);
                         }
-                    } catch (cacheErr) {
-                        console.error('Failed to update cache for shader', shader.title, cacheErr);
                     }
                 }
                 installedCount++;

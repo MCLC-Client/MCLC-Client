@@ -6,7 +6,7 @@ import { useNotification } from '../context/NotificationContext';
 
 
 
-function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch, isGuest, userProfile }) {
+function Home({ onInstanceClick, runningInstances = {}, activeDownloads = {}, onNavigateSearch, isGuest, userProfile }) {
     const { t } = useTranslation();
     const { addNotification } = useNotification();
 
@@ -354,10 +354,14 @@ function Home({ onInstanceClick, runningInstances = {}, onNavigateSearch, isGues
                         <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{t('home.jump_back_in')}</h2>
                         <div className="space-y-2">
                             {recentInstances.map((instance) => {
-                                const status = runningInstances[instance.name];
+                                const liveStatus = runningInstances[instance.name];
+                                const installStateKey = Object.keys(activeDownloads).find(k => k.toLowerCase() === instance.name.toLowerCase());
+                                const installState = installStateKey ? activeDownloads[installStateKey] : null;
+                                const isInstalling = !!installState;
+
+                                const status = isInstalling ? 'installing' : liveStatus;
                                 const isRunning = status === 'running';
                                 const isLaunching = status === 'launching';
-                                const isInstalling = status === 'installing';
                                 const isPending = pendingLaunches[instance.name];
                                 return (
                                     <div

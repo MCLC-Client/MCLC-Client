@@ -34,9 +34,20 @@ const QUILT_META = 'https://meta.quiltmc.org/v3';
 const FORGE_META = 'https://meta.modrinth.com/forge/v0';
 const NEOFORGE_META = 'https://meta.modrinth.com/neo/v0';
 const activeTasks = new Map();
-async function downloadFile(url, destPath, signal = null) {
-    const response = await axios({ url, responseType: 'arraybuffer', signal });
-    await fs.writeFile(destPath, response.data);
+async function downloadFile(url, destPath, signal = null, retries = 1) {
+    let lastError;
+    for (let i = 0; i <= retries; i++) {
+        try {
+            const response = await axios({ url, responseType: 'arraybuffer', signal, timeout: 30000 });
+            await fs.writeFile(destPath, response.data);
+            return;
+        } catch (e) {
+            lastError = e;
+            console.warn(`[Download] Attempt ${i + 1} failed for ${url}: ${e.message}`);
+            if (i < retries) await new Promise(r => setTimeout(r, 1000));
+        }
+    }
+    throw lastError;
 }
 
 async function getFolderSize(directory) {
@@ -254,9 +265,9 @@ async function installForgeLoader(instanceDir, mcVersion, loaderVersion, onProgr
         console.log(`Downloading Maven Installer: ${installerUrl}`);
         if (onProgress) onProgress(10, 'Downloading Forge Installer');
         try {
-            await downloadFile(installerUrl, installerPath);
+            await downloadFile(installerUrl, installerPath, null, 1);
         } catch (e) {
-            return { success: false, error: `Failed to download Forge installer from ${installerUrl}: ${e.message}` };
+            return { success: false, error: `Failed to download Forge installer from ${installerUrl} after retries: ${e.message}` };
         }
 
         log('Running Forge Installer headlessly...');
@@ -306,9 +317,9 @@ async function installNeoForgeLoader(instanceDir, mcVersion, loaderVersion, onPr
         console.log(`Downloading NeoForge Installer: ${installerUrl}`);
         if (onProgress) onProgress(10, 'Downloading NeoForge Installer');
         try {
-            await downloadFile(installerUrl, installerPath);
+            await downloadFile(installerUrl, installerPath, null, 1);
         } catch (e) {
-            return { success: false, error: `Failed to download NeoForge installer: ${e.message}` };
+            return { success: false, error: `Failed to download NeoForge installer after retries: ${e.message}` };
         }
 
         log('Running NeoForge Installer headlessly...');
@@ -518,7 +529,9 @@ module.exports = (ipcMain, win) => {
                         await downloadFile(versionJson.downloads.client.url, clientJarPath);
                         await fs.remove(manifestPath);
                     } catch (e) {
-                        appendLog(`Warning: Base game files check/download: ${e.message}`);
+                        const criticalError = "The instance cannot be started because critical software components could not be downloaded.";
+                        appendLog(`CRITICAL ERROR: ${criticalError} Details: ${e.message}`);
+                        throw new Error(criticalError);
                     }
                     if (loaderType !== 'vanilla') {
                         sendProgress(20, `Installing ${loader} loader (Phase 2/3)...`);
@@ -602,7 +615,11 @@ module.exports = (ipcMain, win) => {
                             if (task.aborted) break;
                             const dest = path.join(modsDir, mod.name);
                             appendLog(`Downloading migrated mod: ${mod.name}`);
-                            await downloadFile(mod.url, dest);
+                            try {
+                                await downloadFile(mod.url, dest);
+                            } catch (e) {
+                                appendLog(`Skipping mod ${mod.name} after failed retries: ${e.message}`);
+                            }
                         }
                     }
                     try {
@@ -672,10 +689,14 @@ module.exports = (ipcMain, win) => {
                                         const dest = path.join(modsDir, primaryFile.filename);
                                         if (!await fs.pathExists(dest)) {
                                             appendLog(`Downloading: ${primaryFile.filename}`);
-                                            await downloadFile(primaryFile.url, dest);
-                                            appendLog(`Installed: ${primaryFile.filename}`);
+                                            try {
+                                                await downloadFile(primaryFile.url, dest);
+                                                appendLog(`Installed: ${primaryFile.filename}`);
+                                            } catch (e) {
+                                                appendLog(`Skipping optimization mod ${primaryFile.filename} after failed retries: ${e.message}`);
+                                            }
 
-                                            if (projectId === 'YL57xq9U') {
+                                            if (projectId === 'YL57xq9U' && await fs.pathExists(dest)) {
                                                 installedPhosphor = true;
                                             }
                                         }
@@ -701,8 +722,12 @@ module.exports = (ipcMain, win) => {
 
                                                     if (!await fs.pathExists(dest)) {
                                                         appendLog(`Downloading fallback: ${fallbackFile.filename}`);
-                                                        await downloadFile(fallbackFile.url, dest);
-                                                        appendLog(`Installed fallback: ${fallbackFile.filename}`);
+                                                        try {
+                                                            await downloadFile(fallbackFile.url, dest);
+                                                            appendLog(`Installed fallback: ${fallbackFile.filename}`);
+                                                        } catch (e) {
+                                                            appendLog(`Skipping fallback mod ${fallbackFile.filename} after failed retries: ${e.message}`);
+                                                        }
                                                     }
                                                 }
                                             } catch (e) {
@@ -732,8 +757,12 @@ module.exports = (ipcMain, win) => {
 
                                                     if (!await fs.pathExists(dest)) {
                                                         appendLog(`Downloading fallback: ${fallbackFile.filename}`);
-                                                        await downloadFile(fallbackFile.url, dest);
-                                                        appendLog(`Installed fallback: ${fallbackFile.filename}`);
+                                                        try {
+                                                            await downloadFile(fallbackFile.url, dest);
+                                                            appendLog(`Installed fallback: ${fallbackFile.filename}`);
+                                                        } catch (e) {
+                                                            appendLog(`Skipping fallback mod ${fallbackFile.filename} after failed retries: ${e.message}`);
+                                                        }
                                                     }
                                                 }
                                             } catch (fallbackErr) {
@@ -791,9 +820,14 @@ module.exports = (ipcMain, win) => {
                                         const dest = path.join(modsDir, primaryFile.filename);
                                         if (!await fs.pathExists(dest)) {
                                             appendLog(`Downloading auto install mod: ${primaryFile.filename}`);
-                                            await downloadFile(primaryFile.url, dest);
-                                            appendLog(`Installed auto install mod: ${primaryFile.filename}`);
-                                            installedCount++;
+                                            try {
+                                                await downloadFile(primaryFile.url, dest);
+                                                appendLog(`Installed auto install mod: ${primaryFile.filename}`);
+                                                installedCount++;
+                                            } catch (e) {
+                                                appendLog(`Skipping auto install mod ${primaryFile.filename} after failed retries: ${e.message}`);
+                                                skippedCount++;
+                                            }
                                         } else {
                                             appendLog(`Auto install mod already exists: ${primaryFile.filename}`);
                                             installedCount++;

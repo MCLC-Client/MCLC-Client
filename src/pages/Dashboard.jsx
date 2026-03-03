@@ -18,7 +18,7 @@ const DEFAULT_ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
 const InstanceCard = ({
     instance,
     runningInstances,
-    installProgress,
+    activeDownloads,
     pendingLaunches,
     onInstanceClick,
     handleContextMenu,
@@ -38,12 +38,13 @@ const InstanceCard = ({
 
     const liveStatus = runningInstances[instance.name];
     const persistedStatus = instance.status;
-    const installStateKey = Object.keys(installProgress).find(k => k.toLowerCase() === instance.name.toLowerCase());
-    const installState = installStateKey ? installProgress[installStateKey] : null;
-    const status = liveStatus || (installState || persistedStatus === 'installing' ? 'installing' : null);
+    const installStateKey = Object.keys(activeDownloads).find(k => k.toLowerCase() === instance.name.toLowerCase());
+    const installState = installStateKey ? activeDownloads[installStateKey] : null;
+    const isInstalling = !!installState;
+    const status = isInstalling ? 'installing' : (liveStatus || (persistedStatus === 'installing' ? 'installing' : null));
     const isRunning = status === 'running';
     const isLaunching = status === 'launching';
-    const isInstalling = status === 'installing';
+
 
     return (
         <div
@@ -145,7 +146,7 @@ const InstanceCard = ({
     );
 };
 
-function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCreateHandled, isGuest }) {
+function Dashboard({ onInstanceClick, runningInstances = {}, activeDownloads = {}, triggerCreate, onCreateHandled, isGuest }) {
     const { addNotification } = useNotification();
     const { t } = useTranslation();
     const [instances, setInstances] = useState([]);
@@ -243,20 +244,6 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
             }
         };
         testBackend();
-        const removeInstallListener = window.electronAPI.onInstallProgress((data) => {
-            setInstallProgress(prev => {
-                if (data.progress >= 100) {
-                    const next = { ...prev };
-                    delete next[data.instanceName];
-                    return next;
-                }
-                return { ...prev, [data.instanceName]: data };
-            });
-
-            if (data.progress >= 100) {
-                loadInstances();
-            }
-        });
         const removeListener = window.electronAPI.onInstanceStatus(({ instanceName, status }) => {
             if (status === 'stopped' || status === 'ready' || status === 'error' || status === 'deleted') {
                 loadInstances();
@@ -265,7 +252,6 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
 
         return () => {
             if (removeListener) removeListener();
-            if (removeInstallListener) removeInstallListener();
         };
     }, []);
 
@@ -687,7 +673,7 @@ function Dashboard({ onInstanceClick, runningInstances = {}, triggerCreate, onCr
                                                     key={instance.name}
                                                     instance={instance}
                                                     runningInstances={runningInstances}
-                                                    installProgress={installProgress}
+                                                    activeDownloads={activeDownloads}
                                                     pendingLaunches={pendingLaunches}
                                                     onInstanceClick={onInstanceClick}
                                                     handleContextMenu={handleContextMenu}

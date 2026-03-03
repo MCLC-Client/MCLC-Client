@@ -165,54 +165,81 @@ const installModInternal = async (win, { instanceName, serverSafeName, projectId
             return { success: true, skipped: true };
         }
 
-        const response = await axios({
-            url,
-            method: 'GET',
-            responseType: 'stream',
-            headers: { 'User-Agent': USER_AGENT },
-            timeout: 30000
-        });
+        const maxAttempts = 2;
+        let lastError;
 
-        const writer = fs.createWriteStream(dest);
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                const response = await axios({
+                    url,
+                    method: 'GET',
+                    responseType: 'stream',
+                    headers: { 'User-Agent': USER_AGENT },
+                    timeout: 30000
+                });
 
-        const totalSize = parseInt(response.headers['content-length'], 10);
-        let downloadedSize = 0;
+                const writer = fs.createWriteStream(dest);
+                const totalSize = parseInt(response.headers['content-length'], 10);
+                let downloadedSize = 0;
 
-        response.data.on('data', (chunk) => {
-            downloadedSize += chunk.length;
+                response.data.on('data', (chunk) => {
+                    downloadedSize += chunk.length;
+                    if (win) {
+                        const progress = Math.round((downloadedSize / totalSize) * 100);
+                        win.webContents.send('install:progress', {
+                            instanceName,
+                            progress,
+                            status: `Installing ${filename} (Attempt ${attempt}/${maxAttempts})`
+                        });
+                    }
+                });
+
+                response.data.pipe(writer);
+
+                await new Promise((resolve, reject) => {
+                    writer.on('finish', resolve);
+                    writer.on('error', reject);
+                });
+
+                const fileExistsAfterDownload = await fs.pathExists(dest);
+                if (!fileExistsAfterDownload) {
+                    throw new Error(`Downloaded file not found at expected destination: ${dest}`);
+                }
+
+                console.log(`[Modrinth:Install] Download complete: ${filename}`);
+                if (win) {
+                    win.webContents.send('install:progress', {
+                        instanceName,
+                        progress: 100,
+                        status: `Installed ${filename}`
+                    });
+                }
+
+                // Breaking the retry loop on success
+                lastError = null;
+                break;
+            } catch (e) {
+                lastError = e;
+                console.warn(`[Modrinth:Install] Attempt ${attempt} failed for ${filename}: ${e.message}`);
+                if (dest && await fs.pathExists(dest)) {
+                    try { await fs.unlink(dest); } catch (_) { }
+                }
+                if (attempt < maxAttempts) {
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+            }
+        }
+
+        if (lastError) {
+            console.error(`[Modrinth:Install] All ${maxAttempts} attempts failed for ${filename}. Skipping.`);
             if (win) {
-                const progress = Math.round((downloadedSize / totalSize) * 100);
                 win.webContents.send('install:progress', {
                     instanceName,
-                    progress,
-                    status: `Installing ${filename}`
+                    progress: 100,
+                    status: `Skipping ${filename} (Download failed)`
                 });
             }
-        });
-
-        response.data.pipe(writer);
-
-        await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
-
-        const fileExistsAfterDownload = await fs.pathExists(dest);
-        console.log(`[Modrinth:Install] File exists after download: ${fileExistsAfterDownload} (${dest})`);
-        if (!fileExistsAfterDownload) {
-            throw new Error(`Downloaded file not found at expected destination: ${dest}`);
-        }
-
-        if (isServer) {
-            emitServerInstallLog(win, instanceName, `Download complete: ${filename}`);
-        }
-
-        if (win) {
-            win.webContents.send('install:progress', {
-                instanceName,
-                progress: 100,
-                status: `Installed ${filename}`
-            });
+            return { success: true, skipped: true, error: lastError.message };
         }
         if (projectType === 'shader') {
             try {
