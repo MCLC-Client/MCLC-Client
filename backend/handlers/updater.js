@@ -103,11 +103,14 @@ module.exports = (ipcMain, mainWindow) => {
             console.log(`[Updater] Installing update from ${filePath}...`);
 
             if (process.platform === 'win32') {
-                // Launch installer and quit
-                spawn(filePath, ['/S'], { // /S for silent if supported, or just launch it
-                    detached: true,
-                    stdio: 'ignore'
-                }).unref();
+                const updateScript = path.join(path.dirname(filePath), 'update.vbs');
+                const exeTarget = process.execPath;
+                const vbsContent = `Set objShell = WScript.CreateObject("WScript.Shell")
+WScript.Sleep 2000
+objShell.Run """" & WScript.Arguments(0) & """ /S", 1, True
+objShell.Run """" & WScript.Arguments(1) & """", 1, False`;
+                fs.writeFileSync(updateScript, vbsContent);
+                spawn('wscript.exe', [updateScript, filePath, exeTarget], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
                 app.quit();
             } else if (process.platform === 'linux') {
                 if (filePath.endsWith('.AppImage')) {

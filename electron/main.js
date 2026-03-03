@@ -109,10 +109,6 @@ function createSplashWindow() {
 async function checkAndLaunch() {
     createSplashWindow();
 
-    const { autoUpdater } = require('electron-updater');
-    autoUpdater.autoDownload = true;
-    autoUpdater.autoInstallOnAppQuit = true;
-
     let retryCount = 0;
     const maxRetries = 3;
 
@@ -130,48 +126,106 @@ async function checkAndLaunch() {
         splashWindow.webContents.send('updater:status', { status: 'Searching for updates', retryCount });
 
         try {
-            await autoUpdater.checkForUpdates();
+            const axios = require('axios');
+            const { compareVersions } = require('../backend/utils/version-utils');
+            const pkg = require('../package.json');
+
+            const REPO = 'MCLC-Client/MCLC-Client';
+            const GITHUB_API = `https://api.github.com/repos/${REPO}/releases/latest`;
+
+            const response = await axios.get(GITHUB_API, {
+                headers: { 'User-Agent': 'MCLC-AutoUpdater' }
+            });
+            const release = response.data;
+            const latestVersion = release.tag_name;
+            const currentVersion = pkg.version;
+
+            const needsUpdate = compareVersions(currentVersion, latestVersion) === 1;
+
+            if (needsUpdate) {
+                const platform = process.platform;
+                let asset = null;
+                if (platform === 'win32') {
+                    asset = release.assets.find(a => a.name.endsWith('.exe'));
+                } else if (platform === 'linux') {
+                    asset = release.assets.find(a => a.name.endsWith('.AppImage') || a.name.endsWith('.deb') || a.name.endsWith('.rpm'));
+                } else if (platform === 'darwin') {
+                    asset = release.assets.find(a => a.name.endsWith('.zip') || a.name.endsWith('.dmg'));
+                }
+
+                if (asset) {
+                    splashWindow.webContents.send('updater:status', { status: 'Downloading update...', progress: 0 });
+
+                    const downloadDir = path.join(app.getPath('userData'), 'updates');
+                    await fs.ensureDir(downloadDir);
+                    const targetPath = path.join(downloadDir, asset.name);
+
+                    const downloadRes = await axios({
+                        url: asset.browser_download_url,
+                        method: 'GET',
+                        responseType: 'stream'
+                    });
+
+                    const totalLength = downloadRes.headers['content-length'];
+                    let downloadedLength = 0;
+                    const writer = fs.createWriteStream(targetPath);
+                    downloadRes.data.pipe(writer);
+
+                    downloadRes.data.on('data', (chunk) => {
+                        downloadedLength += chunk.length;
+                        const percent = totalLength ? Math.round((downloadedLength / totalLength) * 100) : 0;
+                        splashWindow.webContents.send('updater:status', { status: `Installing Update (${percent}%)`, progress: percent });
+                    });
+
+                    await new Promise((resolve, reject) => {
+                        writer.on('finish', resolve);
+                        writer.on('error', reject);
+                    });
+
+                    splashWindow.webContents.send('updater:status', { status: 'Update downloaded, installing...' });
+                    setTimeout(() => {
+                        const { spawn } = require('child_process');
+                        if (process.platform === 'win32') {
+                            // VBScript to invisibly wait for the silent installer to finish, then relaunch the app.
+                            const updateScript = path.join(downloadDir, 'update.vbs');
+                            const exeTarget = process.execPath;
+                            const vbsContent = `Set objShell = WScript.CreateObject("WScript.Shell")
+WScript.Sleep 2000
+objShell.Run """" & WScript.Arguments(0) & """ /S", 1, True
+objShell.Run """" & WScript.Arguments(1) & """", 1, False`;
+                            fs.writeFileSync(updateScript, vbsContent);
+                            spawn('wscript.exe', [updateScript, targetPath, exeTarget], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+                        } else if (process.platform === 'linux') {
+                            if (targetPath.endsWith('.AppImage')) {
+                                fs.chmodSync(targetPath, 0o755);
+                                spawn(targetPath, [], { detached: true, stdio: 'ignore' }).unref();
+                            } else {
+                                require('electron').shell.openPath(path.dirname(targetPath));
+                            }
+                        } else {
+                            require('electron').shell.openPath(targetPath);
+                        }
+                        app.quit();
+                    }, 1000);
+                    return; // Stop here, don't launch main
+                }
+            }
+
+            // No update or missing asset
+            splashWindow.webContents.send('updater:status', { status: 'Starting' });
+            setTimeout(launchMain, 1500);
+
         } catch (err) {
             console.error('[Main] Update check failed:', err);
             retryCount++;
             if (retryCount <= maxRetries) {
-                splashWindow.webContents.send('updater:status', { status: `Searching for updates`, retryCount });
-                // If we reach max retries, just start the app silently
+                setTimeout(performCheck, 1000); // Wait 1 second before retry
+            } else {
                 splashWindow.webContents.send('updater:status', { status: 'Starting' });
                 setTimeout(launchMain, 1500);
             }
         }
     };
-
-    autoUpdater.on('checking-for-update', () => {
-        splashWindow.webContents.send('updater:status', { status: 'Searching for updates' });
-    });
-
-    autoUpdater.on('update-available', (info) => {
-        // Keep "Searching for updates" until download starts or show finding
-        splashWindow.webContents.send('updater:status', { status: 'Downloading update...' });
-    });
-
-    autoUpdater.on('update-not-available', () => {
-        splashWindow.webContents.send('updater:status', { status: 'Starting' });
-        setTimeout(launchMain, 2000);
-    });
-
-    autoUpdater.on('download-progress', (progressObj) => {
-        splashWindow.webContents.send('updater:status', { status: `Installing Update (${Math.round(progressObj.percent)}%)`, progress: progressObj.percent });
-    });
-
-    autoUpdater.on('update-downloaded', () => {
-        splashWindow.webContents.send('updater:status', { status: 'Update downloaded, installing...' });
-        setTimeout(() => {
-            autoUpdater.quitAndInstall();
-        }, 1000);
-    });
-
-    autoUpdater.on('error', (err) => {
-        console.error('[Main] Updater error:', err);
-        // On first error, don't necessarily show it, just move to starting if retries exhausted in performCheck
-    });
 
     splashWindow.webContents.once('did-finish-load', () => {
         performCheck();
@@ -341,10 +395,6 @@ function createWindow() {
         mainWindow.close();
     });
 
-    ipcMain.on('update:quit-and-install', () => {
-        const { autoUpdater } = require('electron-updater');
-        autoUpdater.quitAndInstall();
-    });
     mainWindow.on('maximize', () => mainWindow.webContents.send('window-state', true));
     mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-state', false));
 

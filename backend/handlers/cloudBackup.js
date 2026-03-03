@@ -4,7 +4,8 @@ const Store = require('electron-store');
 const { app, shell, BrowserWindow } = require('electron');
 const path = require('path');
 
-require('dotenv').config({ path: path.join(app.getAppPath(), '.env') });
+const envPath = app.isPackaged ? path.join(process.resourcesPath, '.env') : path.join(app.getAppPath(), '.env');
+require('dotenv').config({ path: envPath });
 
 const store = new Store();
 

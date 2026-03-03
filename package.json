@@ -3,7 +3,7 @@
   "name": "mclc",
   "description": "MCLC Client",
   "author": "MCLC Team <mclc@pluginhub.de>",
-  "version": "1.6.9",
+  "version": "1.6.10",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently -k \"vite\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
@@ -37,6 +37,15 @@
     "directories": {
       "output": "release"
     },
+    "extraResources": [
+      {
+        "from": ".",
+        "to": ".",
+        "filter": [
+          ".env"
+        ]
+      }
+    ],
     "win": {
       "target": [
         {

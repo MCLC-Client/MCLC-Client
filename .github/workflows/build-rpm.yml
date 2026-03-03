@@ -65,6 +65,14 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline --no-audit --no-fund
 
+      - name: Create .env file for build
+        shell: bash
+        run: |
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env
+          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env
+          echo "DROPBOX_CLIENT_ID=${{ secrets.DROPBOX_CLIENT_ID }}" >> .env
+          echo "DROPBOX_CLIENT_SECRET=${{ secrets.DROPBOX_CLIENT_SECRET }}" >> .env
+
       - name: Build
         run: npm run build
 
