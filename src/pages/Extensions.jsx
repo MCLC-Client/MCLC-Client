@@ -323,7 +323,7 @@ const Extensions = () => {
                                                 </button>
                                             )}
                                             <button
-                                                onClick={() => window.open(`https://mclc.pluginhub.de/extensions/${ext.identifier}`, '_blank')}
+                                                onClick={() => window.electronAPI?.openExternal(`https://mclc.pluginhub.de/extensions/${ext.identifier}`)}
                                                 className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white font-medium rounded-lg transition-all flex items-center gap-2 border border-white/5"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
