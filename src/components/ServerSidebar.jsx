@@ -3,7 +3,10 @@ import React from 'react';
 function ServerSidebar({ currentView, setView, onLogout, isCollapsed, setIsCollapsed }) {
     const [settings, setSettings] = React.useState({ showDisabledFeatures: false });
     const getLabelClasses = (baseClasses, expandedWidth = 'max-w-[10rem]') => (
-        `${baseClasses} min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left transition-[max-width] duration-300 ease-in-out ${isCollapsed ? 'max-w-0' : expandedWidth}`
+        `${baseClasses} absolute top-1/2 left-12 right-3 min-w-0 -translate-y-1/2 overflow-hidden whitespace-nowrap text-left transition-[max-width,opacity] duration-300 ease-in-out ${isCollapsed ? 'max-w-0 opacity-0' : `${expandedWidth} opacity-100`}`
+    );
+    const getIconClasses = () => (
+        `absolute top-1/2 left-[11px] flex h-6 w-6 -translate-y-1/2 items-center justify-center`
     );
     const dividerClassName = `h-[1px] bg-white/10 shrink-0 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-8' : 'w-full'}`;
 
@@ -41,7 +44,6 @@ function ServerSidebar({ currentView, setView, onLogout, isCollapsed, setIsColla
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45), 0 0 calc(var(--sidebar-glow-intensity, 0) * 32px) rgba(var(--primary-color-rgb), calc(var(--sidebar-glow-intensity, 0) * 0.55))'
             }}>
 
-            
             <div className="w-full px-2 pt-4 mb-2">
                 <div className="relative h-9">
                     <button
@@ -75,18 +77,18 @@ function ServerSidebar({ currentView, setView, onLogout, isCollapsed, setIsColla
                     <button
                         key={item.id}
                         onClick={() => setView(item.id)}
-                        className={`h-12 w-full rounded-xl flex items-center px-3 transition-all duration-300 ease-in-out group relative shrink-0 overflow-hidden ${currentView === item.id
+                        className={`h-12 w-full rounded-xl relative transition-all duration-300 ease-in-out group shrink-0 overflow-hidden ${currentView === item.id
                             ? 'bg-primary/20 text-primary border border-primary/30'
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                     >
-                        <div className="shrink-0 flex items-center justify-center w-6 h-6">
+                        <div className={getIconClasses()}>
                             <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                             </svg>
                         </div>
 
-                        <span className={getLabelClasses('ml-3 text-sm font-bold')}>
+                        <span className={getLabelClasses('text-sm font-bold')}>
                             {item.label}
                         </span>
 
@@ -100,22 +102,21 @@ function ServerSidebar({ currentView, setView, onLogout, isCollapsed, setIsColla
                 ))}
             </div>
 
-            
-            <div className={`flex flex-col items-center gap-2 w-full px-2 mt-4`}>
+            <div className="flex flex-col items-center gap-2 w-full px-2 mt-4">
                 <button
                     onClick={() => setView('server-settings')}
-                    className={`h-12 w-full rounded-xl flex items-center px-3 transition-all duration-300 ease-in-out group relative shrink-0 overflow-hidden ${currentView === 'server-settings'
+                    className={`h-12 w-full rounded-xl relative transition-all duration-300 ease-in-out group shrink-0 overflow-hidden ${currentView === 'server-settings'
                         ? 'bg-primary/20 text-primary border border-primary/30'
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }`}
                 >
-                    <div className="shrink-0 flex items-center justify-center w-6 h-6">
+                    <div className={getIconClasses()}>
                         <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </div>
 
-                    <span className={getLabelClasses('ml-3 text-sm font-bold')}>
+                    <span className={getLabelClasses('text-sm font-bold')}>
                         Settings
                     </span>
 
@@ -133,15 +134,15 @@ function ServerSidebar({ currentView, setView, onLogout, isCollapsed, setIsColla
 
                 <button
                     onClick={onLogout}
-                    className="h-12 w-full rounded-xl flex items-center px-3 transition-all duration-300 ease-in-out group relative shrink-0 overflow-hidden text-gray-400 hover:text-red-400 hover:bg-red-500/10"
+                    className="h-12 w-full rounded-xl relative transition-all duration-300 ease-in-out group shrink-0 overflow-hidden text-gray-400 hover:text-red-400 hover:bg-red-500/10"
                 >
-                    <div className="shrink-0 flex items-center justify-center w-6 h-6">
+                    <div className={getIconClasses()}>
                         <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                         </svg>
                     </div>
 
-                    <span className={getLabelClasses('ml-3 text-sm font-bold')}>
+                    <span className={getLabelClasses('text-sm font-bold')}>
                         Logout
                     </span>
 
@@ -158,3 +159,6 @@ function ServerSidebar({ currentView, setView, onLogout, isCollapsed, setIsColla
 }
 
 export default ServerSidebar;
+
+
+
