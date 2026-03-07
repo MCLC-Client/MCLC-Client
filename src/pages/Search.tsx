@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNotification } from '../context/NotificationContext';
 import { useTranslation } from 'react-i18next';
 import { Analytics } from '../services/Analytics';
@@ -74,6 +74,8 @@ function Search({ initialCategory, onCategoryConsumed }) {
     const [resolvedForInstance, setResolvedForInstance] = useState(null);
     const [jumpPopover, setJumpPopover] = useState(null);
     const [jumpValue, setJumpValue] = useState('');
+    const liveSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const didInitLiveSearchRef = useRef(false);
     const totalPages = Math.max(1, Math.ceil(totalHits / limit));
     const currentPage = Math.floor(offset / limit) + 1;
 
@@ -145,6 +147,32 @@ function Search({ initialCategory, onCategoryConsumed }) {
     useEffect(() => {
         handleSearch();
     }, [offset, sortMethod, projectType]);
+
+    useEffect(() => {
+        if (!didInitLiveSearchRef.current) {
+            didInitLiveSearchRef.current = true;
+            return;
+        }
+
+        if (liveSearchTimeoutRef.current) {
+            clearTimeout(liveSearchTimeoutRef.current);
+        }
+
+        liveSearchTimeoutRef.current = setTimeout(() => {
+            if (offset === 0) {
+                handleSearch(null, 0);
+                return;
+            }
+            setOffset(0);
+        }, 300);
+
+        return () => {
+            if (liveSearchTimeoutRef.current) {
+                clearTimeout(liveSearchTimeoutRef.current);
+                liveSearchTimeoutRef.current = null;
+            }
+        };
+    }, [query]);
 
     const handleSearch = async (e?: any, nextOffset = offset) => {
         if (e) e.preventDefault();
@@ -457,6 +485,10 @@ function Search({ initialCategory, onCategoryConsumed }) {
                     <form
                         onSubmit={(e) => {
                             e.preventDefault();
+                            if (liveSearchTimeoutRef.current) {
+                                clearTimeout(liveSearchTimeoutRef.current);
+                                liveSearchTimeoutRef.current = null;
+                            }
                             if (offset === 0) {
                                 handleSearch(null, 0);
                                 return;
