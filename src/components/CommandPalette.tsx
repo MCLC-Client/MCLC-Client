@@ -8,7 +8,7 @@ import {
 import { Dialog, DialogContent } from './ui/dialog';
 import {
   Home, LayoutGrid, Search, User, Puzzle, Palette,
-  Settings, Newspaper, Play, Server, ArrowRightLeft, Monitor, List
+  Settings, Newspaper, Play, Server, Rocket, Gamepad2, List
 } from 'lucide-react';
 
 function CommandPalette({ open, onOpenChange, onNavigate, onModeSelect, currentMode, isAvailable, canAccessSkins }) {
@@ -143,7 +143,7 @@ function CommandPalette({ open, onOpenChange, onNavigate, onModeSelect, currentM
                     className="gap-3 py-2 px-3 rounded-lg cursor-pointer"
                   >
                     <div className="w-8 h-8 rounded-md bg-accent flex items-center justify-center shrink-0">
-                      <Monitor className="h-4 w-4" />
+                      <Gamepad2 className="h-4 w-4" />
                     </div>
                     <span className="font-medium">{t('common.client', 'Client')}</span>
                   </CommandItem>
@@ -168,7 +168,7 @@ function CommandPalette({ open, onOpenChange, onNavigate, onModeSelect, currentM
                 onSelect={() => handleSelect(() => onModeSelect('launcher'))}
                 className="gap-3 py-2 px-3 rounded-lg cursor-pointer"
               >
-                <ArrowRightLeft className="h-4 w-4" />
+                <Rocket className="h-4 w-4" />
                 <span>{t('common.launcher')}</span>
                 {currentMode === 'launcher' && <CommandShortcut>Active</CommandShortcut>}
               </CommandItem>
@@ -187,7 +187,7 @@ function CommandPalette({ open, onOpenChange, onNavigate, onModeSelect, currentM
                   onSelect={() => handleSelect(() => onModeSelect('client'))}
                   className="gap-3 py-2 px-3 rounded-lg cursor-pointer"
                 >
-                  <Monitor className="h-4 w-4" />
+                  <Gamepad2 className="h-4 w-4" />
                   <span>{t('common.client', 'Client')}</span>
                   {currentMode === 'client' && <CommandShortcut>Active</CommandShortcut>}
                 </CommandItem>

@@ -9,14 +9,15 @@ import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from './ui/tooltip';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuGroup
 } from './ui/dropdown-menu';
 import {
-  Search, ChevronDown, ArrowRightLeft, Newspaper,
-  Download, Gamepad2, Square, UserPlus, Trash2, LogOut, Zap
+  Search, ChevronDown, Newspaper, Rocket,
+  Download, Gamepad2, Server, UserPlus, Trash2, LogOut, Zap
 } from 'lucide-react';
 
 function TopBar({
@@ -107,6 +108,23 @@ function TopBar({
   const activeDownloadEntries = Object.entries(activeDownloads);
   const activeDownloadCount = activeDownloadEntries.length;
   const isClientPageEnabled = isFeatureEnabled('openClientPage');
+  const modeButtons = [
+    {
+      value: 'launcher',
+      label: t('common.launcher', 'Launcher'),
+      icon: Rocket
+    },
+    {
+      value: 'server',
+      label: t('common.server', 'Server'),
+      icon: Server
+    },
+    ...(isClientPageEnabled ? [{
+      value: 'client',
+      label: t('common.client', 'Client'),
+      icon: Gamepad2
+    }] : [])
+  ];
 
   return (
     <div className="h-16 w-full titlebar flex items-center justify-between px-5 border-b border-border bg-background/80 backdrop-blur-md flex-none relative z-[60]">
@@ -117,15 +135,36 @@ function TopBar({
 
         {appSettings?.showQuickSwitchButton !== false && (
           <>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-10 gap-2.5 rounded-xl px-3.5 text-sm font-semibold text-muted-foreground"
-              onClick={() => onModeSelect(currentMode === 'launcher' ? 'server' : 'launcher')}
-            >
-              <ArrowRightLeft className="h-4 w-4" />
-              {currentMode === 'launcher' ? t('common.switch_to_server') : t('common.switch_to_client')}
-            </Button>
+            <TooltipProvider>
+              <ToggleGroup
+                type="single"
+                value={currentMode}
+                onValueChange={(value) => value && onModeSelect(value)}
+                className="gap-1"
+              >
+                {modeButtons.map(({ value, label, icon: Icon }) => (
+                  <Tooltip key={value}>
+                    <TooltipTrigger asChild>
+                      <ToggleGroupItem
+                        value={value}
+                        aria-label={label}
+                        className={cn(
+                          "h-8 w-8 rounded-lg px-0",
+                          currentMode === value
+                            ? "bg-muted text-foreground shadow-sm hover:bg-muted hover:text-foreground"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </ToggleGroupItem>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>{label}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </ToggleGroup>
+            </TooltipProvider>
 
             <Button
               variant="ghost"
@@ -189,18 +228,6 @@ function TopBar({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
-
-        {isClientPageEnabled && (
-          <Button
-            variant={currentMode === 'client' ? 'default' : 'ghost'}
-            size="sm"
-            className="h-10 gap-2.5 rounded-xl px-3.5 text-sm"
-            onClick={() => onModeSelect('client')}
-          >
-            <Gamepad2 className="h-4 w-4" />
-            {t('client_page.title', 'Open Client')}
-          </Button>
         )}
 
         <Button
