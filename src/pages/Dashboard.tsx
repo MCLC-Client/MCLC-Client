@@ -68,6 +68,7 @@ const InstanceCard = ({
   pendingLaunches,
   onInstanceClick,
   onContextAction,
+  actionMenu,
   addNotification,
   loadInstances,
   setPendingLaunches,
@@ -98,17 +99,16 @@ const InstanceCard = ({
   return (
     <div
       onClick={() => onInstanceClick(instance)}
-      className={`group relative rounded-lg border p-3 transition-colors cursor-pointer ${
-        isRunning
-          ? 'border-primary/40 bg-primary/5'
-          : 'border-border hover:bg-accent/50 active:bg-accent'
-      }`}
+      className={`group relative rounded-lg border p-3 transition-colors cursor-pointer ${isRunning
+        ? 'border-primary/40 bg-primary/5'
+        : 'border-border hover:bg-accent/50 active:bg-accent'
+        }`}
     >
       <div className="flex items-start gap-3 mb-2.5">
         {instance.icon &&
-        (instance.icon.startsWith('data:') ||
-          instance.icon.startsWith('app-media://') ||
-          instance.icon.startsWith('http')) ? (
+          (instance.icon.startsWith('data:') ||
+            instance.icon.startsWith('app-media://') ||
+            instance.icon.startsWith('http')) ? (
           <OptimizedImage
             src={instance.icon}
             alt={instance.name}
@@ -140,24 +140,42 @@ const InstanceCard = ({
                     ? `${t('common.installing')} (${installState.progress}%)`
                     : t('common.installing')
                   : isLaunching
-                  ? t('common.starting')
-                  : t('common.running')}
+                    ? t('common.starting')
+                    : t('common.running')}
               </Badge>
             </div>
           )}
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
-            onContextAction(e, instance);
-          }}
-        >
-          <MoreVertical className="w-4 h-4" />
-        </Button>
+        {actionMenu ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            {actionMenu}
+          </DropdownMenu>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              onContextAction && onContextAction(e, instance);
+            }}
+          >
+            <MoreVertical className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       <Separator className="mb-2" />
@@ -170,11 +188,10 @@ const InstanceCard = ({
         <Button
           variant={isRunning ? 'destructive' : 'default'}
           size="sm"
-          className={`h-7 gap-1 text-xs ${
-            !isRunning && !isInstalling && !isLaunching && !pendingLaunches[instance.name]
-              ? 'opacity-0 group-hover:opacity-100 transition-opacity'
-              : ''
-          }`}
+          className={`h-7 gap-1 text-xs ${!isRunning && !isInstalling && !isLaunching && !pendingLaunches[instance.name]
+            ? 'opacity-0 group-hover:opacity-100 transition-opacity'
+            : ''
+            }`}
           onClick={async (e) => {
             e.stopPropagation();
             if (isGuest) {
@@ -209,14 +226,14 @@ const InstanceCard = ({
             isRunning
               ? t('common.stop')
               : isInstalling
-              ? installState
-                ? installState.status
-                : t('common.installing')
-              : isLaunching
-              ? t('common.starting')
-              : pendingLaunches[instance.name]
-              ? t('common.starting')
-              : t('dashboard.launch_game', 'Launch Game')
+                ? installState
+                  ? installState.status
+                  : t('common.installing')
+                : isLaunching
+                  ? t('common.starting')
+                  : pendingLaunches[instance.name]
+                    ? t('common.starting')
+                    : t('dashboard.launch_game', 'Launch Game')
           }
         >
           {isRunning ? (
@@ -346,7 +363,7 @@ function Dashboard({
             : [];
           setActionBarActions(existingActions);
         }
-      } catch (e) {}
+      } catch (e) { }
     };
 
     loadActionBarActions();
@@ -736,6 +753,51 @@ function Dashboard({
   const isEmpty =
     groupedData.length === 0 || (groupedData.length === 1 && groupedData[0].items.length === 0);
 
+  const instanceMenuItems = (instance) => (
+    <>
+      <ContextMenuItem onClick={() => handleContextAction('play', instance)}>
+        <Play className="w-4 h-4 mr-2" />
+        {t('dashboard.context.play')}
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={() => handleContextAction('view', instance)}>
+        <Eye className="w-4 h-4 mr-2" />
+        {t('dashboard.context.view')}
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => handleContextAction('duplicate', instance)}>
+        <Copy className="w-4 h-4 mr-2" />
+        {t('dashboard.context.duplicate')}
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => handleContextAction('export', instance)}>
+        <Download className="w-4 h-4 mr-2" />
+        {t('dashboard.context.export')}
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => handleContextAction('folder', instance)}>
+        <FolderOpen className="w-4 h-4 mr-2" />
+        {t('dashboard.context.folder')}
+      </ContextMenuItem>
+      {hasInstanceAction(instance.name) ? (
+        <ContextMenuItem onClick={() => handleContextAction('remove-from-actionbar', instance)}>
+          <Zap className="w-4 h-4 mr-2" />
+          {t('action_bar.remove_from_actionbar', 'Remove from Actionbar')}
+        </ContextMenuItem>
+      ) : (
+        <ContextMenuItem onClick={() => handleContextAction('add-to-actionbar', instance)}>
+          <Zap className="w-4 h-4 mr-2" />
+          {t('action_bar.add_to_actionbar', 'Add to Actionbar')}
+        </ContextMenuItem>
+      )}
+      <ContextMenuSeparator />
+      <ContextMenuItem
+        className="text-destructive focus:text-destructive"
+        onClick={() => handleContextAction('delete', instance)}
+      >
+        <Trash2 className="w-4 h-4 mr-2" />
+        {t('dashboard.context.delete')}
+      </ContextMenuItem>
+    </>
+  );
+
   const renderInstanceCard = (instance) => (
     <ContextMenu key={instance.name}>
       <ContextMenuTrigger>
@@ -748,6 +810,50 @@ function Dashboard({
           onContextAction={(e, inst) => {
             e.stopPropagation();
           }}
+          actionMenu={
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleContextAction('play', instance); }}>
+                <Play className="w-4 h-4 mr-2" />
+                {t('dashboard.context.play')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleContextAction('view', instance); }}>
+                <Eye className="w-4 h-4 mr-2" />
+                {t('dashboard.context.view')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleContextAction('duplicate', instance); }}>
+                <Copy className="w-4 h-4 mr-2" />
+                {t('dashboard.context.duplicate')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleContextAction('export', instance); }}>
+                <Download className="w-4 h-4 mr-2" />
+                {t('dashboard.context.export')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleContextAction('folder', instance); }}>
+                <FolderOpen className="w-4 h-4 mr-2" />
+                {t('dashboard.context.folder')}
+              </DropdownMenuItem>
+              {hasInstanceAction(instance.name) ? (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleContextAction('remove-from-actionbar', instance); }}>
+                  <Zap className="w-4 h-4 mr-2" />
+                  {t('action_bar.remove_from_actionbar', 'Remove from Actionbar')}
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleContextAction('add-to-actionbar', instance); }}>
+                  <Zap className="w-4 h-4 mr-2" />
+                  {t('action_bar.add_to_actionbar', 'Add to Actionbar')}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={(e) => { e.stopPropagation(); handleContextAction('delete', instance); }}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {t('dashboard.context.delete')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          }
           addNotification={addNotification}
           loadInstances={loadInstances}
           setPendingLaunches={setPendingLaunches}
@@ -756,46 +862,7 @@ function Dashboard({
         />
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
-        <ContextMenuItem onClick={() => handleContextAction('play', instance)}>
-          <Play className="w-4 h-4 mr-2" />
-          {t('dashboard.context.play')}
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => handleContextAction('view', instance)}>
-          <Eye className="w-4 h-4 mr-2" />
-          {t('dashboard.context.view')}
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => handleContextAction('duplicate', instance)}>
-          <Copy className="w-4 h-4 mr-2" />
-          {t('dashboard.context.duplicate')}
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => handleContextAction('export', instance)}>
-          <Download className="w-4 h-4 mr-2" />
-          {t('dashboard.context.export')}
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => handleContextAction('folder', instance)}>
-          <FolderOpen className="w-4 h-4 mr-2" />
-          {t('dashboard.context.folder')}
-        </ContextMenuItem>
-        {hasInstanceAction(instance.name) ? (
-          <ContextMenuItem onClick={() => handleContextAction('remove-from-actionbar', instance)}>
-            <Zap className="w-4 h-4 mr-2" />
-            {t('action_bar.remove_from_actionbar', 'Remove from Actionbar')}
-          </ContextMenuItem>
-        ) : (
-          <ContextMenuItem onClick={() => handleContextAction('add-to-actionbar', instance)}>
-            <Zap className="w-4 h-4 mr-2" />
-            {t('action_bar.add_to_actionbar', 'Add to Actionbar')}
-          </ContextMenuItem>
-        )}
-        <ContextMenuSeparator />
-        <ContextMenuItem
-          className="text-destructive focus:text-destructive"
-          onClick={() => handleContextAction('delete', instance)}
-        >
-          <Trash2 className="w-4 h-4 mr-2" />
-          {t('dashboard.context.delete')}
-        </ContextMenuItem>
+        {instanceMenuItems(instance)}
       </ContextMenuContent>
     </ContextMenu>
   );
@@ -1078,8 +1145,8 @@ function Dashboard({
                 {isCreating
                   ? t('common.creating')
                   : creationStep === 1 && selectedLoader.toLowerCase() !== 'vanilla'
-                  ? t('common.next')
-                  : t('common.create')}
+                    ? t('common.next')
+                    : t('common.create')}
               </Button>
             </DialogFooter>
           </form>
