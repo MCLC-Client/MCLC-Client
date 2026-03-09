@@ -131,7 +131,7 @@ async function checkAndLaunch() {
             const { compareVersions } = require('../backend/utils/version-utils');
             const pkg = require('../package.json');
 
-            const REPO = 'LuxClient/LuxClient';
+            const REPO = 'Lux-Client/LuxClient';
             const GITHUB_API = `https://api.github.com/repos/${REPO}/releases/latest`;
 
             const response = await axios.get(GITHUB_API, {

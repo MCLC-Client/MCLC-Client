@@ -67,9 +67,7 @@
       "createDesktopShortcut": true,
       "installerIcon": "resources/icon.ico",
       "uninstallerIcon": "resources/icon.ico",
-      "installerHeaderIcon": "resources/icon.ico",
-      "installerSidebar": "resources/header.bmp",
-      "uninstallerSidebar": "resources/sidebar.bmp"
+      "installerHeaderIcon": "resources/icon.ico"
     },
     "mac": {
       "target": [
