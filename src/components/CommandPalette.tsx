@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isFeatureEnabled } from '../config/featureFlags';
+import { filterInstancesForMode } from '../utils/instanceTypes';
 import {
   Command, CommandInput, CommandList, CommandEmpty,
   CommandGroup, CommandItem, CommandSeparator, CommandShortcut
@@ -18,7 +19,7 @@ function CommandPalette({ open, onOpenChange, onNavigate, onModeSelect, currentM
 
   useEffect(() => {
     if (open && isAvailable) fetchInstances();
-  }, [open, isAvailable]);
+  }, [open, isAvailable, currentMode]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -41,7 +42,8 @@ function CommandPalette({ open, onOpenChange, onNavigate, onModeSelect, currentM
   const fetchInstances = async () => {
     try {
       const list = await window.electronAPI.getInstances();
-      setInstances(list || []);
+      const instanceMode = currentMode === 'client' || currentMode === 'launcher' ? currentMode : undefined;
+      setInstances(filterInstancesForMode(list, instanceMode));
     } catch (e) {}
   };
 

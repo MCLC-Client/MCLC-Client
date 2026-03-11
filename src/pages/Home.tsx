@@ -12,6 +12,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { Skeleton } from '../components/ui/skeleton';
+import { filterInstancesForMode } from '../utils/instanceTypes';
 import {
   Dialog,
   DialogContent,
@@ -219,9 +220,10 @@ function Home({ onInstanceClick, runningInstances = {}, activeDownloads = {}, on
 
   const loadInstances = async () => {
     const list = await window.electronAPI.getInstances();
-    setInstances(list || []);
-    if (list && list.length > 0) {
-      const recentInsts = [...list]
+    const launcherInstances = filterInstancesForMode(list, 'launcher');
+    setInstances(launcherInstances);
+    if (launcherInstances.length > 0) {
+      const recentInsts = [...launcherInstances]
         .filter(inst => inst.lastPlayed || inst.playtime > 0)
         .sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0))
         .slice(0, 5);
@@ -246,6 +248,8 @@ function Home({ onInstanceClick, runningInstances = {}, activeDownloads = {}, on
 
       allWorlds.sort((a: any, b: any) => new Date(b.lastPlayed).getTime() - new Date(a.lastPlayed).getTime());
       setRecentWorlds(allWorlds.slice(0, 3));
+    } else {
+      setRecentWorlds([]);
     }
   };
 

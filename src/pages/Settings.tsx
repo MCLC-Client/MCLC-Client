@@ -18,6 +18,7 @@ import { Slider } from '../components/ui/slider';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
 import { getSourceTags } from '../utils/sourceTags';
+import { filterInstancesForMode } from '../utils/instanceTypes';
 import {
     Save,
     FolderOpen,
@@ -172,7 +173,8 @@ function Settings({ mode = 'default' }) {
 
     const loadInstances = async () => {
         const list = await window.electronAPI.getInstances();
-        setInstances(list || []);
+        const instanceMode = mode === 'client' ? 'client' : 'launcher';
+        setInstances(filterInstancesForMode(list, instanceMode));
     };
 
     const loadJavaRuntimes = async () => {

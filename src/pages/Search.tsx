@@ -9,6 +9,7 @@ import EmptyState from '../components/layout/EmptyState';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
+import { filterInstancesForMode } from '../utils/instanceTypes';
 import {
     Pagination,
     PaginationContent,
@@ -354,8 +355,9 @@ function Search({ initialCategory, onCategoryConsumed }) {
 
         setSelectedMod(mod);
         const list = await window.electronAPI.getInstances();
-        setInstances(list || []);
-        if (list && list.length > 0) setSelectedInstance(list[0].name);
+        const launcherInstances = filterInstancesForMode(list, 'launcher');
+        setInstances(launcherInstances);
+        setSelectedInstance(launcherInstances.length > 0 ? launcherInstances[0].name : '');
         setShowInstallModal(true);
     };
 

@@ -15,6 +15,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Separator } from '../components/ui/separator';
+import { filterInstancesForMode } from '../utils/instanceTypes';
 import {
   Dialog,
   DialogContent,
@@ -459,7 +460,7 @@ function Dashboard({
 
   const loadInstances = async () => {
     const list = await window.electronAPI.getInstances();
-    setInstances(list || []);
+    setInstances(filterInstancesForMode(list, 'launcher'));
   };
 
   const fetchVersions = async () => {

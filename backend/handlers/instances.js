@@ -1627,6 +1627,12 @@ module.exports = (ipcMain, win) => {
 
                         try {
                             const config = await fs.readJson(configPath);
+                            const instanceType = typeof config?.instanceType === 'string' ? config.instanceType.trim().toLowerCase() : '';
+                            const loader = String(config?.loader || '').trim().toLowerCase();
+                            const instanceName = String(config?.name || dir).trim().toLowerCase();
+                            if (!instanceType && loader === 'fabric' && instanceName.startsWith('client ')) {
+                                config.instanceType = 'open-client';
+                            }
                             const key = config?.name || dir;
                             if (!instancesByName.has(key)) {
                                 instancesByName.set(key, config);
@@ -1973,7 +1979,7 @@ module.exports = (ipcMain, win) => {
             }
         });
 
-        ipcMain.handle('instance:create', async (_, { name, version, loader, loaderVersion, icon }) => {
+        ipcMain.handle('instance:create', async (_, { name, version, loader, loaderVersion, icon, options }) => {
             try {
                 instancesDir = resolvePrimaryInstancesDir();
                 await fs.ensureDir(instancesDir);
@@ -2009,6 +2015,7 @@ module.exports = (ipcMain, win) => {
                 } catch (e) {
                     console.error('Failed to copy settings:', e);
                 }
+                const instanceType = typeof options?.instanceType === 'string' ? options.instanceType.trim() : '';
                 const config = {
                     name: finalName,
                     version,
@@ -2021,6 +2028,10 @@ module.exports = (ipcMain, win) => {
                     lastPlayed: null,
                     status: 'installing'
                 };
+
+                if (instanceType) {
+                    config.instanceType = instanceType;
+                }
 
                 await fs.writeJson(path.join(dir, 'instance.json'), config, { spaces: 4 });
                 await fs.writeFile(path.join(dir, 'playtime.txt'), '0');

@@ -53,7 +53,7 @@ interface ElectronAPI {
   getLiveLogs: (instanceName: string) => Promise<any>;
   killGame: (instanceName: string) => Promise<any>;
   abortLaunch: (instanceName: string) => Promise<any>;
-  createInstance: (name: string, version: string, loader: string, icon: string, loaderVersion?: string) => Promise<any>;
+  createInstance: (name: string, version: string, loader: string, icon: string | null, loaderVersion?: string | null, options?: any) => Promise<any>;
   updateInstance: (name: string, config: any) => Promise<any>;
   updateInstanceConfig: (name: string, config: any) => Promise<any>;
   migrateInstance: (name: string, config: any) => Promise<any>;

@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '../components/ui/context-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip';
 import { Separator } from '../components/ui/separator';
-import { Plus, Trash2, Pencil, Pause, Play, X, AlertTriangle, Loader2, User, Crown, ImageUp, Link2, Download, Paintbrush, Eraser, Save } from 'lucide-react';
+import { Plus, Trash2, Pencil, Pause, Play, X, AlertTriangle, Loader2, User, Crown, ImageUp, Link2, Download, Paintbrush, Eraser, Save, PaintBucket, Hand } from 'lucide-react';
 
 const DEFAULT_SKINS = [
     { name: 'Steve', defaultModel: 'classic', urls: { classic: '/assets/skins/steve-classic.png', slim: '/assets/skins/steve-slim.png' } },
@@ -207,6 +207,7 @@ const AdvancedSkinEditorDialog = ({
     const brushSizeRef = useRef(1);
     const mirrorModeRef = useRef<'none' | 'x' | 'y' | 'xy'>('none');
     const activeLargeViewRef = useRef<'player' | 'texture'>('player');
+    const dragModeRef = useRef(false);
 
     const [editorModel, setEditorModel] = useState(model || 'classic');
     const [brushColor, setBrushColor] = useState('#ff6600');
@@ -214,6 +215,7 @@ const AdvancedSkinEditorDialog = ({
     const [tool, setTool] = useState<'paint' | 'erase' | 'fill'>('paint');
     const [mirrorMode, setMirrorMode] = useState<'none' | 'x' | 'y' | 'xy'>('none');
     const [activeLargeView, setActiveLargeView] = useState<'player' | 'texture'>('player');
+    const [dragMode, setDragMode] = useState(false);
     const [pose, setPose] = useState('t_pose');
     const [flatPreview, setFlatPreview] = useState('');
     const [skinName, setSkinName] = useState('Edited Skin');
@@ -225,6 +227,7 @@ const AdvancedSkinEditorDialog = ({
         setEditorModel(model || 'classic');
         setActiveLargeView('player');
         setPose('t_pose');
+        setDragMode(false);
     }, [model, open]);
 
     useEffect(() => {
@@ -246,6 +249,18 @@ const AdvancedSkinEditorDialog = ({
     useEffect(() => {
         activeLargeViewRef.current = activeLargeView;
     }, [activeLargeView]);
+
+    useEffect(() => {
+        dragModeRef.current = dragMode;
+        if (dragMode) {
+            pointerDownRef.current = false;
+            strokeActiveRef.current = false;
+            lastPointerRef.current = { x: -1, y: -1 };
+        }
+        if (viewerRef.current?.controls) {
+            viewerRef.current.controls.enableRotate = dragMode;
+        }
+    }, [dragMode]);
 
     const cloneImageData = (imageData) => {
         return new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
@@ -524,24 +539,112 @@ const AdvancedSkinEditorDialog = ({
     useEffect(() => {
         if (!open || !skinSrc || !textureCanvasRef.current) return;
 
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-            const canvas = textureCanvasRef.current;
-            const ctx = canvas.getContext('2d');
-            canvas.width = 64;
-            canvas.height = img.height === 32 ? 32 : 64;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resetHistory();
-            scheduleSkinSync();
+        let cancelled = false;
+        const isRemoteHttp = /^https?:\/\//i.test(skinSrc);
+
+        const drawSkinToCanvas = (src, useCorsForHttp) => {
+            return new Promise<void>((resolve, reject) => {
+                const img = new Image();
+                if (useCorsForHttp && /^https?:\/\//i.test(src)) {
+                    img.crossOrigin = 'anonymous';
+                }
+
+                img.onload = () => {
+                    if (cancelled) {
+                        resolve();
+                        return;
+                    }
+
+                    const canvas = textureCanvasRef.current;
+                    if (!canvas) {
+                        resolve();
+                        return;
+                    }
+
+                    try {
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = 64;
+                        canvas.height = img.height === 32 ? 32 : 64;
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.imageSmoothingEnabled = false;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resetHistory();
+                        scheduleSkinSync();
+                        resolve();
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+
+                img.onerror = (event) => {
+                    console.error('Failed to load skin texture in advanced editor', { src, event });
+                    reject(new Error('skin-image-load-failed'));
+                };
+
+                img.src = src;
+            });
         };
-        img.src = skinSrc;
-    }, [open, skinSrc]);
+
+        const loadTexture = async () => {
+            try {
+                await drawSkinToCanvas(skinSrc, true);
+            } catch (primaryError) {
+                if (!isRemoteHttp || !window.electronAPI?.saveLocalSkin || cancelled) {
+                    console.error('Failed to load skin texture in advanced editor', { skinSrc, primaryError });
+                    if (!cancelled) {
+                        onNotify(t('skins.import_failed', { error: 'Editor preview load failed' }), 'error');
+                    }
+                    return;
+                }
+
+                try {
+                    const fallback = await window.electronAPI.saveLocalSkin({
+                        source: 'url',
+                        value: skinSrc,
+                        name: 'Remote Skin',
+                        model: editorModel
+                    });
+
+                    if (!fallback?.success || !fallback?.skin?.data) {
+                        throw new Error(fallback?.error || 'No fallback skin data');
+                    }
+
+                    await drawSkinToCanvas(fallback.skin.data, false);
+                } catch (fallbackError) {
+                    console.error('Failed to load skin texture with fallback data', {
+                        skinSrc,
+                        primaryError,
+                        fallbackError
+                    });
+                    if (!cancelled) {
+                        onNotify(t('skins.import_failed', { error: 'Editor preview load failed' }), 'error');
+                    }
+                }
+            }
+        };
+
+        loadTexture();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [open, skinSrc, editorModel]);
 
     useEffect(() => {
         if (!open || !viewerCanvasRef.current) return;
+
+        if (viewerRef.current) {
+            try {
+                const staleRenderer = viewerRef.current.renderer;
+                viewerRef.current.dispose();
+                staleRenderer?.dispose?.();
+                staleRenderer?.forceContextLoss?.();
+            } catch (error) {
+                console.warn('Failed to dispose stale advanced skin viewer', error);
+            } finally {
+                viewerRef.current = null;
+            }
+        }
 
         const viewer = new SkinViewer({
             canvas: viewerCanvasRef.current,
@@ -556,6 +659,7 @@ const AdvancedSkinEditorDialog = ({
         viewer.animation = null;
         viewer.renderer.setPixelRatio(window.devicePixelRatio);
         viewer.controls.enablePan = false;
+        viewer.controls.enableRotate = dragModeRef.current;
 
         viewerRef.current = viewer;
 
@@ -627,6 +731,9 @@ const AdvancedSkinEditorDialog = ({
         };
 
         const handlePointerDown = (event) => {
+            if (dragModeRef.current) {
+                return;
+            }
             pointerDownRef.current = true;
             lastPointerRef.current = { x: -1, y: -1 };
             beginStroke();
@@ -648,8 +755,10 @@ const AdvancedSkinEditorDialog = ({
 
         const handlePointerUp = () => endStroke();
 
-        viewer.renderer.domElement.addEventListener('pointerdown', handlePointerDown);
-        viewer.renderer.domElement.addEventListener('pointermove', handlePointerMove);
+        const viewerDomElement = viewer.renderer.domElement;
+
+        viewerDomElement.addEventListener('pointerdown', handlePointerDown);
+        viewerDomElement.addEventListener('pointermove', handlePointerMove);
         textureLargeCanvasRef.current?.addEventListener('pointerdown', handlePointerDown);
         textureLargeCanvasRef.current?.addEventListener('pointermove', handlePointerMove);
         window.addEventListener('pointerup', handlePointerUp);
@@ -662,14 +771,17 @@ const AdvancedSkinEditorDialog = ({
         scheduleSkinSync();
 
         return () => {
-            viewer.renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
-            viewer.renderer.domElement.removeEventListener('pointermove', handlePointerMove);
+            viewerDomElement.removeEventListener('pointerdown', handlePointerDown);
+            viewerDomElement.removeEventListener('pointermove', handlePointerMove);
             textureLargeCanvasRef.current?.removeEventListener('pointerdown', handlePointerDown);
             textureLargeCanvasRef.current?.removeEventListener('pointermove', handlePointerMove);
             window.removeEventListener('pointerup', handlePointerUp);
             resizeObserver.disconnect();
             resizeObserverTexture.disconnect();
+            const renderer = viewer.renderer;
             viewer.dispose();
+            renderer?.dispose?.();
+            renderer?.forceContextLoss?.();
             viewerRef.current = null;
             pointerDownRef.current = false;
             strokeActiveRef.current = false;
@@ -742,11 +854,11 @@ const AdvancedSkinEditorDialog = ({
                         <div className="rounded-lg border border-border bg-muted/20 h-[520px] relative" ref={viewerContainerRef}>
                             <canvas
                                 ref={viewerCanvasRef}
-                                className={`w-full h-full ${activeLargeView === 'player' ? 'cursor-crosshair opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'}`}
+                                className={`w-full h-full ${activeLargeView === 'player' ? `${dragMode ? 'cursor-grab' : 'cursor-crosshair'} opacity-100` : 'opacity-0 pointer-events-none absolute inset-0'}`}
                             />
                             <canvas
                                 ref={textureLargeCanvasRef}
-                                className={`w-full h-full image-pixelated ${activeLargeView === 'texture' ? 'cursor-crosshair opacity-100' : 'opacity-0 pointer-events-none absolute inset-0'}`}
+                                className={`w-full h-full image-pixelated ${activeLargeView === 'texture' ? `${dragMode ? 'cursor-not-allowed' : 'cursor-crosshair'} opacity-100` : 'opacity-0 pointer-events-none absolute inset-0'}`}
                             />
                         </div>
 
@@ -855,9 +967,25 @@ const AdvancedSkinEditorDialog = ({
                                     onClick={() => setTool('fill')}
                                     className="flex-1"
                                 >
+                                    <PaintBucket className="h-4 w-4" />
                                     {t('skins.fill')}
                                 </Button>
                             </div>
+                            <Button
+                                type="button"
+                                variant={dragMode ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setDragMode(prev => !prev)}
+                                className="w-full"
+                            >
+                                <Hand className="h-4 w-4" />
+                                {t('skins.drag_mode', 'Drag mode')}
+                            </Button>
+                            {dragMode && (
+                                <div className="text-xs text-muted-foreground">
+                                    {t('skins.drag_mode_hint', 'Drag mode active: painting is disabled.')}
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-2">
