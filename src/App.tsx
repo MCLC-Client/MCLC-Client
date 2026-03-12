@@ -16,6 +16,7 @@ const ServerLibrary = React.lazy(() => import('./pages/ServerLibrary'));
 const InstanceDetails = React.lazy(() => import('./pages/InstanceDetails'));
 const Client = React.lazy(() => import('./pages/Client'));
 const ClientMods = React.lazy(() => import('./pages/ClientMods'));
+const ToolsDashboard = React.lazy(() => import('./pages/ToolsDashboard'));
 const Extensions = React.lazy(() => import('./pages/Extensions'));
 const Login = React.lazy(() => import('./pages/Login'));
 const News = React.lazy(() => import('./pages/News'));
@@ -114,6 +115,7 @@ function App() {
 
     const lastClientView = useRef('dashboard');
     const lastServerView = useRef('server-dashboard');
+    const lastToolsView = useRef('tools-dashboard');
     const appSettingsRef = useRef<any>({});
 
     useEffect(() => {
@@ -133,6 +135,7 @@ function App() {
     useEffect(() => {
         if (currentMode === 'launcher') lastClientView.current = currentView;
         if (currentMode === 'server') lastServerView.current = currentView;
+        if (currentMode === 'tools') lastToolsView.current = currentView;
     }, [currentView, currentMode]);
 
     useEffect(() => {
@@ -474,6 +477,8 @@ function App() {
             setCurrentView(lastServerView.current || 'server-dashboard');
         } else if (mode === 'client') {
             setCurrentView('open-client');
+        } else if (mode === 'tools') {
+            setCurrentView(lastToolsView.current || 'tools-dashboard');
         }
         setSelectedInstance(null);
         setSelectedServer(null);
@@ -618,6 +623,13 @@ function App() {
                                         {currentView === 'styling' && <Styling />}
                                         {currentView === 'mods' && <ClientMods />}
                                         {currentView === 'settings' && <Settings mode="client" />}
+                                    </>
+                                )}
+
+                                {currentMode === 'tools' && (
+                                    <>
+                                        {currentView === 'tools-dashboard' && <ToolsDashboard />}
+                                        {currentView === 'settings' && <Settings />}
                                     </>
                                 )}
 

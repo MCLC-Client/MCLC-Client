@@ -17,7 +17,7 @@ import {
 } from './ui/dropdown-menu';
 import {
   Search, ChevronDown, Newspaper, Rocket,
-  Download, Gamepad2, Server, UserPlus, Trash2, LogOut, Zap
+  Download, Gamepad2, Server, UserPlus, Trash2, LogOut, Zap, Wrench
 } from 'lucide-react';
 
 function TopBar({
@@ -123,7 +123,12 @@ function TopBar({
       value: 'client',
       label: t('common.client', 'Client'),
       icon: Gamepad2
-    }] : [])
+    }] : []),
+    {
+      value: 'tools',
+      label: t('common.useful_tools', 'Useful Tools'),
+      icon: Wrench
+    }
   ];
 
   return (

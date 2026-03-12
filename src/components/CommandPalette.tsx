@@ -9,7 +9,7 @@ import {
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from './ui/dialog';
 import {
   Home, LayoutGrid, Search, User, Puzzle, Palette,
-  Settings, Newspaper, Play, Server, Rocket, Gamepad2, List
+  Settings, Newspaper, Play, Server, Rocket, Gamepad2, List, Wrench
 } from 'lucide-react';
 
 function CommandPalette({ open, onOpenChange, onNavigate, onModeSelect, currentMode, isAvailable, canAccessSkins }) {
@@ -40,6 +40,10 @@ function CommandPalette({ open, onOpenChange, onNavigate, onModeSelect, currentM
   }, [isAvailable, open, onOpenChange]);
 
   const fetchInstances = async () => {
+    if (currentMode === 'tools') {
+      setInstances([]);
+      return;
+    }
     try {
       const list = await window.electronAPI.getInstances();
       const instanceMode = currentMode === 'client' || currentMode === 'launcher' ? currentMode : undefined;
@@ -52,16 +56,22 @@ function CommandPalette({ open, onOpenChange, onNavigate, onModeSelect, currentM
     if (typeof action === 'function') action();
   }, [onOpenChange]);
 
-  const navItems = [
-    { id: 'dashboard', label: t('common.dashboard'), icon: Home, shortcut: 'D' },
-    { id: 'library', label: t('common.library'), icon: LayoutGrid, shortcut: 'L' },
-    { id: 'search', label: t('common.search'), icon: Search, shortcut: 'S' },
-    { id: 'skins', label: t('common.skins'), icon: User, disabled: !canAccessSkins },
-    { id: 'extensions', label: t('common.extensions'), icon: Puzzle },
-    { id: 'styling', label: t('common.styling'), icon: Palette },
-    { id: 'settings', label: t('common.settings'), icon: Settings, shortcut: ',' },
-    { id: 'news', label: t('common.news', 'News'), icon: Newspaper },
-  ];
+  const navItems = currentMode === 'tools'
+    ? [
+      { id: 'tools-dashboard', label: t('common.dashboard', 'Dashboard'), icon: LayoutGrid, shortcut: 'D' },
+      { id: 'settings', label: t('common.settings', 'Settings'), icon: Settings, shortcut: ',' },
+      { id: 'news', label: t('common.news', 'News'), icon: Newspaper },
+    ]
+    : [
+      { id: 'dashboard', label: t('common.dashboard'), icon: Home, shortcut: 'D' },
+      { id: 'library', label: t('common.library'), icon: LayoutGrid, shortcut: 'L' },
+      { id: 'search', label: t('common.search'), icon: Search, shortcut: 'S' },
+      { id: 'skins', label: t('common.skins'), icon: User, disabled: !canAccessSkins },
+      { id: 'extensions', label: t('common.extensions'), icon: Puzzle },
+      { id: 'styling', label: t('common.styling'), icon: Palette },
+      { id: 'settings', label: t('common.settings'), icon: Settings, shortcut: ',' },
+      { id: 'news', label: t('common.news', 'News'), icon: Newspaper },
+    ];
 
   if (!isAvailable) {
     return null;
@@ -196,6 +206,15 @@ function CommandPalette({ open, onOpenChange, onNavigate, onModeSelect, currentM
                   {currentMode === 'client' && <CommandShortcut>Active</CommandShortcut>}
                 </CommandItem>
               )}
+              <CommandItem
+                value="switch-tools"
+                onSelect={() => handleSelect(() => onModeSelect('tools'))}
+                className="gap-3 py-2 px-3 rounded-lg cursor-pointer"
+              >
+                <Wrench className="h-4 w-4" />
+                <span>{t('common.useful_tools', 'Useful Tools')}</span>
+                {currentMode === 'tools' && <CommandShortcut>Active</CommandShortcut>}
+              </CommandItem>
             </CommandGroup>
           </CommandList>
 

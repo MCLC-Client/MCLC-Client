@@ -84,9 +84,14 @@ function AppSidebar({
     { id: 'mods', label: t('instance_details.content.mods', 'Mods'), icon: List },
   ];
 
+  const toolsItems: { id: string; label: string; icon: any; disabled?: boolean }[] = [
+    { id: 'tools-dashboard', label: t('common.dashboard', 'Dashboard'), icon: LayoutGrid },
+  ];
+
   const getMenuItems = () => {
     if (currentMode === 'server') return serverItems;
     if (currentMode === 'client' && isFeatureEnabled('openClientPage')) return clientItems;
+    if (currentMode === 'tools') return toolsItems;
     return launcherItems;
   };
 

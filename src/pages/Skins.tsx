@@ -179,7 +179,7 @@ const CapePreview = ({ src, className }: { src?: any; className?: string }) => {
     return <canvas ref={canvasRef} className={`w-full h-full object-contain image-pixelated ${className}`} />;
 };
 
-const AdvancedSkinEditorDialog = ({
+export const AdvancedSkinEditorDialog = ({
     open,
     onOpenChange,
     skinSrc,
