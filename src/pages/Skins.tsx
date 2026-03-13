@@ -186,6 +186,59 @@ const CapePreview = ({ src, className }: { src?: any; className?: string }) => {
     return <canvas ref={canvasRef} className={`w-full h-full object-contain image-pixelated ${className}`} />;
 };
 
+const SKIN_EDITOR_DEBUG_PREFIX = '[SkinEditorDebug]';
+
+const getSkinSourceDebugInfo = (skinSource) => {
+    if (typeof skinSource !== 'string') {
+        return {
+            sourceType: skinSource == null ? 'empty' : typeof skinSource,
+            sourcePreview: null,
+            sourceLength: 0
+        };
+    }
+
+    const value = skinSource.trim();
+    if (!value) {
+        return {
+            sourceType: 'empty-string',
+            sourcePreview: '',
+            sourceLength: 0
+        };
+    }
+
+    let sourceType = 'unknown';
+    if (/^data:image\//i.test(value)) {
+        sourceType = 'data-url';
+    } else if (/^https?:\/\//i.test(value)) {
+        sourceType = 'http-url';
+    } else if (/^file:\/\//i.test(value)) {
+        sourceType = 'file-url';
+    } else if (value.startsWith('/assets/')) {
+        sourceType = 'asset-path';
+    } else if (/^[a-zA-Z]:\\/.test(value) || value.includes('\\')) {
+        sourceType = 'windows-path';
+    }
+
+    const sourcePreview = sourceType === 'data-url'
+        ? `${value.slice(0, 64)}...`
+        : value.slice(0, 256);
+
+    return {
+        sourceType,
+        sourcePreview,
+        sourceLength: value.length
+    };
+};
+
+const logSkinEditorDebug = (context, event, details = {}) => {
+    console.info(SKIN_EDITOR_DEBUG_PREFIX, {
+        context,
+        event,
+        ts: new Date().toISOString(),
+        ...details
+    });
+};
+
 export const AdvancedSkinEditorDialog = ({
     open,
     onOpenChange,
@@ -193,7 +246,9 @@ export const AdvancedSkinEditorDialog = ({
     model,
     onSave,
     onNotify,
-    t
+    t,
+    title = undefined,
+    debugContext = 'skins-page'
 }) => {
     const viewerCanvasRef = useRef(null);
     const viewerContainerRef = useRef(null);
@@ -235,7 +290,10 @@ export const AdvancedSkinEditorDialog = ({
         setActiveLargeView('player');
         setPose('t_pose');
         setDragMode(false);
-    }, [model, open]);
+        logSkinEditorDebug(debugContext, 'dialog-opened', {
+            editorModel: model || 'classic'
+        });
+    }, [debugContext, model, open]);
 
     useEffect(() => {
         toolRef.current = tool;
@@ -530,6 +588,9 @@ export const AdvancedSkinEditorDialog = ({
             setFlatPreview(textureCanvas.toDataURL('image/png'));
         } catch (previewError) {
             console.warn('Failed to create advanced editor texture preview', previewError);
+            logSkinEditorDebug(debugContext, 'preview-data-url-failed', {
+                error: previewError?.message || String(previewError)
+            });
             setFlatPreview('');
         }
 
@@ -539,6 +600,10 @@ export const AdvancedSkinEditorDialog = ({
             resetViewerUnpackState(viewer);
         } catch (error) {
             console.error('Failed to sync advanced skin viewer texture', error);
+            logSkinEditorDebug(debugContext, 'viewer-sync-failed', {
+                editorModel,
+                error: error?.message || String(error)
+            });
             return;
         }
 
@@ -570,27 +635,56 @@ export const AdvancedSkinEditorDialog = ({
     };
 
     useEffect(() => {
-        if (!open || !skinSrc || !textureCanvasRef.current) return;
+        if (!open) return;
+        if (!skinSrc) {
+            logSkinEditorDebug(debugContext, 'texture-load-skipped', { reason: 'missing-skin-source' });
+            return;
+        }
+        if (!textureCanvasRef.current) {
+            logSkinEditorDebug(debugContext, 'texture-load-skipped', { reason: 'missing-texture-canvas' });
+            return;
+        }
 
         let cancelled = false;
         const isHttpUrl = (value) => typeof value === 'string' && /^https?:\/\//i.test(value.trim());
         const isRemoteHttp = isHttpUrl(skinSrc);
+        const initialSourceInfo = getSkinSourceDebugInfo(skinSrc);
+
+        logSkinEditorDebug(debugContext, 'texture-load-start', {
+            editorModel,
+            isRemoteHttp,
+            ...initialSourceInfo
+        });
 
         const drawSkinToCanvas = (src, useCorsForHttp) => {
             return new Promise<void>((resolve, reject) => {
                 const img = new Image();
+                const sourceInfo = getSkinSourceDebugInfo(src);
+                logSkinEditorDebug(debugContext, 'draw-image-start', {
+                    ...sourceInfo,
+                    useCorsForHttp
+                });
+
                 if (useCorsForHttp && isHttpUrl(src)) {
                     img.crossOrigin = 'anonymous';
                 }
 
                 img.onload = () => {
                     if (cancelled) {
+                        logSkinEditorDebug(debugContext, 'draw-image-cancelled', {
+                            ...sourceInfo,
+                            naturalWidth: img.width,
+                            naturalHeight: img.height
+                        });
                         resolve();
                         return;
                     }
 
                     const canvas = textureCanvasRef.current;
                     if (!canvas) {
+                        logSkinEditorDebug(debugContext, 'draw-image-no-canvas', {
+                            ...sourceInfo
+                        });
                         resolve();
                         return;
                     }
@@ -606,15 +700,32 @@ export const AdvancedSkinEditorDialog = ({
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         ctx.imageSmoothingEnabled = false;
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        logSkinEditorDebug(debugContext, 'draw-image-success', {
+                            ...sourceInfo,
+                            naturalWidth: img.width,
+                            naturalHeight: img.height,
+                            canvasWidth: canvas.width,
+                            canvasHeight: canvas.height
+                        });
                         resetHistory();
                         scheduleSkinSync();
                         resolve();
                     } catch (error) {
+                        logSkinEditorDebug(debugContext, 'draw-image-failed', {
+                            ...sourceInfo,
+                            error: error?.message || String(error)
+                        });
                         reject(error);
                     }
                 };
 
                 img.onerror = (event) => {
+                    const eventType = typeof event === 'string' ? event : (event?.type || 'unknown');
+                    logSkinEditorDebug(debugContext, 'draw-image-error', {
+                        ...sourceInfo,
+                        isHttpSource: isHttpUrl(src),
+                        eventType
+                    });
                     console.error('Failed to load skin texture in advanced editor', {
                         src,
                         isHttpSource: isHttpUrl(src),
@@ -630,7 +741,19 @@ export const AdvancedSkinEditorDialog = ({
         const loadTexture = async () => {
             try {
                 await drawSkinToCanvas(skinSrc, true);
+                logSkinEditorDebug(debugContext, 'texture-load-primary-success', {
+                    editorModel,
+                    ...initialSourceInfo
+                });
             } catch (primaryError) {
+                const fallbackEligible = isRemoteHttp && !!window.electronAPI?.saveLocalSkin && !cancelled;
+                logSkinEditorDebug(debugContext, 'texture-load-primary-failed', {
+                    editorModel,
+                    fallbackEligible,
+                    error: primaryError?.message || String(primaryError),
+                    ...initialSourceInfo
+                });
+
                 if (!isRemoteHttp || !window.electronAPI?.saveLocalSkin || cancelled) {
                     console.error('Failed to load skin texture in advanced editor', { skinSrc, primaryError });
                     if (!cancelled) {
@@ -640,6 +763,11 @@ export const AdvancedSkinEditorDialog = ({
                 }
 
                 try {
+                    logSkinEditorDebug(debugContext, 'texture-load-fallback-start', {
+                        editorModel,
+                        ...initialSourceInfo
+                    });
+
                     const fallback = await window.electronAPI.saveLocalSkin({
                         source: 'url',
                         value: skinSrc,
@@ -647,12 +775,27 @@ export const AdvancedSkinEditorDialog = ({
                         model: editorModel
                     });
 
+                    logSkinEditorDebug(debugContext, 'texture-load-fallback-response', {
+                        success: !!fallback?.success,
+                        error: fallback?.error || null,
+                        hasSkinData: !!fallback?.skin?.data
+                    });
+
                     if (!fallback?.success || !fallback?.skin?.data) {
                         throw new Error(fallback?.error || 'No fallback skin data');
                     }
 
                     await drawSkinToCanvas(fallback.skin.data, false);
+                    logSkinEditorDebug(debugContext, 'texture-load-fallback-success', {
+                        fallbackSkinId: fallback?.skin?.id || null,
+                        fallbackModel: fallback?.skin?.model || null
+                    });
                 } catch (fallbackError) {
+                    logSkinEditorDebug(debugContext, 'texture-load-fallback-failed', {
+                        editorModel,
+                        error: fallbackError?.message || String(fallbackError),
+                        ...initialSourceInfo
+                    });
                     console.error('Failed to load skin texture with fallback data', {
                         skinSrc,
                         primaryError,
@@ -669,11 +812,19 @@ export const AdvancedSkinEditorDialog = ({
 
         return () => {
             cancelled = true;
+            logSkinEditorDebug(debugContext, 'texture-load-cancelled', {
+                editorModel,
+                ...initialSourceInfo
+            });
         };
-    }, [open, skinSrc, editorModel]);
+    }, [debugContext, open, skinSrc, editorModel]);
 
     useEffect(() => {
         if (!open || !viewerCanvasRef.current) return;
+
+        logSkinEditorDebug(debugContext, 'viewer-init-start', {
+            hasCanvas: !!viewerCanvasRef.current
+        });
 
         if (viewerRef.current) {
             try {
@@ -683,6 +834,9 @@ export const AdvancedSkinEditorDialog = ({
                 staleRenderer?.forceContextLoss?.();
             } catch (error) {
                 console.warn('Failed to dispose stale advanced skin viewer', error);
+                logSkinEditorDebug(debugContext, 'viewer-dispose-stale-failed', {
+                    error: error?.message || String(error)
+                });
             } finally {
                 viewerRef.current = null;
             }
@@ -705,6 +859,10 @@ export const AdvancedSkinEditorDialog = ({
 
         viewerRef.current = viewer;
         resetViewerUnpackState(viewer);
+        logSkinEditorDebug(debugContext, 'viewer-init-success', {
+            editorModel,
+            devicePixelRatio: window.devicePixelRatio
+        });
 
         const resizeObserver = new ResizeObserver(entries => {
             for (const entry of entries) {
@@ -829,8 +987,9 @@ export const AdvancedSkinEditorDialog = ({
             pointerDownRef.current = false;
             strokeActiveRef.current = false;
             meshesRef.current = [];
+            logSkinEditorDebug(debugContext, 'viewer-disposed');
         };
-    }, [open]);
+    }, [debugContext, open]);
 
     useEffect(() => {
         if (!open || !viewerRef.current) return;
@@ -867,6 +1026,10 @@ export const AdvancedSkinEditorDialog = ({
 
         try {
             setIsSaving(true);
+            logSkinEditorDebug(debugContext, 'save-start', {
+                editorModel,
+                skinName
+            });
             const res = await window.electronAPI.saveLocalSkin({
                 source: 'data-url',
                 value: textureCanvasRef.current.toDataURL('image/png'),
@@ -875,12 +1038,23 @@ export const AdvancedSkinEditorDialog = ({
             });
 
             if (res.success && res.skin) {
+                logSkinEditorDebug(debugContext, 'save-success', {
+                    skinId: res.skin.id,
+                    skinModel: res.skin.model || editorModel,
+                    skinName: res.skin.name || skinName
+                });
                 onSave(res.skin, editorModel);
                 onOpenChange(false);
             } else if (res.error && res.error !== 'Cancelled') {
+                logSkinEditorDebug(debugContext, 'save-failed', {
+                    error: res.error
+                });
                 onNotify(t('skins.import_failed', { error: res.error }), 'error');
             }
         } catch (e) {
+            logSkinEditorDebug(debugContext, 'save-error', {
+                error: e?.message || String(e)
+            });
             onNotify(t('skins.import_failed', { error: e.message }), 'error');
         } finally {
             setIsSaving(false);
@@ -891,7 +1065,7 @@ export const AdvancedSkinEditorDialog = ({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-6xl">
                 <DialogHeader>
-                    <DialogTitle>{t('skins.advanced_editor')}</DialogTitle>
+                    <DialogTitle>{title || t('skins.advanced_editor')}</DialogTitle>
                     <DialogDescription className="sr-only">
                         {t('skins.advanced_editor_desc', 'Edit your selected skin in the advanced pixel editor.')}
                     </DialogDescription>
@@ -1657,6 +1831,7 @@ function Skins({ onLogout, onProfileUpdate }) {
                     onSave={handleSaveAdvancedSkin}
                     onNotify={addNotification}
                     t={t}
+                    debugContext="skins-page"
                 />
 
                 <div className="w-1/3 min-w-[300px] bg-card/50 backdrop-blur-sm border-r border-border flex flex-col items-center justify-center relative p-6">

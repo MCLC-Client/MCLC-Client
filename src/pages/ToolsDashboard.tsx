@@ -17,6 +17,56 @@ const DEFAULT_STEVE = {
     url: '/assets/skins/steve-classic.png'
 };
 
+const TOOLS_SKIN_EDITOR_DEBUG_CONTEXT = 'tools-dashboard';
+const TOOLS_SKIN_EDITOR_DEBUG_PREFIX = '[SkinEditorDebug]';
+
+const getToolsSkinSourceDebugInfo = (skinSource: any) => {
+    if (typeof skinSource !== 'string') {
+        return {
+            sourceType: skinSource == null ? 'empty' : typeof skinSource,
+            sourcePreview: null,
+            sourceLength: 0
+        };
+    }
+
+    const value = skinSource.trim();
+    if (!value) {
+        return {
+            sourceType: 'empty-string',
+            sourcePreview: '',
+            sourceLength: 0
+        };
+    }
+
+    let sourceType = 'unknown';
+    if (/^data:image\//i.test(value)) {
+        sourceType = 'data-url';
+    } else if (/^https?:\/\//i.test(value)) {
+        sourceType = 'http-url';
+    } else if (/^file:\/\//i.test(value)) {
+        sourceType = 'file-url';
+    } else if (value.startsWith('/assets/')) {
+        sourceType = 'asset-path';
+    } else if (/^[a-zA-Z]:\\/.test(value) || value.includes('\\')) {
+        sourceType = 'windows-path';
+    }
+
+    return {
+        sourceType,
+        sourcePreview: sourceType === 'data-url' ? `${value.slice(0, 64)}...` : value.slice(0, 256),
+        sourceLength: value.length
+    };
+};
+
+const logToolsSkinEditorDebug = (event: string, details: Record<string, any> = {}) => {
+    console.info(TOOLS_SKIN_EDITOR_DEBUG_PREFIX, {
+        context: TOOLS_SKIN_EDITOR_DEBUG_CONTEXT,
+        event,
+        ts: new Date().toISOString(),
+        ...details
+    });
+};
+
 function ToolsDashboard() {
     const { t } = useTranslation();
     const { addNotification } = useNotification();
@@ -38,10 +88,17 @@ function ToolsDashboard() {
 
     const loadLocalSkins = async () => {
         try {
+            logToolsSkinEditorDebug('load-local-skins-start');
             const skins = await window.electronAPI.getLocalSkins();
             setLocalSkins(skins || []);
+            logToolsSkinEditorDebug('load-local-skins-success', {
+                count: (skins || []).length
+            });
         } catch (error) {
             console.error('Failed to load local skins for tools dashboard', error);
+            logToolsSkinEditorDebug('load-local-skins-failed', {
+                error: (error as any)?.message || String(error)
+            });
         }
     };
 
@@ -55,8 +112,12 @@ function ToolsDashboard() {
         if (!window.electronAPI?.saveLocalSkin) return;
         try {
             setIsImportingSkin(true);
+            logToolsSkinEditorDebug('import-file-start');
             const res = await window.electronAPI.saveLocalSkin();
             if (!res.success) {
+                logToolsSkinEditorDebug('import-file-failed', {
+                    error: res.error || null
+                });
                 if (res.error !== 'Cancelled') {
                     addNotification(t('skins.import_failed', { error: res.error }), 'error');
                 }
@@ -66,15 +127,24 @@ function ToolsDashboard() {
             await loadLocalSkins();
 
             if (res.skin) {
-                setSkinSrc(res.skin.data || `file://${res.skin.path}`);
+                const nextSkinSrc = res.skin.data || `file://${res.skin.path}`;
+                setSkinSrc(nextSkinSrc);
                 setSkinModel(res.skin.model || 'classic');
                 setSelectedName(res.skin.name || t('common.skins', 'Skin'));
+                logToolsSkinEditorDebug('import-file-success', {
+                    skinName: res.skin.name || null,
+                    skinModel: res.skin.model || 'classic',
+                    ...getToolsSkinSourceDebugInfo(nextSkinSrc)
+                });
             }
 
             addNotification(t('skins.import_success', 'Skin imported successfully.'), 'success');
             setIsLoadModalOpen(false);
         } catch (error: any) {
             console.error('Failed to import skin file in tools dashboard', error);
+            logToolsSkinEditorDebug('import-file-error', {
+                error: error?.message || 'Unknown'
+            });
             addNotification(t('skins.import_failed', { error: error?.message || 'Unknown' }), 'error');
         } finally {
             setIsImportingSkin(false);
@@ -82,10 +152,17 @@ function ToolsDashboard() {
     };
 
     const handleSelectLocalSkin = (skin: any) => {
-        setSkinSrc(skin.data || `file://${skin.path}`);
+        const nextSkinSrc = skin.data || `file://${skin.path}`;
+        setSkinSrc(nextSkinSrc);
         setSkinModel(skin.model || 'classic');
         setSelectedName(skin.name || t('common.skins', 'Skin'));
         setIsLoadModalOpen(false);
+        logToolsSkinEditorDebug('select-local-skin', {
+            skinId: skin.id,
+            skinName: skin.name || null,
+            skinModel: skin.model || 'classic',
+            ...getToolsSkinSourceDebugInfo(nextSkinSrc)
+        });
         addNotification(t('tools.skin_loaded', 'Skin loaded into editor.'), 'success');
     };
 
@@ -93,6 +170,20 @@ function ToolsDashboard() {
         setSkinSrc(DEFAULT_STEVE.url);
         setSkinModel(DEFAULT_STEVE.model);
         setSelectedName(DEFAULT_STEVE.name);
+        logToolsSkinEditorDebug('reset-to-steve', {
+            skinName: DEFAULT_STEVE.name,
+            skinModel: DEFAULT_STEVE.model,
+            ...getToolsSkinSourceDebugInfo(DEFAULT_STEVE.url)
+        });
+    };
+
+    const handleOpenSkinEditor = () => {
+        logToolsSkinEditorDebug('open-skin-editor', {
+            selectedName,
+            skinModel,
+            ...getToolsSkinSourceDebugInfo(skinSrc)
+        });
+        setShowAdvancedEditor(true);
     };
 
     const handleSaveAdvancedSkin = async (skin: any, nextModel?: string) => {
@@ -106,7 +197,15 @@ function ToolsDashboard() {
             setSkinSrc(`file://${skin.path}`);
         }
 
-        addNotification(t('skins.advanced_saved', 'Saved from advanced editor.'), 'success');
+        logToolsSkinEditorDebug('save-from-editor', {
+            skinId: skin.id,
+            skinName: skin.name || null,
+            skinModel: resolvedModel,
+            hasData: !!skin.data,
+            hasPath: !!skin.path
+        });
+
+        addNotification(t('tools.skin_editor_saved', 'Saved from skin editor.'), 'success');
     };
 
     return (
@@ -174,6 +273,8 @@ function ToolsDashboard() {
                 onSave={handleSaveAdvancedSkin}
                 onNotify={addNotification}
                 t={t}
+                title={t('tools.skin_editor_title', 'Skin Editor')}
+                debugContext={TOOLS_SKIN_EDITOR_DEBUG_CONTEXT}
             />
 
             <div className="border-b border-border px-6 py-5 shrink-0">
@@ -198,11 +299,11 @@ function ToolsDashboard() {
                                 <div className="flex items-center gap-2 mb-1">
                                     <Cuboid className="h-4 w-4 text-primary" />
                                     <h2 className="text-base font-semibold text-foreground">
-                                        {t('skins.advanced_editor', '3D Skin Creator/Editor')}
+                                        {t('tools.skin_editor_title', 'Skin Editor')}
                                     </h2>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                    {t('tools.skin_editor_desc', 'Start with Steve by default. Use Load to import a file or choose a skin from your local library, then edit in advanced mode.')}
+                                    {t('tools.skin_editor_desc', 'Start with Steve by default. Use Load to import a file or choose a skin from your local library, then edit in the skin editor.')}
                                 </p>
                             </div>
                             <Badge variant="secondary" className="shrink-0">{t('common.new', 'New')}</Badge>
@@ -212,7 +313,7 @@ function ToolsDashboard() {
                             <div className="flex items-start gap-3">
                                 <Sparkles className="h-4 w-4 text-primary mt-0.5" />
                                 <div className="text-sm text-muted-foreground">
-                                    {t('tools.skin_editor_hint', 'This tool reuses your existing advanced editor from Skins.tsx. It does not edit your active account skin unless you upload it later yourself.')}
+                                    {t('tools.skin_editor_hint', 'This tool reuses your existing skin editor from Skins.tsx. It does not edit your active account skin unless you upload it later yourself.')}
                                 </div>
                             </div>
                         </div>
@@ -241,7 +342,7 @@ function ToolsDashboard() {
                                     <RotateCcw className="h-4 w-4" />
                                     {t('tools.reset_to_steve', 'Reset to Steve')}
                                 </Button>
-                                <Button onClick={() => setShowAdvancedEditor(true)}>
+                                <Button onClick={handleOpenSkinEditor}>
                                     <Wrench className="h-4 w-4" />
                                     {t('tools.open_skin_editor', 'Open Skin Editor')}
                                 </Button>
